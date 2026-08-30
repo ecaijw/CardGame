@@ -1,0 +1,13 @@
+{
+  "name": "cardgame-24",
+  "private": true,
+  "description": "微信小游戏：经典 24 点",
+  "scripts": {
+    "test": "tsx scripts/test-game.ts"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^4.1.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

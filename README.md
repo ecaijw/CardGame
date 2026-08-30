@@ -1,0 +1,30 @@
+# 24 点
+
+微信小游戏：用 4 个数做四则运算，逐步合并凑出 24。
+
+## 文档
+
+- [玩法规则](docs/rules.md)
+- [产品需求](docs/prd.md)
+- [技术方案](docs/tech.md)
+- [分期路线图](docs/roadmap.md)
+
+当前进度：第 0 期可玩（小游戏 + 3 组测试牌 + 合并 / 撤销 / 重开 / 下一局）。
+
+## 本地运行
+
+1. 安装 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
+2. 导入项目：左侧选 **Mini Game**，目录选本仓库根（含 `game.js` 与 `project.config.json`）
+3. AppID 用已有小游戏号 `wx7ef5e16ec6f6fd5f`
+4. 不用云服务
+
+```bash
+npm install
+npm test
+```
+
+头像上传用 [`assets/icon.png`](assets/icon.png)。
+
+## 技术栈
+
+微信原生小游戏 + TypeScript + Canvas。规则在 `js/game/`，不依赖 `wx`。
