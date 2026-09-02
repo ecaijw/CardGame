@@ -78,6 +78,21 @@ function testFixtures() {
   assert(outcome(c) === 'success', '1,5,5,5')
 }
 
+function testResultReplacesSecondCardSlot() {
+  const start = startGame([1, 2, 3, 8])
+  assert(
+    start.cards.map((card) => card.slot).join(',') === '0,1,2,3',
+    'initial slots',
+  )
+  const after = play(start, '2', '−', '1')
+  const result = after.cards.find((card) => formatFraction(card.value) === '1')
+  assert(!!result && result.slot === 0, 'result takes second-clicked slot')
+  assert(
+    !after.cards.some((card) => card.slot === 1),
+    'first-clicked slot is empty',
+  )
+}
+
 function testFailAndUndo() {
   let state = startGame([1, 2, 3, 8])
   state = play(state, '1', '+', '2')
@@ -96,5 +111,6 @@ function testFailAndUndo() {
 testFractions()
 testRulesExample()
 testFixtures()
+testResultReplacesSecondCardSlot()
 testFailAndUndo()
 console.log('game tests passed')

@@ -9,6 +9,7 @@ import {
 export type Card = {
   id: number
   value: Fraction
+  slot: number
 }
 
 export type GameState = {
@@ -29,6 +30,7 @@ function cloneCards(cards: Card[]): Card[] {
   return cards.map((card) => ({
     id: card.id,
     value: { n: card.value.n, d: card.value.d },
+    slot: card.slot,
   }))
 }
 
@@ -36,6 +38,7 @@ export function startGame(nums: number[]): GameState {
   const cards = nums.map((value, index) => ({
     id: index + 1,
     value: fromInt(value),
+    slot: index,
   }))
   return {
     cards,
@@ -63,7 +66,7 @@ export function merge(
     return { ok: false, reason: 'div0' }
   }
   const remaining = state.cards.filter((card) => card.id !== leftId && card.id !== rightId)
-  const next: Card = { id: state.nextId, value }
+  const next: Card = { id: state.nextId, value, slot: right.slot }
   return {
     ok: true,
     state: {

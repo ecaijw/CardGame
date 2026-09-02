@@ -138,24 +138,23 @@ export class PlayScene {
 
     text(ctx, `题目 ${FIXTURES[this.puzzleIndex].id}`, width / 2, 36, 14, Color.muted)
 
-    const count = this.state.cards.length
-    const cardW = Math.min(78, (width - 48) / Math.max(count, 1) - 10)
+    const topY = 72
+    const gap = 16
+    const cardW = Math.min(120, (width - 48 - gap) / 2)
     const cardH = cardW * (88 / 63)
-    const totalW = count * cardW + (count - 1) * 12
-    let x = (width - totalW) / 2
-    const y = 90
+    const fontSize = cardW > 90 ? 32 : 26
+    const slots = slotRects(width, topY, cardW, cardH, gap)
     this.state.cards.forEach((card) => {
-      const rect = { x, y, w: cardW, h: cardH }
-      fillRound(ctx, rect, Color.paper, 12, true)
+      const rect = slots[card.slot]
+      fillRound(ctx, rect, Color.paper, 14, true)
       if (card.id === this.selectedId) {
-        strokeRound(ctx, rect, Color.gold, 12, 4)
+        strokeRound(ctx, rect, Color.gold, 14, 4)
       }
-      text(ctx, formatFraction(card.value), x + cardW / 2, y + cardH / 2, cardW > 60 ? 26 : 20, Color.coral)
+      text(ctx, formatFraction(card.value), rect.x + rect.w / 2, rect.y + rect.h / 2, fontSize, Color.coral)
       this.hits.push({ rect, hit: { kind: 'card', id: card.id } })
-      x += cardW + 12
     })
 
-    const opY = y + cardH + 48
+    const opY = slots[2].y + slots[2].h + 36
     const opGap = 10
     const opW = (width - 32 - opGap * 3) / 4
     OPS.forEach((op, index) => {
@@ -214,4 +213,20 @@ export class PlayScene {
     button(ctx, next, '下一局', 'primary')
     this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
   }
+}
+
+function slotRects(
+  width: number,
+  topY: number,
+  cardW: number,
+  cardH: number,
+  gap: number,
+): Rect[] {
+  const startX = (width - (2 * cardW + gap)) / 2
+  return [0, 1, 2, 3].map((slot) => ({
+    x: startX + (slot % 2) * (cardW + gap),
+    y: topY + Math.floor(slot / 2) * (cardH + gap),
+    w: cardW,
+    h: cardH,
+  }))
 }
