@@ -1,0 +1,9 @@
+.status-open {
+  color: #cf222e;
+  font-weight: 600;
+}
+
+.status-close {
+  color: #1a7f37;
+  font-weight: 600;
+}
