@@ -5,17 +5,6 @@ export type Fraction = {
 
 export type Op = '+' | '−' | '×' | '÷'
 
-function gcd(a: number, b: number): number {
-  a = Math.abs(a)
-  b = Math.abs(b)
-  while (b !== 0) {
-    const t = b
-    b = a % b
-    a = t
-  }
-  return a === 0 ? 1 : a
-}
-
 export function frac(n: number, d = 1): Fraction {
   if (d === 0) {
     throw new Error('denominator must not be 0')
@@ -24,8 +13,7 @@ export function frac(n: number, d = 1): Fraction {
     n = -n
     d = -d
   }
-  const g = gcd(n, d)
-  return { n: n / g, d: d / g }
+  return { n, d }
 }
 
 export function fromInt(value: number): Fraction {
@@ -58,8 +46,8 @@ export function isTwentyFour(value: Fraction): boolean {
 export function formatFraction(value: Fraction): string {
   const sign = value.n < 0 ? '−' : ''
   const n = Math.abs(value.n)
-  if (value.d === 1) {
-    return `${sign}${n}`
+  if (n % value.d === 0) {
+    return `${sign}${n / value.d}`
   }
   return `${sign}${n}/${value.d}`
 }
