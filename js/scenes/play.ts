@@ -174,6 +174,7 @@ export class PlayScene {
     if (!this.result) {
       return
     }
+    this.hits = []
     ctx.fillStyle = Color.mask
     ctx.fillRect(0, 0, width, height)
     const dialog = { x: 32, y: height / 2 - 120, w: width - 64, h: 240 }
