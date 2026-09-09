@@ -31,6 +31,7 @@ js/
     difficulty.ts       第 1 期
 scripts/
   generate-puzzles.ts   第 1 期
+  solve.ts              第 1 期（仅生成用，不进小游戏包）
 project.config.json     compileType: game
 ```
 
@@ -76,10 +77,10 @@ project.config.json     compileType: game
 
 电脑上跑 `scripts/generate-puzzles.ts`：
 
-- 枚举 1–13 的四元组（可重复、与顺序无关，约 1820 种）
-- 用分数穷举逐步合并，筛出至少有一解的条目
-- 写出 `miniprogram/game/puzzles.json`，提交进仓库
-- 运行时只读该文件，设备上不再穷举
+- 枚举 1–13 的四元组（可重复、与顺序无关，1820 种全部写入）
+- 用分数穷举逐步合并；有解写入代表解，无解 `difficulty` 为 `unsolvable`
+- 写出 `js/game/puzzles.json`，提交进仓库
+- 运行时只读该文件，设备上不再穷举；第 0–4 期对局仍只发有解题
 
 条目形状：
 
@@ -87,15 +88,15 @@ project.config.json     compileType: game
 {
   id: string
   nums: [number, number, number, number]
-  difficulty: "easy" | "medium" | "hard"
-  steps: string[]       // 与合并 UI 一致，如 ["8÷2=4", "3×4=12", "1×12=24"]
-  expression: string    // 给「看完整解法」
+  difficulty: "easy" | "medium" | "hard" | "unsolvable"
+  steps: string[]       // 与合并 UI 一致，如 ["8÷2=4", "3×4=12", "1×12=24"]；无解为空
+  expression: string    // 给「看完整解法」；无解为空字符串
 }
 ```
 
-难度在生成时写入（解的个数、是否需要除法 / 括号、是否含 11–13 等）。运行时只读字段。
+难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。按中间步骤分档：全程正整数且不必除法为 easy；必须整除但不需要非整数分数为 medium；所有解都需要非整数分数为 hard。不用「最大点数 ≤ 10」或「出现除法就算 hard」。`expression` 去掉最外层一对括号。运行时只读字段。
 
-提示：一步用 `steps[0]`，完整用 `steps` 或 `expression`。题库已保证有解，不必再判断「是否有解」。
+提示：一步用 `steps[0]`，完整用 `steps` 或 `expression`。抽题时跳过 `unsolvable`，不必再现场判断「是否有解」。
 
 已玩记录：**不要**写进 JSON。用 `wx.setStorage` 存题目 id 集合。
 

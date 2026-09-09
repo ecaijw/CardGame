@@ -5,8 +5,11 @@ import {
   fromInt,
   isTwentyFour,
 } from '../js/game/fraction'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
 import { FIXTURES, nextIndex } from '../js/game/puzzles.fixture'
+import { classifyDifficulty, enumerateTuples, solve } from './solve'
 
 function assert(cond: boolean, message: string) {
   if (!cond) {
@@ -108,9 +111,63 @@ function testFailAndUndo() {
   assert(nextIndex(2) === 0, 'fixtures cycle')
 }
 
+function testSolver() {
+  assert(solve([1, 1, 1, 1]) === null, '1,1,1,1 is unsolvable')
+  assert(enumerateTuples().length === 1820, '1-13 combinations with repetition')
+  const solvable = [
+    [1, 2, 3, 8],
+    [3, 3, 8, 8],
+    [1, 5, 5, 5],
+    [1, 3, 4, 6],
+  ]
+  for (const nums of solvable) {
+    const result = solve(nums)
+    assert(!!result, `${nums.join(',')} should be solvable`)
+    assert(result!.best.steps.length === 3, `${nums.join(',')} has three steps`)
+    assert(result!.solutions >= 1, `${nums.join(',')} counts at least one expression`)
+  }
+  const eight = solve([1, 1, 1, 8])
+  assert(!!eight, '1,1,1,8 should be solvable')
+  assert(eight!.best.expression === '(1+(1+1))×8', 'strip outermost parens')
+  assert(classifyDifficulty(solve([1, 1, 1, 8])) === 'easy', '1,1,1,8 easy')
+  assert(classifyDifficulty(solve([1, 1, 6, 8])) === 'medium', '1,1,6,8 needs integer divide')
+  assert(classifyDifficulty(solve([11, 11, 1, 3])) === 'easy', '11,11,1,3 easy')
+  assert(classifyDifficulty(solve([12, 12, 12, 12])) === 'easy', '12,12,12,12 easy')
+  assert(classifyDifficulty(solve([1, 3, 4, 6])) === 'hard', '1,3,4,6 hard')
+  assert(classifyDifficulty(solve([3, 3, 8, 8])) === 'hard', '3,3,8,8 hard')
+  assert(classifyDifficulty(solve([1, 5, 5, 5])) === 'hard', '1,5,5,5 hard')
+}
+
+function testCatalog() {
+  const puzzles = JSON.parse(
+    readFileSync(join(process.cwd(), 'js/game/puzzles.json'), 'utf8'),
+  ) as Array<{ id: string; difficulty: string; steps: string[] }>
+  assert(puzzles.length === 1820, 'catalog has every 1-13 tuple')
+  const byLevel = { easy: 0, medium: 0, hard: 0, unsolvable: 0 }
+  for (const puzzle of puzzles) {
+    byLevel[puzzle.difficulty as keyof typeof byLevel] += 1
+  }
+  assert(byLevel.easy + byLevel.medium + byLevel.hard === 1362, '1362 solvable')
+  assert(byLevel.unsolvable === 458, '458 unsolvable')
+  const ids = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]))
+  assert(ids.get('1,1,1,8')?.difficulty === 'easy', 'catalog 1,1,1,8 easy')
+  assert(ids.get('1,1,6,8')?.difficulty === 'medium', 'catalog 1,1,6,8 medium')
+  assert(ids.get('1,3,4,6')?.difficulty === 'hard', 'catalog 1,3,4,6 hard')
+  assert(ids.get('3,3,8,8')?.difficulty === 'hard', 'catalog 3,3,8,8 hard')
+  assert(ids.get('1,5,5,5')?.difficulty === 'hard', 'catalog 1,5,5,5 hard')
+  for (const fixture of FIXTURES) {
+    const found = ids.get(fixture.id)
+    assert(!!found && found.difficulty !== 'unsolvable', `catalog contains solvable ${fixture.id}`)
+  }
+  const none = ids.get('1,1,1,1')
+  assert(!!none && none.difficulty === 'unsolvable' && none.steps.length === 0, '1,1,1,1 is unsolvable')
+}
+
 testFractions()
 testRulesExample()
 testFixtures()
 testResultReplacesSecondCardSlot()
 testFailAndUndo()
+testSolver()
+testCatalog()
 console.log('game tests passed')

@@ -3,7 +3,8 @@
   "private": true,
   "description": "微信小游戏：经典 24 点",
   "scripts": {
-    "test": "tsx scripts/test-game.ts"
+    "test": "tsx scripts/test-game.ts",
+    "generate:puzzles": "tsx scripts/generate-puzzles.ts"
   },
   "devDependencies": {
     "miniprogram-api-typings": "^4.1.2",
