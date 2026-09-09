@@ -99,13 +99,12 @@ export class PlayScene {
       this.selectedId = id
       return
     }
-    if (!this.selectedOp) {
-      this.selectedId = id === this.selectedId ? 0 : id
-      return
-    }
     if (id === this.selectedId) {
       this.selectedId = 0
-      this.selectedOp = ''
+      return
+    }
+    if (!this.selectedOp) {
+      this.selectedId = id
       return
     }
     const merged = merge(this.state, this.selectedId, this.selectedOp, id)
@@ -124,6 +123,10 @@ export class PlayScene {
   }
 
   private onOp(op: Op) {
+    if (this.selectedOp === op) {
+      this.selectedOp = ''
+      return
+    }
     if (!this.selectedId) {
       wx.showToast({ title: '请先点选一张牌', icon: 'none' })
       return
