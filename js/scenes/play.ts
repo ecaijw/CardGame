@@ -3,7 +3,6 @@ import {
   merge,
   outcome,
   startGame,
-  undo,
   type GameState,
 } from '../game/merge'
 import { FIXTURES, nextIndex } from '../game/puzzles.fixture'
@@ -22,7 +21,6 @@ const OPS: Op[] = ['+', '−', '×', '÷']
 type Hit =
   | { kind: 'card'; id: number }
   | { kind: 'op'; op: Op }
-  | { kind: 'undo' }
   | { kind: 'restart' }
   | { kind: 'next' }
   | { kind: 'dialog-restart' }
@@ -74,15 +72,6 @@ export class PlayScene {
     }
     if (action.kind === 'op') {
       this.onOp(action.op)
-      return
-    }
-    if (action.kind === 'undo') {
-      if (this.state.history.length === 0) {
-        return
-      }
-      this.state = undo(this.state)
-      this.selectedId = 0
-      this.selectedOp = ''
       return
     }
     if (action.kind === 'restart') {
@@ -171,19 +160,15 @@ export class PlayScene {
     })
 
     const actionY = opY + 72
-    const actionW = (width - 32 - 16) / 3
-    const canUndo = this.state.history.length > 0 && !this.result
-    const actions: Array<{ label: string; kind: Hit['kind']; disabled?: boolean }> = [
-      { label: '撤销', kind: 'undo', disabled: !canUndo },
+    const actionW = (width - 32 - 8) / 2
+    const actions: Array<{ label: string; kind: Hit['kind'] }> = [
       { label: '重开本局', kind: 'restart' },
       { label: '下一局', kind: 'next' },
     ]
     actions.forEach((action, index) => {
       const rect = { x: 16 + index * (actionW + 8), y: actionY, w: actionW, h: 44 }
-      button(ctx, rect, action.label, action.disabled ? 'disabled' : 'plain')
-      if (!action.disabled) {
-        this.hits.push({ rect, hit: { kind: action.kind } as Hit })
-      }
+      button(ctx, rect, action.label, 'plain')
+      this.hits.push({ rect, hit: { kind: action.kind } as Hit })
     })
 
     if (!this.result) {
