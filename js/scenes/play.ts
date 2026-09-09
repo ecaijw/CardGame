@@ -117,10 +117,10 @@ export class PlayScene {
       return
     }
     this.state = merged.state
-    this.selectedId = 0
     this.selectedOp = ''
     const end = outcome(this.state)
     this.result = end === 'playing' ? '' : end
+    this.selectedId = end === 'playing' ? merged.state.cards[merged.state.cards.length - 1].id : 0
   }
 
   private onOp(op: Op) {
