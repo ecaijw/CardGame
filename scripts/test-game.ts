@@ -8,9 +8,14 @@ import {
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
-import { candidatePuzzles, pickPuzzle, SOLVABLE } from '../js/game/puzzles'
-import { FIXTURES, nextIndex } from '../js/game/puzzles.fixture'
+import { candidatePuzzles, pickPuzzle, puzzlesFor, SOLVABLE } from '../js/game/puzzles'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
+
+const FIXTURES: Array<{ id: string; nums: [number, number, number, number] }> = [
+  { id: '1,2,3,8', nums: [1, 2, 3, 8] },
+  { id: '3,3,8,8', nums: [3, 3, 8, 8] },
+  { id: '1,5,5,5', nums: [1, 5, 5, 5] },
+]
 
 function assert(cond: boolean, message: string) {
   if (!cond) {
@@ -62,28 +67,28 @@ function testRulesExample() {
   assert(outcome(state) === 'success', '1,3,4,6 should succeed')
 }
 
-function testFixtures() {
+function testKnownGames() {
   let a = startGame(FIXTURES[0].nums)
   a = play(a, '2', '−', '1')
   a = play(a, '8', '×', '3')
   a = play(a, '24', '×', '1')
-  assert(outcome(a) === 'success', '1,2,3,8')
+  assert(outcome(a) === 'success', FIXTURES[0].id)
 
   let b = startGame(FIXTURES[1].nums)
   b = play(b, '8', '÷', '3')
   b = play(b, '3', '−', '8/3')
   b = play(b, '8', '÷', '1/3')
-  assert(outcome(b) === 'success', '3,3,8,8')
+  assert(outcome(b) === 'success', FIXTURES[1].id)
 
   let c = startGame(FIXTURES[2].nums)
   c = play(c, '1', '÷', '5')
   c = play(c, '5', '−', '1/5')
   c = play(c, '5', '×', '24/5')
-  assert(outcome(c) === 'success', '1,5,5,5')
+  assert(outcome(c) === 'success', FIXTURES[2].id)
 }
 
 function testResultReplacesSecondCardSlot() {
-  const start = startGame([1, 2, 3, 8])
+  const start = startGame(FIXTURES[0].nums)
   assert(
     start.cards.map((card) => card.slot).join(',') === '0,1,2,3',
     'initial slots',
@@ -98,7 +103,7 @@ function testResultReplacesSecondCardSlot() {
 }
 
 function testMergeGuards() {
-  const state = startGame([1, 2, 3, 8])
+  const state = startGame(FIXTURES[0].nums)
   const snapshot = JSON.stringify(state)
   const same = merge(state, 1, '+', 1)
   assert(!same.ok && same.reason === 'same', 'cannot merge a card with itself')
@@ -112,29 +117,23 @@ function testMergeGuards() {
 }
 
 function testFailAndUndo() {
-  let state = startGame([1, 2, 3, 8])
+  let state = startGame(FIXTURES[0].nums)
   state = play(state, '1', '+', '2')
   state = play(state, '3', '+', '8')
   state = play(state, '3', '+', '11')
   assert(outcome(state) === 'fail', '1+2+3+8 is 14')
 
-  const mid = startGame([1, 2, 3, 8])
+  const mid = startGame(FIXTURES[0].nums)
   const after = play(mid, '8', '×', '3')
   assert(outcome(after) === 'playing', '24 with leftover cards is not success')
   const back = undo(after)
   assert(back.cards.length === 4, 'undo restores four cards')
-  assert(nextIndex(2) === 0, 'fixtures cycle')
 }
 
 function testSolver() {
   assert(solve([1, 1, 1, 1]) === null, '1,1,1,1 is unsolvable')
   assert(enumerateTuples().length === 1820, '1-13 combinations with repetition')
-  const solvable = [
-    [1, 2, 3, 8],
-    [3, 3, 8, 8],
-    [1, 5, 5, 5],
-    [1, 3, 4, 6],
-  ]
+  const solvable = [...FIXTURES.map((fixture) => fixture.nums), [1, 3, 4, 6] as [number, number, number, number]]
   for (const nums of solvable) {
     const result = solve(nums)
     assert(!!result, `${nums.join(',')} should be solvable`)
@@ -221,11 +220,24 @@ function testPick() {
   const tiny = SOLVABLE.slice(0, 1)
   const last = candidatePuzzles(tiny, new Set([tiny[0].id]), tiny[0].id)
   assert(last.length === 1 && last[0].id === tiny[0].id, 'single puzzle still deals')
+
+  assert(puzzlesFor('all').length === 1362, 'all filter is solvable pool')
+  assert(puzzlesFor('easy').length === 1163, 'easy pool')
+  assert(puzzlesFor('medium').length === 183, 'medium pool')
+  assert(puzzlesFor('hard').length === 16, 'hard pool')
+  assert(
+    puzzlesFor('easy').every((puzzle) => puzzle.difficulty === 'easy'),
+    'easy filter only easy',
+  )
+  const easyPick = pickPuzzle(new Set(), undefined, () => 0, 'easy')
+  assert(easyPick.difficulty === 'easy', 'pick easy stays easy')
+  const hardPick = pickPuzzle(new Set(), undefined, () => 0, 'hard')
+  assert(hardPick.difficulty === 'hard', 'pick hard stays hard')
 }
 
 testFractions()
 testRulesExample()
-testFixtures()
+testKnownGames()
 testResultReplacesSecondCardSlot()
 testMergeGuards()
 testFailAndUndo()

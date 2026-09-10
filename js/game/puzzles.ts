@@ -1,5 +1,7 @@
 export type PuzzleDifficulty = 'easy' | 'medium' | 'hard' | 'unsolvable'
 
+export type DealFilter = 'easy' | 'medium' | 'hard' | 'all'
+
 export type Puzzle = {
   id: string
   nums: [number, number, number, number]
@@ -11,6 +13,13 @@ export type Puzzle = {
 const ALL = require('./puzzles.catalog') as Puzzle[]
 
 export const SOLVABLE: Puzzle[] = ALL.filter((puzzle) => puzzle.difficulty !== 'unsolvable')
+
+export function puzzlesFor(filter: DealFilter): Puzzle[] {
+  if (filter === 'all') {
+    return SOLVABLE
+  }
+  return SOLVABLE.filter((puzzle) => puzzle.difficulty === filter)
+}
 
 export function candidatePuzzles(
   pool: Puzzle[],
@@ -29,7 +38,8 @@ export function pickPuzzle(
   played: ReadonlySet<string>,
   excludeId?: string,
   random: () => number = Math.random,
+  filter: DealFilter = 'all',
 ): Puzzle {
-  const pool = candidatePuzzles(SOLVABLE, played, excludeId)
+  const pool = candidatePuzzles(puzzlesFor(filter), played, excludeId)
   return pool[Math.floor(random() * pool.length)]
 }

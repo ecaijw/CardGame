@@ -27,7 +27,6 @@ js/
   game/
     fraction.ts     * 分数与是否等于 24
     merge.ts        * 合并一步；undo 函数保留，UI 已去掉
-    puzzles.fixture.ts  * 3 组测试题（单测仍用，对局不再读）
     puzzles.ts          加载题库、有解池、抽题
     puzzles.catalog.js      运行时题库（小游戏可 require）
     puzzles.json            题库正本（pack ignore，生成用）
@@ -65,17 +64,9 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 
 `merge.ts` 仍保存合并前快照并导出 `undo`。对局 UI 已去掉撤销；重开本局 = 恢复本局初始 4 个数。
 
-### 3.3 第 0 期题库
+### 3.3 第 0 期题库（已删除）
 
-`puzzles.fixture.ts` 写死三组，例如：
-
-```ts
-{ id: "1,2,3,8", nums: [1, 2, 3, 8] }
-{ id: "3,3,8,8", nums: [3, 3, 8, 8] }
-{ id: "1,5,5,5", nums: [1, 5, 5, 5] }
-```
-
-「下一局」按数组下标循环。不调用求解器。第 1 期起对局改为读 `puzzles.catalog.js`。
+第 0 期对局曾写死三组循环：`1,2,3,8` / `3,3,8,8` / `1,5,5,5`。对局模块已删除。第 1 期起对局读 `puzzles.catalog.js`；单测在 [`scripts/test-game.ts`](../scripts/test-game.ts) 用 `FIXTURES` 保留这三组。
 
 ### 3.4 全量题库（第 1 期）
 
@@ -101,7 +92,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 
 难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。按中间步骤分档：全程正整数且不必除法为 easy；必须整除但不需要非整数分数为 medium；所有解都需要非整数分数为 hard。不用「最大点数 ≤ 10」或「出现除法就算 hard」。`expression` 去掉最外层一对括号。运行时只读字段。
 
-提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。抽题时跳过 `unsolvable`，不必再判断「是否有解」。运行时 `js/game/puzzles.ts` 只保留有解池；`pickPuzzle` 优先未玩，未玩空了再从全部有解抽（避开当前题）。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
+提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单；`pickPuzzle` 只在对应有解池里抽，优先未玩。抽题时跳过 `unsolvable`。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
 
 已玩记录：**不要**写进 JSON。用 `wx.setStorage` 存题目 id 集合（key：`playedPuzzleIds`）。清缓存即重置优先未玩。
 

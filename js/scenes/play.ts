@@ -5,7 +5,7 @@ import {
   startGame,
   type GameState,
 } from '../game/merge'
-import { pickPuzzle, type Puzzle } from '../game/puzzles'
+import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
 import { addPlayedId, loadPlayedIds } from '../played'
 import {
   Color,
@@ -19,31 +19,43 @@ import {
 
 const OPS: Op[] = ['+', '−', '×', '÷']
 
+const FILTERS: Array<{ label: string; filter: DealFilter }> = [
+  { label: '简单', filter: 'easy' },
+  { label: '中等', filter: 'medium' },
+  { label: '困难', filter: 'hard' },
+  { label: '全部', filter: 'all' },
+]
+
 type Hit =
   | { kind: 'card'; id: number }
   | { kind: 'op'; op: Op }
   | { kind: 'restart' }
   | { kind: 'next' }
   | { kind: 'answer' }
+  | { kind: 'difficulty' }
+  | { kind: 'set-filter'; filter: DealFilter }
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
 
 export class PlayScene {
   puzzle: Puzzle
+  filter: DealFilter
   private state: GameState
   private selectedId = 0
   private selectedOp: Op | '' = ''
   private result: 'success' | 'fail' | '' = ''
   private showAnswer = false
+  private showDifficulty = false
   private hits: Array<{ rect: Rect; hit: Hit }> = []
 
-  constructor(puzzle: Puzzle) {
+  constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
     this.puzzle = puzzle
+    this.filter = filter
     this.state = startGame(puzzle.nums)
   }
 
-  static deal(excludeId?: string): PlayScene {
-    return new PlayScene(dealPuzzle(excludeId))
+  static deal(excludeId?: string, filter: DealFilter = 'easy'): PlayScene {
+    return new PlayScene(dealPuzzle(excludeId, filter), filter)
   }
 
   reset() {
@@ -52,15 +64,22 @@ export class PlayScene {
     this.selectedOp = ''
     this.result = ''
     this.showAnswer = false
+    this.showDifficulty = false
   }
 
   nextPuzzle() {
-    this.puzzle = dealPuzzle(this.puzzle.id)
+    this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
     this.reset()
   }
 
   tap(x: number, y: number) {
     const found = this.hits.find((item) => hit(item.rect, x, y))
+    if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty'))) {
+      this.showDifficulty = false
+      if (!found) {
+        return
+      }
+    }
     if (!found) {
       return
     }
@@ -92,6 +111,20 @@ export class PlayScene {
     }
     if (action.kind === 'answer') {
       this.showAnswer = !this.showAnswer
+      return
+    }
+    if (action.kind === 'difficulty') {
+      this.showDifficulty = !this.showDifficulty
+      return
+    }
+    if (action.kind === 'set-filter') {
+      this.showDifficulty = false
+      if (action.filter === this.filter) {
+        return
+      }
+      this.filter = action.filter
+      this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
+      this.reset()
     }
   }
 
@@ -187,15 +220,29 @@ export class PlayScene {
     button(ctx, answer, '查看答案', this.showAnswer ? 'ghost' : 'plain')
     this.hits.push({ rect: answer, hit: { kind: 'answer' } })
     if (this.showAnswer) {
-      text(
-        ctx,
-        this.puzzle.expression,
-        answer.x + answer.w + 12,
-        answer.y + answer.h / 2,
-        16,
-        Color.ink,
-        'left',
-      )
+      text(ctx, this.puzzle.expression, 16, answer.y - 22, 16, Color.ink, 'left')
+    }
+
+    const current = FILTERS.find((item) => item.filter === this.filter)
+    const difficulty = { x: width - 16 - 120, y: height - 68, w: 120, h: 44 }
+    button(ctx, difficulty, current ? current.label : '难度', this.showDifficulty ? 'ghost' : 'plain')
+    this.hits.push({ rect: difficulty, hit: { kind: 'difficulty' } })
+    if (this.showDifficulty) {
+      const menuHits: Array<{ rect: Rect; hit: Hit }> = []
+      const rowH = 40
+      const gap = 4
+      FILTERS.forEach((item, index) => {
+        const fromBottom = FILTERS.length - index
+        const rect = {
+          x: difficulty.x,
+          y: difficulty.y - fromBottom * (rowH + gap),
+          w: difficulty.w,
+          h: rowH,
+        }
+        button(ctx, rect, item.label, item.filter === this.filter ? 'ghost' : 'plain')
+        menuHits.push({ rect, hit: { kind: 'set-filter', filter: item.filter } })
+      })
+      this.hits = [...menuHits, ...this.hits]
     }
 
     if (!this.result) {
@@ -231,8 +278,8 @@ export class PlayScene {
   }
 }
 
-function dealPuzzle(excludeId?: string): Puzzle {
-  const puzzle = pickPuzzle(loadPlayedIds(), excludeId)
+function dealPuzzle(excludeId?: string, filter: DealFilter = 'easy'): Puzzle {
+  const puzzle = pickPuzzle(loadPlayedIds(), excludeId, Math.random, filter)
   addPlayedId(puzzle.id)
   return puzzle
 }

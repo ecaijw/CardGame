@@ -52,7 +52,7 @@ class App {
       return
     }
     if (found.action === 'start') {
-      this.play = this.play ? new PlayScene(this.play.puzzle) : PlayScene.deal()
+      this.play = this.play ? new PlayScene(this.play.puzzle, this.play.filter) : PlayScene.deal()
       this.scene = 'play'
       return
     }
