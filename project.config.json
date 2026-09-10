@@ -47,6 +47,10 @@
       {
         "value": "scripts",
         "type": "folder"
+      },
+      {
+        "value": "js/game/puzzles.json",
+        "type": "file"
       }
     ],
     "include": []

@@ -1,6 +1,6 @@
 # 24 点题库预览
 
-由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)。对局尚未接入。
+由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)；对局 `require` [`js/game/puzzles.catalog.js`](../js/game/puzzles.catalog.js)。抽题跳过 `unsolvable`。
 
 ## 难度分级
 

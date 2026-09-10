@@ -8,6 +8,7 @@ import {
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
+import { candidatePuzzles, pickPuzzle, SOLVABLE } from '../js/game/puzzles'
 import { FIXTURES, nextIndex } from '../js/game/puzzles.fixture'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
 
@@ -175,6 +176,47 @@ function testCatalog() {
   }
   const none = ids.get('1,1,1,1')
   assert(!!none && none.difficulty === 'unsolvable' && none.steps.length === 0, '1,1,1,1 is unsolvable')
+  const bundled = require('../js/game/puzzles.catalog') as typeof puzzles
+  assert(bundled.length === puzzles.length, 'catalog.js matches puzzles.json length')
+  assert(bundled[0].id === puzzles[0].id, 'catalog.js first id matches json')
+}
+
+function testPick() {
+  assert(SOLVABLE.length === 1362, 'deal pool has 1362 solvable')
+  assert(
+    SOLVABLE.every((puzzle) => puzzle.difficulty !== 'unsolvable'),
+    'deal pool skips unsolvable',
+  )
+
+  const first = pickPuzzle(new Set(), undefined, () => 0)
+  assert(first.difficulty !== 'unsolvable', 'pick never returns unsolvable')
+  assert(first.id === SOLVABLE[0].id, 'random 0 takes first solvable')
+
+  const played = new Set(SOLVABLE.slice(0, 10).map((puzzle) => puzzle.id))
+  const unplayed = candidatePuzzles(SOLVABLE, played)
+  assert(unplayed.length === 1352, 'unplayed excludes played')
+  assert(
+    unplayed.every((puzzle) => !played.has(puzzle.id)),
+    'unplayed pool has no played ids',
+  )
+  const preferred = pickPuzzle(played, undefined, () => 0)
+  assert(!played.has(preferred.id), 'prefers unplayed')
+
+  const allPlayed = new Set(SOLVABLE.map((puzzle) => puzzle.id))
+  const exclude = SOLVABLE[0].id
+  const recycled = candidatePuzzles(SOLVABLE, allPlayed, exclude)
+  assert(recycled.length === 1361, 'full played pool avoids current')
+  assert(
+    recycled.every((puzzle) => puzzle.id !== exclude),
+    'recycled pool excludes current',
+  )
+  const again = pickPuzzle(allPlayed, exclude, () => 0)
+  assert(again.id !== exclude, 'avoids current when recycling')
+  assert(again.difficulty !== 'unsolvable', 'recycle still solvable')
+
+  const tiny = SOLVABLE.slice(0, 1)
+  const last = candidatePuzzles(tiny, new Set([tiny[0].id]), tiny[0].id)
+  assert(last.length === 1 && last[0].id === tiny[0].id, 'single puzzle still deals')
 }
 
 testFractions()
@@ -185,4 +227,5 @@ testMergeGuards()
 testFailAndUndo()
 testSolver()
 testCatalog()
+testPick()
 console.log('game tests passed')

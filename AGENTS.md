@@ -6,6 +6,8 @@
 
 未经我明确确认，不要 `git commit` 或 `git push`。写完代码、文档或交接后停在工作区，等我要求再提交。
 
+改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
+
 ## 编码
 
 - 客户端是微信**小游戏**（`compileType: game`），不是小程序。入口 `game.js`，用 Canvas，没有 WXML。
@@ -14,7 +16,7 @@
 - 中间结果用整数分子 / 分母，不做约分。是否等于 24 用 `isTwentyFour`（交叉相乘），禁止 `number === 24`。
 - 显示：能整除则显示整数，否则不约分（`2÷8` 显示 `2/8`）。
 - 合成牌占用**后点**那张的 `slot`；先点的格子留空。固定 2×2，不按剩余张数重排。
-- 求解器只放 `scripts/`，不要打进小游戏包。`docs/` 与 `scripts/` 已在 `project.config.json` 的 pack ignore 里。
+- 求解器只放 `scripts/`，不要打进小游戏包。`docs/`、`scripts/` 与 `js/game/puzzles.json` 已在 `project.config.json` 的 pack ignore 里。对局 `require` `puzzles.catalog.js`，不要直接 require JSON。
 - 弹出结算时清空对局 `hits`，只登记弹窗按钮。
 - 对局 UI 无撤销。`merge.ts` 的 `undo` 可留着不用。
 - 第 0–4 期对局只发有解题。`puzzles.json` 含 `unsolvable`，抽题须跳过。

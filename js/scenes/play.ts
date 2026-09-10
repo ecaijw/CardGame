@@ -5,7 +5,8 @@ import {
   startGame,
   type GameState,
 } from '../game/merge'
-import { FIXTURES, nextIndex } from '../game/puzzles.fixture'
+import { pickPuzzle, type Puzzle } from '../game/puzzles'
+import { addPlayedId, loadPlayedIds } from '../played'
 import {
   Color,
   button,
@@ -27,27 +28,31 @@ type Hit =
   | { kind: 'dialog-next' }
 
 export class PlayScene {
-  puzzleIndex: number
+  puzzle: Puzzle
   private state: GameState
   private selectedId = 0
   private selectedOp: Op | '' = ''
   private result: 'success' | 'fail' | '' = ''
   private hits: Array<{ rect: Rect; hit: Hit }> = []
 
-  constructor(puzzleIndex: number) {
-    this.puzzleIndex = puzzleIndex
-    this.state = startGame(FIXTURES[puzzleIndex].nums)
+  constructor(puzzle: Puzzle) {
+    this.puzzle = puzzle
+    this.state = startGame(puzzle.nums)
+  }
+
+  static deal(excludeId?: string): PlayScene {
+    return new PlayScene(dealPuzzle(excludeId))
   }
 
   reset() {
-    this.state = startGame(FIXTURES[this.puzzleIndex].nums)
+    this.state = startGame(this.puzzle.nums)
     this.selectedId = 0
     this.selectedOp = ''
     this.result = ''
   }
 
   nextPuzzle() {
-    this.puzzleIndex = nextIndex(this.puzzleIndex)
+    this.puzzle = dealPuzzle(this.puzzle.id)
     this.reset()
   }
 
@@ -128,7 +133,7 @@ export class PlayScene {
     ctx.fillStyle = Color.bg
     ctx.fillRect(0, 0, width, height)
 
-    text(ctx, `题目 ${FIXTURES[this.puzzleIndex].id}`, width / 2, 36, 14, Color.muted)
+    text(ctx, `题目 ${this.puzzle.id}`, width / 2, 36, 14, Color.muted)
 
     const topY = 72
     const gap = 16
@@ -202,6 +207,12 @@ export class PlayScene {
     button(ctx, next, '下一局', 'primary')
     this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
   }
+}
+
+function dealPuzzle(excludeId?: string): Puzzle {
+  const puzzle = pickPuzzle(loadPlayedIds(), excludeId)
+  addPlayedId(puzzle.id)
+  return puzzle
 }
 
 function slotRects(

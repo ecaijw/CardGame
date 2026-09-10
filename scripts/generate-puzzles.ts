@@ -11,6 +11,7 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const jsonPath = join(root, 'js/game/puzzles.json')
+const catalogPath = join(root, 'js/game/puzzles.catalog.js')
 const previewPath = join(root, 'docs/puzzles-preview.md')
 
 function main() {
@@ -31,11 +32,12 @@ function main() {
 
   mkdirSync(dirname(jsonPath), { recursive: true })
   writeFileSync(jsonPath, `${JSON.stringify(puzzles, null, 2)}\n`)
+  writeFileSync(catalogPath, `module.exports = ${JSON.stringify(puzzles)};\n`)
   writeFileSync(previewPath, renderPreview(puzzles))
   const counts = countByDifficulty(puzzles)
   const solvable = puzzles.length - counts.unsolvable
   console.log(
-    `wrote ${puzzles.length} puzzles → ${jsonPath} (easy ${counts.easy}, medium ${counts.medium}, hard ${counts.hard}, unsolvable ${counts.unsolvable}; solvable ${solvable})`,
+    `wrote ${puzzles.length} puzzles → ${jsonPath} and ${catalogPath} (easy ${counts.easy}, medium ${counts.medium}, hard ${counts.hard}, unsolvable ${counts.unsolvable}; solvable ${solvable})`,
   )
 }
 
@@ -53,7 +55,7 @@ function renderPreview(puzzles: Puzzle[]): string {
   const lines = [
     '# 24 点题库预览',
     '',
-    '由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)。对局尚未接入。',
+    '由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)；对局 `require` [`js/game/puzzles.catalog.js`](../js/game/puzzles.catalog.js)。抽题跳过 `unsolvable`。',
     '',
     '## 难度分级',
     '',

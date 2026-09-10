@@ -11,7 +11,7 @@ class App {
   private width = 375
   private height = 667
   private scene: Scene = 'home'
-  private play = new PlayScene(0)
+  private play: PlayScene | null = null
   private hits: Hit[] = []
 
   constructor() {
@@ -43,7 +43,7 @@ class App {
   }
 
   private onTap(x: number, y: number) {
-    if (this.scene === 'play') {
+    if (this.scene === 'play' && this.play) {
       this.play.tap(x, y)
       return
     }
@@ -52,7 +52,7 @@ class App {
       return
     }
     if (found.action === 'start') {
-      this.play = new PlayScene(this.play.puzzleIndex)
+      this.play = this.play ? new PlayScene(this.play.puzzle) : PlayScene.deal()
       this.scene = 'play'
       return
     }
@@ -78,7 +78,7 @@ class App {
       this.drawHowTo()
       return
     }
-    this.play.draw(ctx, width, height)
+    this.play?.draw(ctx, width, height)
   }
 
   private drawHome() {
