@@ -24,6 +24,7 @@ type Hit =
   | { kind: 'op'; op: Op }
   | { kind: 'restart' }
   | { kind: 'next' }
+  | { kind: 'answer' }
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
 
@@ -33,6 +34,7 @@ export class PlayScene {
   private selectedId = 0
   private selectedOp: Op | '' = ''
   private result: 'success' | 'fail' | '' = ''
+  private showAnswer = false
   private hits: Array<{ rect: Rect; hit: Hit }> = []
 
   constructor(puzzle: Puzzle) {
@@ -49,6 +51,7 @@ export class PlayScene {
     this.selectedId = 0
     this.selectedOp = ''
     this.result = ''
+    this.showAnswer = false
   }
 
   nextPuzzle() {
@@ -85,6 +88,10 @@ export class PlayScene {
     }
     if (action.kind === 'next') {
       this.nextPuzzle()
+      return
+    }
+    if (action.kind === 'answer') {
+      this.showAnswer = !this.showAnswer
     }
   }
 
@@ -175,6 +182,21 @@ export class PlayScene {
       button(ctx, rect, action.label, 'plain')
       this.hits.push({ rect, hit: { kind: action.kind } as Hit })
     })
+
+    const answer = { x: 16, y: height - 68, w: 120, h: 44 }
+    button(ctx, answer, '查看答案', this.showAnswer ? 'ghost' : 'plain')
+    this.hits.push({ rect: answer, hit: { kind: 'answer' } })
+    if (this.showAnswer) {
+      text(
+        ctx,
+        this.puzzle.expression,
+        answer.x + answer.w + 12,
+        answer.y + answer.h / 2,
+        16,
+        Color.ink,
+        'left',
+      )
+    }
 
     if (!this.result) {
       return

@@ -4,9 +4,10 @@
 
 ## 流程
 
-1. 开新的一期（或新对话继续下一期）之前，先提醒沉淀：跑测试、对齐文档、写或更新该期 handoff。不要直接扩功能。
+1. 开新的一期（或新对话继续下一期）之前，先提醒沉淀：跑测试、对齐文档、写或更新**当期** handoff。不要直接扩功能。
 2. 未经我明确确认，不要 `git commit` 或 `git push`。写完代码、文档或交接后停在工作区，等我要求再提交。
 3. 改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
+4. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`）。新进展写入 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)，或新建 `docs/phase-N-handoff.md`。
 
 ## 编码
 

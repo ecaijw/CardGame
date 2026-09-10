@@ -2,9 +2,9 @@
 
 日期：2026-09-10。玩法见 [rules.md](rules.md)。
 
-**开新的一期或新对话之前：** 先沉淀当前进展（跑 `npm test`、对齐文档、写或更新该期 handoff），再扩功能。
+**本文已冻结**（第 0 期结束总结）。不要把第 1 期及之后的功能写回来。后续进展见 [roadmap.md](roadmap.md)、[prd.md](prd.md)、[tech.md](tech.md)，或新建 `docs/phase-N-handoff.md`。
 
-**第 0 期沉淀（2026-09-10）：** `npm test` 通过。文档与对局当时仍读 fixture 的状态一致，未改玩法。随后进入第 1 期抽题。
+**开新的一期或新对话之前：** 先沉淀当前进展（跑 `npm test`、对齐文档、写或更新**当期** handoff），再扩功能。
 
 ## 第 0 期已实现
 
@@ -17,21 +17,18 @@
 - 三组写死测试牌循环：`1,2,3,8` / `3,3,8,8` / `1,5,5,5`
 - 数字方块，不画扑克；能整除显示整数，否则分数不约分
 
-## 当前项目结构
+## 当时项目结构
 
 ```
 game.js                 小游戏入口（require js/main）
 game.json / project.config.json   compileType: game
-js/main.ts              场景 home / howto / play；首次开始游戏才抽题
+js/main.ts              场景 home / howto / play
 js/ui.ts                Canvas 绘制
-js/played.ts            已玩 id（wx 存储）
-js/scenes/play.ts       对局（读 puzzles.catalog.js 有解池）
+js/scenes/play.ts       对局（读 puzzles.fixture，不读 puzzles.json）
 js/game/fraction.ts     分数、显示、是否 24
 js/game/merge.ts        合并、outcome；undo 保留未接 UI
-js/game/puzzles.ts      加载题库、抽题（不引用 wx）
-js/game/puzzles.fixture.ts  第 0 期 3 组题（单测仍用）
-js/game/puzzles.catalog.js  运行时题库（小游戏 require）
-js/game/puzzles.json    题库正本（不进包）
+js/game/puzzles.fixture.ts  第 0 期 3 组题
+js/game/puzzles.json    第 1 期全量题库（已生成，对局未接入）
 scripts/solve.ts        离线求解（不进包）
 scripts/generate-puzzles.ts
 scripts/test-game.ts
@@ -57,7 +54,7 @@ npm run generate:puzzles
 
 微信开发者工具：导入选 **Mini Game**，目录选仓库根（含 `game.js`）。不用云。头像用 `assets/icon.png`。
 
-## 已知问题
+## 已知问题（第 0 期结束时）
 
 见 [test.md](test.md)：
 
@@ -66,21 +63,20 @@ npm run generate:puzzles
 
 第 1–8 条中已 close 的玩法/UI 问题，对局已按表实现。
 
-## 第 1 期：已做 / 未做 / 注意
+## 第 1 期快照（第 0 期结束时，尚未开工抽题）
 
-**已做（不要在未沉淀的情况下继续扩）：**
+**已做：**
 
 - 离线生成 1820 条四元组到 `js/game/puzzles.json`
 - 有解 1362；easy 1163 / medium 183 / hard 16 / unsolvable 458
 - 难度按中间步骤，规则见 [puzzles-preview.md](puzzles-preview.md)
-- 对局抽题：跳过 `unsolvable`，优先未玩；发出该题时把 id 写入 `wx` storage（`playedPuzzleIds`）
 
-**未做：** 提示 UI、难度入口。
+**未做：** 对局抽题、已玩 id 本地存储、提示 UI、难度入口。
 
-**开始时注意：**
+**当时注意：**
 
-- 对局读 `puzzles.catalog.js` 有解池。第 0–4 期只发有解局。小游戏不能直接 `require` JSON。
-- 已玩记录用 `wx.setStorage`，不要写进 JSON。清缓存即重置优先未玩。
+- 对局仍读 `puzzles.fixture.ts`。接入题库后跳过 `unsolvable`。第 0–4 期只发有解局。
+- 已玩记录用 `wx.setStorage`，不要写进 JSON。
 - 提示用条目里的 `steps` / `expression`，设备上不要再穷举。
 - `expression` 已去掉最外层括号。
 - 第 3 期路线图仍写「小程序 vs 小游戏 go/no-go」；**已定为小游戏**。是否要版号、虚拟支付：**待确认**。

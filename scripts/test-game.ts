@@ -187,6 +187,10 @@ function testPick() {
     SOLVABLE.every((puzzle) => puzzle.difficulty !== 'unsolvable'),
     'deal pool skips unsolvable',
   )
+  assert(
+    SOLVABLE.every((puzzle) => puzzle.expression.length > 0),
+    'solvable puzzles have an answer expression',
+  )
 
   const first = pickPuzzle(new Set(), undefined, () => 0)
   assert(first.difficulty !== 'unsolvable', 'pick never returns unsolvable')

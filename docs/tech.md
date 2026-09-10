@@ -101,7 +101,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 
 难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。按中间步骤分档：全程正整数且不必除法为 easy；必须整除但不需要非整数分数为 medium；所有解都需要非整数分数为 hard。不用「最大点数 ≤ 10」或「出现除法就算 hard」。`expression` 去掉最外层一对括号。运行时只读字段。
 
-提示：一步用 `steps[0]`，完整用 `steps` 或 `expression`。抽题时跳过 `unsolvable`，不必再现场判断「是否有解」。运行时 `js/game/puzzles.ts` 只保留有解池；`pickPuzzle` 优先未玩，未玩空了再从全部有解抽（避开当前题）。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
+提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。抽题时跳过 `unsolvable`，不必再判断「是否有解」。运行时 `js/game/puzzles.ts` 只保留有解池；`pickPuzzle` 优先未玩，未玩空了再从全部有解抽（避开当前题）。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
 
 已玩记录：**不要**写进 JSON。用 `wx.setStorage` 存题目 id 集合（key：`playedPuzzleIds`）。清缓存即重置优先未玩。
 
