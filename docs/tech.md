@@ -15,7 +15,7 @@
 
 ## 2. 目录（随分期增加）
 
-第 0 期只需要带 `*` 的部分。
+第 0 期对局只用带 `*` 的部分。`puzzles.json` 已生成，对局尚未读取。
 
 ```
 game.js / game.json
@@ -25,14 +25,14 @@ js/
   scenes/play.ts    * 对局
   game/
     fraction.ts     * 分数与是否等于 24
-    merge.ts        * 合并一步、撤销栈
-    puzzles.fixture.ts  * 3 组测试题
-    puzzles.json        第 1 期
-    difficulty.ts       第 1 期
+    merge.ts        * 合并一步；undo 函数保留，UI 已去掉
+    puzzles.fixture.ts  * 3 组测试题（对局当前仍读这里）
+    puzzles.json        第 1 期题库已生成，对局未接入
 scripts/
-  generate-puzzles.ts   第 1 期
-  solve.ts              第 1 期（仅生成用，不进小游戏包）
-project.config.json     compileType: game
+  generate-puzzles.ts
+  solve.ts              仅生成用，不进小游戏包
+  test-game.ts
+project.config.json     compileType: game；pack ignore：docs、scripts
 ```
 
 `js/game/` 内模块**不引用 `wx`**，便于用 Node 跑单测和生成脚本。
@@ -50,16 +50,17 @@ project.config.json     compileType: game
 
 禁止用 `number` 直接 `=== 24` 作为终局判定。
 
-### 3.2 合并与撤销（第 0 期）
+### 3.2 合并（第 0 期）
 
 场上是一张牌的列表。每张牌含：
 
 - `id`：本局内唯一（合并新牌用新 id）
 - `value`：分数
+- `slot`：0–3，对应固定 2×2 格子
 
-一次合法合并：选 `a`、运算符、`b` → 删除 `a` 与 `b`，结果牌占用 `b` 的格子。
+一次合法合并：选 `a`、运算符、`b` → 删除 `a` 与 `b`，结果牌占用 `b` 的格子（后点的那张）。
 
-撤销栈保存合并前的牌列表快照（或逆操作）。重开本局 = 恢复本局初始 4 个数。
+`merge.ts` 仍保存合并前快照并导出 `undo`。对局 UI 已去掉撤销；重开本局 = 恢复本局初始 4 个数。
 
 ### 3.3 第 0 期题库
 

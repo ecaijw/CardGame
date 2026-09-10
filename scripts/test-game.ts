@@ -96,6 +96,20 @@ function testResultReplacesSecondCardSlot() {
   )
 }
 
+function testMergeGuards() {
+  const state = startGame([1, 2, 3, 8])
+  const snapshot = JSON.stringify(state)
+  const same = merge(state, 1, '+', 1)
+  assert(!same.ok && same.reason === 'same', 'cannot merge a card with itself')
+  assert(JSON.stringify(state) === snapshot, 'same-card merge does not mutate')
+
+  const zero = startGame([3, 0, 1, 8])
+  const before = JSON.stringify(zero)
+  const div0 = merge(zero, 1, '÷', 2)
+  assert(!div0.ok && div0.reason === 'div0', 'divide by 0 fails')
+  assert(JSON.stringify(zero) === before, 'div0 does not mutate')
+}
+
 function testFailAndUndo() {
   let state = startGame([1, 2, 3, 8])
   state = play(state, '1', '+', '2')
@@ -167,6 +181,7 @@ testFractions()
 testRulesExample()
 testFixtures()
 testResultReplacesSecondCardSlot()
+testMergeGuards()
 testFailAndUndo()
 testSolver()
 testCatalog()

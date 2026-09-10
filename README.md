@@ -8,8 +8,13 @@
 - [产品需求](docs/prd.md)
 - [技术方案](docs/tech.md)
 - [分期路线图](docs/roadmap.md)
+- [第 0 期交接](docs/phase-0-handoff.md)
+- [题库预览](docs/puzzles-preview.md)
+- [Agent 约束](AGENTS.md)
 
-当前进度：第 0 期可玩（小游戏 + 3 组测试牌 + 合并 / 撤销 / 重开 / 下一局）。
+当前进度：**第 0 期已完成。** 第 1 期题库已生成（`js/game/puzzles.json`），对局尚未接入，仍用 3 组测试牌。
+
+开新的一期之前，先沉淀当前进展（见路线图文首）。
 
 ## 本地运行
 
@@ -21,6 +26,7 @@
 ```bash
 npm install
 npm test
+npm run generate:puzzles
 ```
 
 头像上传用 [`assets/icon.png`](assets/icon.png)。
