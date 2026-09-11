@@ -2,9 +2,9 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)。
 
-当前状态：**第 0 期已完成（2026-09-09）。** 第 1 期抽题、查看答案与难度筛选已接入。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 1 期已完成（2026-09-11）。** 抽题、已玩记录、查看答案、难度筛选已接入。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
-**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。
+**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。
 
 ## 第 0 期 — 可玩的单人局（MVP）· 已完成
 
@@ -19,7 +19,7 @@
 
 对局不做：难度入口、提示、统计、音效、扑克图、广告、登录、云。求解器与全量题库在第 1 期离线生成。
 
-## 第 1 期 — 完整数据
+## 第 1 期 — 完整数据 · 已完成
 
 - 离线生成全部有解四元组（点数、难度、逐步解法）· 题库已生成（`js/game/puzzles.json`）
 - 对局抽题，跳过 `unsolvable` · 已接入

@@ -9,10 +9,11 @@
 - [技术方案](docs/tech.md)
 - [分期路线图](docs/roadmap.md)
 - [第 0 期交接](docs/phase-0-handoff.md)
+- [第 1 期交接](docs/phase-1-handoff.md)
 - [题库预览](docs/puzzles-preview.md)
 - [Agent 约束](AGENTS.md)
 
-当前进度：**第 0 期已完成。** 第 1 期抽题、查看答案与难度筛选已接入。
+当前进度：**第 1 期已完成。** 第 2 期（统计、音效、扑克显示、动画）未做。
 
 开新的一期之前，先沉淀当前进展（见路线图文首）。
 
