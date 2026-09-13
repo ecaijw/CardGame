@@ -110,17 +110,17 @@ class App {
 
   private drawHome() {
     const { ctx, width, height } = this
-    const top = this.capsuleBottom() + 16
-    drawMenuFan(ctx, width, top)
-    const titleSize = Math.min(50, width * 0.13)
-    const titleY = height * 0.385
+    const top = this.capsuleBottom() + 28
+    const fanBottom = drawMenuFan(ctx, width, top)
+    const titleSize = Math.min(52, width * 0.14)
+    const titleY = Math.max(height * 0.345, fanBottom + 40)
     menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
-    text(ctx, '四张数字卡片，算出 24', width / 2, height * 0.458, 14, Menu.subtitle, 'center', '400')
-    text(ctx, '来挑战一下', width / 2, height * 0.488, 14, Menu.subtitle, 'center', '400')
-    const btnW = Math.min(268, width - 80)
+    text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 64, 15, Menu.subtitle, 'center', '400')
+    text(ctx, '来挑战一下', width / 2, titleY + 94, 15, Menu.subtitle, 'center', '400')
+    const btnW = Math.min(280, width - 72)
     const btnX = (width - btnW) / 2
-    const start = { x: btnX, y: height * 0.558, w: btnW, h: 52 }
-    const howto = { x: btnX, y: height * 0.648, w: btnW, h: 50 }
+    const start = { x: btnX, y: height * 0.575, w: btnW, h: 58 }
+    const howto = { x: btnX, y: start.y + 72, w: btnW, h: 58 }
     menuButton(ctx, start, '开始游戏', 'primary')
     menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })

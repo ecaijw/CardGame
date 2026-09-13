@@ -103,7 +103,7 @@ export function button(
 
 export const Menu = {
   title: '#F25542',
-  titleFill: '#FFF6E4',
+  titleStroke: '#FFF1D8',
   titleShadow: 'rgba(242, 85, 66, 0.2)',
   subtitle: '#4A5C56',
   primary: '#F25542',
@@ -123,47 +123,109 @@ export function drawMenuBackground(
   gradient.addColorStop(1, '#C5E6D3')
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
+  drawMenuGlow(ctx, width, height)
   drawMenuHills(ctx, width, height)
+}
+
+function drawMenuGlow(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  ctx.save()
+  ctx.fillStyle = 'rgba(209, 239, 221, 0.42)'
+  ctx.beginPath()
+  ctx.arc(-width * 0.06, height * 0.02, width * 0.34, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.22)'
+  ctx.beginPath()
+  ctx.arc(width * 1.06, height * 0.44, width * 0.32, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
 }
 
 function drawMenuHills(ctx: CanvasRenderingContext2D, width: number, height: number) {
   ctx.save()
-  ctx.fillStyle = '#B6E0C5'
+  ctx.fillStyle = '#C5E9D2'
   ctx.beginPath()
   ctx.moveTo(0, height)
-  ctx.lineTo(0, height * 0.72)
-  ctx.bezierCurveTo(width * 0.16, height * 0.6, width * 0.4, height * 0.66, width * 0.58, height * 0.74)
-  ctx.bezierCurveTo(width * 0.78, height * 0.84, width * 0.9, height * 0.68, width, height * 0.7)
+  ctx.lineTo(0, height * 0.76)
+  ctx.bezierCurveTo(width * 0.16, height * 0.69, width * 0.38, height * 0.72, width * 0.58, height * 0.8)
+  ctx.bezierCurveTo(width * 0.78, height * 0.88, width * 0.9, height * 0.76, width, height * 0.75)
   ctx.lineTo(width, height)
   ctx.closePath()
   ctx.fill()
-  ctx.fillStyle = '#94C9A9'
+  ctx.fillStyle = '#AFDCBE'
   ctx.beginPath()
   ctx.moveTo(0, height)
   ctx.lineTo(0, height * 0.88)
-  ctx.bezierCurveTo(width * 0.24, height * 0.76, width * 0.5, height * 0.86, width * 0.74, height * 0.9)
-  ctx.bezierCurveTo(width * 0.88, height * 0.94, width, height * 0.84, width, height * 0.86)
+  ctx.bezierCurveTo(width * 0.2, height * 0.82, width * 0.4, height * 0.84, width * 0.62, height * 0.91)
+  ctx.bezierCurveTo(width * 0.8, height * 0.97, width * 0.92, height * 0.87, width, height * 0.85)
   ctx.lineTo(width, height)
   ctx.closePath()
   ctx.fill()
-  drawLeaf(ctx, width * 0.1, height * 0.8, 22, -0.6)
-  drawLeaf(ctx, width * 0.9, height * 0.82, 24, 0.55)
+  ctx.fillStyle = '#8FC9A7'
+  ctx.beginPath()
+  ctx.moveTo(0, height)
+  ctx.lineTo(0, height * 0.94)
+  ctx.bezierCurveTo(width * 0.24, height * 0.86, width * 0.52, height * 0.94, width * 0.72, height)
+  ctx.closePath()
+  ctx.fill()
+  drawSprig(ctx, width * 0.17, height * 0.82, 15, -0.08, '#69B487')
+  drawSprig(ctx, width * 0.84, height * 0.82, 17, 0.08, '#69B487')
+  drawPlant(ctx, -4, height + 8, 55, -0.08)
+  drawPlant(ctx, width + 5, height + 8, 58, 0.08)
   ctx.restore()
 }
 
-function drawLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, tilt: number) {
+function drawSprig(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  tilt: number,
+  color: string,
+) {
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(tilt)
-  ctx.fillStyle = '#5FA97A'
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(0, 2)
+  ctx.quadraticCurveTo(0, -size * 0.45, 0, -size)
+  ctx.stroke()
+  ctx.fillStyle = color
+  drawLeafShape(ctx, -size * 0.18, -size * 0.62, size * 0.28, size * 0.48, -0.65)
+  drawLeafShape(ctx, size * 0.18, -size * 0.78, size * 0.27, size * 0.48, 0.7)
+  ctx.restore()
+}
+
+function drawPlant(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, tilt: number) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(tilt)
+  ctx.fillStyle = '#65AE83'
+  drawLeafShape(ctx, size * 0.28, -size * 0.65, size * 0.22, size * 0.72, 0.58)
+  drawLeafShape(ctx, size * 0.54, -size * 0.42, size * 0.2, size * 0.65, 0.95)
+  drawLeafShape(ctx, size * 0.12, -size * 0.35, size * 0.2, size * 0.58, 0.25)
+  ctx.restore()
+}
+
+function drawLeafShape(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+  rotation: number,
+) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(rotation)
   ctx.beginPath()
   if (typeof ctx.ellipse === 'function') {
-    ctx.ellipse(size * 0.18, -size * 0.42, size * 0.28, size * 0.48, -0.35, 0, Math.PI * 2)
-    ctx.ellipse(-size * 0.12, -size * 0.32, size * 0.22, size * 0.4, 0.4, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2)
   } else {
-    ctx.moveTo(0, 0)
-    ctx.quadraticCurveTo(size * 0.7, -size * 0.2, 0, -size)
-    ctx.quadraticCurveTo(-size * 0.55, -size * 0.15, 0, 0)
+    ctx.moveTo(0, -ry)
+    ctx.quadraticCurveTo(rx, 0, 0, ry)
+    ctx.quadraticCurveTo(-rx, 0, 0, -ry)
   }
   ctx.fill()
   ctx.restore()
@@ -187,9 +249,12 @@ export function menuButton(
     ctx.fillStyle = fill
     ctx.fill()
   } else {
-    fillRound(ctx, rect, Menu.paper, rect.h / 2)
+    fillRound(ctx, rect, Menu.paper, 22)
   }
   ctx.restore()
+  if (kind === 'ghost') {
+    strokeRound(ctx, rect, '#65A99B', 22, 1.5)
+  }
   text(
     ctx,
     label,
@@ -208,13 +273,15 @@ export function drawMenuFan(
   top: number,
   nums: [number, number, number, number] = [1, 2, 3, 8],
 ): number {
-  const gap = 8
-  const cardW = Math.min(62, (width - 72 - gap * 3) / 4)
-  const cardH = cardW * 1.18
+  const gap = 11
+  const cardW = Math.min(78, (width - 30 - gap * 3) / 4)
+  const cardH = cardW * 1.25
   const total = cardW * 4 + gap * 3
   const left = (width - total) / 2
-  const lifts = [14, 2, 2, 14]
-  const angles = [-0.24, -0.08, 0.08, 0.24]
+  const lifts = [10, 0, 0, 10]
+  const angles = [-0.12, -0.04, 0.04, 0.12]
+  text(ctx, '+', left - 7, top + 7, 16, Menu.accent, 'center', '700')
+  drawSprig(ctx, left + total + 4, top + 8, 13, 0.2, '#69B487')
   nums.forEach((n, index) => {
     const x = left + index * (cardW + gap)
     const y = top + lifts[index]
@@ -227,12 +294,12 @@ export function drawMenuFan(
     const rect = { x: -cardW / 2, y: -cardH / 2, w: cardW, h: cardH }
     fillRound(ctx, rect, Menu.paper, 14)
     ctx.shadowColor = 'transparent'
-    strokeRound(ctx, rect, '#E8F2EC', 14, 1.5)
+    strokeRound(ctx, rect, '#D7EEE4', 14, 1.25)
     ctx.restore()
     ctx.save()
     ctx.translate(x + cardW / 2, y + cardH / 2)
     ctx.rotate(angles[index])
-    text(ctx, String(n), 0, 0, cardW > 52 ? 26 : 22, Menu.title, 'center', '800')
+    text(ctx, String(n), 0, 0, cardW > 64 ? 32 : 27, Menu.title, 'center', '800')
     ctx.restore()
   })
   return top + cardH + Math.max(...lifts)
@@ -255,8 +322,14 @@ export function menuTitle(
 function drawHomeTitle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
   ctx.font = `800 ${size}px ${MENU_FONT}`
   const label = '数字算一算'
-  const width = ctx.measureText(label).width
-  drawTitleWord(ctx, label, x, y, size)
+  const naturalWidth = ctx.measureText(label).width
+  const scaleX = 1.08
+  const width = naturalWidth * scaleX
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.scale(scaleX, 1)
+  drawTitleWord(ctx, label, 0, 0, size)
+  ctx.restore()
   text(ctx, '+', x - width / 2 - 26, y + 2, 20, Menu.accent, 'center', '700')
   text(ctx, '×', x + width / 2 + 26, y + 6, 20, Menu.accent, 'center', '700')
   text(ctx, '+', x - width * 0.22, y - size * 0.62, 14, Menu.accent, 'center', '700')
@@ -275,12 +348,12 @@ function drawTitleWord(
   ctx.textBaseline = 'middle'
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
-  ctx.lineWidth = Math.max(6, size * 0.14)
+  ctx.lineWidth = Math.max(6, size * 0.13)
   ctx.shadowColor = Menu.titleShadow
   ctx.shadowBlur = 4
   ctx.shadowOffsetY = 3
-  ctx.strokeStyle = Menu.title
-  ctx.fillStyle = Menu.titleFill
+  ctx.strokeStyle = Menu.titleStroke
+  ctx.fillStyle = Menu.title
   ctx.strokeText(word, x, y)
   ctx.shadowColor = 'transparent'
   ctx.fillText(word, x, y)
