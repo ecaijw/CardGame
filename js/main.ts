@@ -1,5 +1,16 @@
 import { PlayScene } from './scenes/play'
-import { Color, button, fillRound, hit, text, type Rect } from './ui'
+import {
+  Color,
+  Menu,
+  drawMenuBackground,
+  drawMenuFan,
+  fillRound,
+  hit,
+  menuButton,
+  menuTitle,
+  text,
+  type Rect,
+} from './ui'
 
 type Scene = 'home' | 'howto' | 'play'
 
@@ -68,8 +79,12 @@ class App {
   private draw() {
     const { ctx, width, height } = this
     this.hits = []
-    ctx.fillStyle = Color.bg
-    ctx.fillRect(0, 0, width, height)
+    if (this.scene === 'home' || this.scene === 'howto') {
+      drawMenuBackground(ctx, width, height)
+    } else {
+      ctx.fillStyle = Color.bg
+      ctx.fillRect(0, 0, width, height)
+    }
     if (this.scene === 'home') {
       this.drawHome()
       return
@@ -81,21 +96,41 @@ class App {
     this.play?.draw(ctx, width, height)
   }
 
+  private capsuleBottom() {
+    try {
+      const cap = wx.getMenuButtonBoundingClientRect()
+      if (cap && typeof cap.bottom === 'number' && cap.bottom > 0) {
+        return cap.bottom
+      }
+    } catch {
+      // simulator may not have the capsule
+    }
+    return 48
+  }
+
   private drawHome() {
     const { ctx, width, height } = this
-    text(ctx, '24', width / 2, height * 0.28, 92, Color.coral, 'center', '700')
-    text(ctx, '用 4 张牌，算出二十四', width / 2, height * 0.28 + 64, 16, Color.muted)
-    const start = { x: 40, y: height * 0.58, w: width - 80, h: 50 }
-    const howto = { x: 40, y: start.y + 66, w: width - 80, h: 50 }
-    button(ctx, start, '开始游戏', 'primary')
-    button(ctx, howto, '玩法说明', 'ghost')
+    const top = this.capsuleBottom() + 16
+    drawMenuFan(ctx, width, top)
+    const titleSize = Math.min(50, width * 0.13)
+    const titleY = height * 0.385
+    menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
+    text(ctx, '四张数字卡片，算出 24', width / 2, height * 0.458, 14, Menu.subtitle, 'center', '400')
+    text(ctx, '来挑战一下', width / 2, height * 0.488, 14, Menu.subtitle, 'center', '400')
+    const btnW = Math.min(268, width - 80)
+    const btnX = (width - btnW) / 2
+    const start = { x: btnX, y: height * 0.558, w: btnW, h: 52 }
+    const howto = { x: btnX, y: height * 0.648, w: btnW, h: 50 }
+    menuButton(ctx, start, '开始游戏', 'primary')
+    menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
   }
 
   private drawHowTo() {
     const { ctx, width } = this
-    text(ctx, '怎么玩', width / 2, 48, 24, Color.ink)
-    const card = { x: 24, y: 80, w: width - 48, h: 360 }
+    const titleY = this.capsuleBottom() + 20
+    menuTitle(ctx, '怎么玩', width / 2, titleY, 28)
+    const card = { x: 24, y: titleY + 36, w: width - 48, h: 360 }
     fillRound(ctx, card, Color.paper, 16, true)
     const lines = [
       '每局 4 张牌，点数 1 到 13。每张牌必须用一次，也只能用一次。',
@@ -104,16 +139,17 @@ class App {
       '可以出现分数、负数和 0，但不能除以 0。',
       '一直合并到场上只剩一张。这张牌精确等于 24 才算成功。中间某张已经是 24、但还剩别的牌，不算赢。',
     ]
-    ctx.fillStyle = Color.ink
-    ctx.font = '14px sans-serif'
+    ctx.fillStyle = Menu.buttonInk
+    ctx.font = '400 14px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
     let y = card.y + 20
     lines.forEach((line) => {
       y = wrapText(ctx, line, card.x + 18, y, card.w - 36, 22) + 14
     })
-    const back = { x: 40, y: card.y + card.h + 24, w: width - 80, h: 48 }
-    button(ctx, back, '返回', 'ghost')
+    const btnW = Math.min(248, width - 96)
+    const back = { x: (width - btnW) / 2, y: card.y + card.h + 24, w: btnW, h: 50 }
+    menuButton(ctx, back, '返回', 'ghost')
     this.hits.push({ rect: back, action: 'back' })
   }
 }
