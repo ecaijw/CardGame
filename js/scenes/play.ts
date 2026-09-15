@@ -7,9 +7,11 @@ import {
 } from '../game/merge'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
 import { addPlayedId, loadPlayedIds } from '../played'
+import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
   button,
+  drawSettingsHit,
   fillRound,
   hit,
   strokeRound,
@@ -36,6 +38,7 @@ type Hit =
   | { kind: 'set-filter'; filter: DealFilter }
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
+  | { kind: 'settings' }
 
 export class PlayScene {
   puzzle: Puzzle
@@ -46,12 +49,16 @@ export class PlayScene {
   private result: 'success' | 'fail' | '' = ''
   private showAnswer = false
   private showDifficulty = false
+  private lastOutcome: 'success' | 'fail' | '' = ''
+  private streakAtDealStart = 0
   private hits: Array<{ rect: Rect; hit: Hit }> = []
+  onSettings?: () => void
 
   constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
     this.puzzle = puzzle
     this.filter = filter
     this.state = startGame(puzzle.nums)
+    this.beginDealtRound()
   }
 
   static deal(excludeId?: string, filter: DealFilter = 'easy'): PlayScene {
@@ -69,7 +76,13 @@ export class PlayScene {
 
   nextPuzzle() {
     this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
+    this.beginDealtRound()
     this.reset()
+  }
+
+  private beginDealtRound() {
+    this.lastOutcome = ''
+    this.streakAtDealStart = loadStats().streak
   }
 
   tap(x: number, y: number) {
@@ -124,7 +137,12 @@ export class PlayScene {
       }
       this.filter = action.filter
       this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
+      this.beginDealtRound()
       this.reset()
+      return
+    }
+    if (action.kind === 'settings') {
+      this.onSettings?.()
     }
   }
 
@@ -152,6 +170,10 @@ export class PlayScene {
     this.state = merged.state
     this.selectedOp = ''
     const end = outcome(this.state)
+    if (end === 'success' || end === 'fail') {
+      applyDealOutcome(end, this.lastOutcome, this.streakAtDealStart)
+      this.lastOutcome = end
+    }
     this.result = end === 'playing' ? '' : end
     this.selectedId = end === 'playing' ? merged.state.cards[merged.state.cards.length - 1].id : 0
   }
@@ -216,7 +238,8 @@ export class PlayScene {
       this.hits.push({ rect, hit: { kind: action.kind } as Hit })
     })
 
-    const answer = { x: 16, y: height - 68, w: 120, h: 44 }
+    const barY = height - 68
+    const answer = { x: 16, y: barY, w: 100, h: 44 }
     button(ctx, answer, '查看答案', this.showAnswer ? 'ghost' : 'plain')
     this.hits.push({ rect: answer, hit: { kind: 'answer' } })
     if (this.showAnswer) {
@@ -224,7 +247,7 @@ export class PlayScene {
     }
 
     const current = FILTERS.find((item) => item.filter === this.filter)
-    const difficulty = { x: width - 16 - 120, y: height - 68, w: 120, h: 44 }
+    const difficulty = { x: (width - 100) / 2, y: barY, w: 100, h: 44 }
     button(ctx, difficulty, current ? current.label : '难度', this.showDifficulty ? 'ghost' : 'plain')
     this.hits.push({ rect: difficulty, hit: { kind: 'difficulty' } })
     if (this.showDifficulty) {
@@ -244,6 +267,11 @@ export class PlayScene {
       })
       this.hits = [...menuHits, ...this.hits]
     }
+
+    const settings = { x: width - 16 - 88, y: barY, w: 88, h: 44 }
+    fillRound(ctx, settings, Color.paper, 12, true)
+    drawSettingsHit(ctx, settings, Color.ink)
+    this.hits.push({ rect: settings, hit: { kind: 'settings' } })
 
     if (!this.result) {
       return
@@ -281,6 +309,7 @@ export class PlayScene {
 function dealPuzzle(excludeId?: string, filter: DealFilter = 'easy'): Puzzle {
   const puzzle = pickPuzzle(loadPlayedIds(), excludeId, Math.random, filter)
   addPlayedId(puzzle.id)
+  recordDeal()
   return puzzle
 }
 

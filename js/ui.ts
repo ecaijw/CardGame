@@ -359,3 +359,57 @@ function drawTitleWord(
   ctx.fillText(word, x, y)
   ctx.restore()
 }
+
+export function drawGear(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  holeFill = Color.paper,
+) {
+  const teeth = 8
+  ctx.save()
+  ctx.fillStyle = color
+  ctx.beginPath()
+  for (let i = 0; i < teeth * 2; i++) {
+    const r = i % 2 === 0 ? radius : radius * 0.66
+    const a = (i * Math.PI) / teeth - Math.PI / (teeth * 2)
+    const x = cx + Math.cos(a) * r
+    const y = cy + Math.sin(a) * r
+    if (i === 0) {
+      ctx.moveTo(x, y)
+    } else {
+      ctx.lineTo(x, y)
+    }
+  }
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius * 0.3, 0, Math.PI * 2)
+  ctx.fillStyle = holeFill
+  ctx.fill()
+  ctx.restore()
+}
+
+export function drawSettingsHit(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  color: string,
+) {
+  const cy = rect.y + rect.h / 2
+  drawGear(ctx, rect.x + 16, cy, 8, color)
+  text(ctx, '设置', rect.x + 30, cy, 13, color, 'left', '600')
+}
+
+export function drawToggle(ctx: CanvasRenderingContext2D, rect: Rect, on: boolean) {
+  const fill = on ? '#7DB8A8' : '#D5E0DC'
+  fillRound(ctx, rect, fill, rect.h / 2)
+  const pad = 3
+  const r = rect.h / 2 - pad
+  const cx = on ? rect.x + rect.w - pad - r : rect.x + pad + r
+  ctx.beginPath()
+  ctx.arc(cx, rect.y + rect.h / 2, r, 0, Math.PI * 2)
+  ctx.fillStyle = Color.paper
+  ctx.fill()
+}

@@ -1,9 +1,11 @@
 import { PlayScene } from './scenes/play'
+import { SettingsScene } from './scenes/settings'
 import {
   Color,
   Menu,
   drawMenuBackground,
   drawMenuFan,
+  drawSettingsHit,
   fillRound,
   hit,
   menuButton,
@@ -12,7 +14,7 @@ import {
   type Rect,
 } from './ui'
 
-type Scene = 'home' | 'howto' | 'play'
+type Scene = 'home' | 'howto' | 'play' | 'settings'
 
 type Hit = { rect: Rect; action: string }
 
@@ -23,6 +25,8 @@ class App {
   private height = 667
   private scene: Scene = 'home'
   private play: PlayScene | null = null
+  private settings = new SettingsScene()
+  private settingsBack: 'home' | 'play' = 'home'
   private hits: Hit[] = []
 
   constructor() {
@@ -58,12 +62,23 @@ class App {
       this.play.tap(x, y)
       return
     }
+    if (this.scene === 'settings') {
+      if (this.settings.tap(x, y) === 'back') {
+        this.scene = this.settingsBack
+      }
+      return
+    }
     const found = this.hits.find((item) => hit(item.rect, x, y))
     if (!found) {
       return
     }
     if (found.action === 'start') {
-      this.play = this.play ? new PlayScene(this.play.puzzle, this.play.filter) : PlayScene.deal()
+      if (this.play) {
+        this.play.reset()
+      } else {
+        this.play = PlayScene.deal()
+      }
+      this.bindPlaySettings()
       this.scene = 'play'
       return
     }
@@ -71,15 +86,31 @@ class App {
       this.scene = 'howto'
       return
     }
+    if (found.action === 'settings') {
+      this.openSettings('home')
+      return
+    }
     if (found.action === 'back') {
       this.scene = 'home'
     }
   }
 
+  private bindPlaySettings() {
+    if (!this.play) {
+      return
+    }
+    this.play.onSettings = () => this.openSettings('play')
+  }
+
+  private openSettings(from: 'home' | 'play') {
+    this.settingsBack = from
+    this.scene = 'settings'
+  }
+
   private draw() {
     const { ctx, width, height } = this
     this.hits = []
-    if (this.scene === 'home' || this.scene === 'howto') {
+    if (this.scene === 'home' || this.scene === 'howto' || this.scene === 'settings') {
       drawMenuBackground(ctx, width, height)
     } else {
       ctx.fillStyle = Color.bg
@@ -91,6 +122,10 @@ class App {
     }
     if (this.scene === 'howto') {
       this.drawHowTo()
+      return
+    }
+    if (this.scene === 'settings') {
+      this.settings.draw(ctx, width, height)
       return
     }
     this.play?.draw(ctx, width, height)
@@ -124,6 +159,10 @@ class App {
     menuButton(ctx, start, '开始游戏', 'primary')
     menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
+    const settings = { x: width - 16 - 88, y: height - 72, w: 88, h: 48 }
+    fillRound(ctx, settings, Menu.paper, 14, true)
+    drawSettingsHit(ctx, settings, Menu.buttonInk)
+    this.hits.push({ rect: settings, action: 'settings' })
   }
 
   private drawHowTo() {

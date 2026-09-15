@@ -23,7 +23,9 @@ js/
   main.ts           * 场景与触摸；首次开始游戏才抽题
   ui.ts             * Canvas 绘制
   played.ts             已玩 id（wx 存储）
+  settings.ts           对局统计、音效 / 音乐开关（wx 存储）
   scenes/play.ts    * 对局
+  scenes/settings.ts    设置页
   game/
     fraction.ts     * 分数与是否等于 24
     merge.ts        * 合并一步；undo 函数保留，UI 已去掉
@@ -104,7 +106,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | --- | --- | --- |
 | 0 | 无 | — |
 | 1 | 已玩题目 id | `wx.setStorage` |
-| 2 | 局数 / 成功 / 连胜、音效、数字或扑克 | 同上 |
+| 2 | 总数 / 成功 / 失败 / 连胜、音效、音乐 | 同上 |
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 
