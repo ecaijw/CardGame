@@ -115,7 +115,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 单位：逻辑像素（`windowWidth`），竖屏
 - 第 0 期：Canvas 长方形 + 数字，比例接近扑克（约 63:88）
 - 第 2 期：自绘 4 花色 × 13 点，避免版权图；显示模式可切换
-- 动画：第 2 期再加
+- 动画：第 2 期已接入对局场景时间轴（发牌 / 合并 / 结算），规则仍走 `merge.ts`，见 [animation.md](animation.md)
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）
 

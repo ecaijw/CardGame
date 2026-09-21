@@ -1,6 +1,6 @@
 # 24 点 — 分期路线图
 
-玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)。
+玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)。
 
 当前状态：**第 1 期已完成（2026-09-11）。** 抽题、已玩记录、查看答案、难度筛选已接入。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
@@ -32,7 +32,7 @@
 - 设置页：总数（发牌计 1 局；重开不加）、成功 / 失败以本局最后一次结算为准、连胜
 - 音效开关、音乐开关（默认开；音源后续接）
 - 显示：数字或扑克
-- 基础牌面动画
+- 基础牌面动画（已接入，见 [animation.md](animation.md)）
 
 ## 第 3 期 — 广告和收入
 

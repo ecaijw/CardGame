@@ -11,9 +11,10 @@
 - [第 0 期交接](docs/phase-0-handoff.md)
 - [第 1 期交接](docs/phase-1-handoff.md)
 - [题库预览](docs/puzzles-preview.md)
+- [牌面动画](docs/animation.md)
 - [Agent 约束](AGENTS.md)
 
-当前进度：**第 1 期已完成。** 第 2 期（统计、音效、扑克显示、动画）未做。
+当前进度：**第 1 期已完成。** 第 2 期进行中：设置/统计已做，基础牌面动画已接入；音效源、扑克显示未做。
 
 开新的一期之前，先沉淀当前进展（见路线图文首）。
 

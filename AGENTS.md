@@ -44,3 +44,4 @@
 3. 技术：`docs/tech.md`
 4. 测试问题：`docs/test.md`（先讨论再改代码）
 5. 题库预览与难度：`docs/puzzles-preview.md`
+6. 牌面动画（参考拆解与第 2 期方案）：`docs/animation.md`
