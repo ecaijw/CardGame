@@ -34,8 +34,7 @@ const OP_FLASH_MS = 180
 const RESULT_POP_MS = 280
 const MERGE_MS = 420
 const RESULT_AT = MERGE_MS - RESULT_POP_MS
-const DEAL_STAGGER_MS = 80
-const DEAL_CARD_MS = 380
+const DEAL_CARD_MS = 320
 const FADE_OUT_MS = 160
 const SETTLE_MOVE_MS = 560
 const SETTLE_MS = 780
@@ -399,15 +398,14 @@ export class PlayScene {
   private drawBoard(ctx: CanvasRenderingContext2D, slots: Rect[], fontSize: number, t: number) {
     const motion = this.motion
     if (motion.kind === 'dealing' && motion.fadeFrom) {
-      const fade = 1 - clamp01((t - motion.at) / FADE_OUT_MS)
-      if (fade > 0) {
+      const p = clamp01((t - motion.at) / FADE_OUT_MS)
+      if (p < 1) {
         motion.fadeFrom.forEach((face) => {
           drawPlayCard(ctx, {
             rect: slots[face.slot],
             label: formatFraction(face.value),
             fontSize,
-            alpha: fade,
-            scale: 0.96 + 0.04 * fade,
+            scale: 1 - 0.06 * p,
           })
         })
       }
@@ -441,8 +439,7 @@ export class PlayScene {
           rect: slots[motion.source.slot],
           label: formatFraction(motion.source.value),
           fontSize,
-          alpha: 1 - p,
-          scale: 1 - 0.22 * p,
+          scale: 1 - 0.12 * p,
         })
       }
       if (elapsed < RESULT_AT) {
@@ -453,11 +450,8 @@ export class PlayScene {
         })
       }
       if (elapsed < OP_FLASH_MS) {
-        const a = Math.sin((elapsed / OP_FLASH_MS) * Math.PI)
         const src = slots[motion.source.slot]
         const dst = slots[motion.dest.slot]
-        ctx.save()
-        ctx.globalAlpha = 0.2 + 0.8 * a
         text(
           ctx,
           motion.op,
@@ -466,7 +460,6 @@ export class PlayScene {
           34,
           Color.gold,
         )
-        ctx.restore()
       }
     }
 
@@ -491,12 +484,12 @@ export class PlayScene {
   ): { scale?: number; alpha?: number; dx?: number; dy?: number; selected?: boolean; glow?: number } | null {
     const motion = this.motion
     if (motion.kind === 'dealing') {
-      const local = (t - motion.at - (motion.fadeFrom ? FADE_OUT_MS : 0) - slot * DEAL_STAGGER_MS) / DEAL_CARD_MS
+      const local = (t - motion.at - (motion.fadeFrom ? FADE_OUT_MS : 0)) / DEAL_CARD_MS
       if (local < 0) {
         return null
       }
-      const drop = dealDrop(local)
-      return { dy: drop.dy, scale: drop.scale }
+      const expand = dealExpand(local)
+      return { scale: expand.scale }
     }
     if (motion.kind === 'merging') {
       const elapsed = t - motion.at
@@ -636,7 +629,7 @@ function slotRects(
 }
 
 function dealDuration(fadeFrom?: Face[]) {
-  return (fadeFrom ? FADE_OUT_MS : 0) + DEAL_STAGGER_MS * 3 + DEAL_CARD_MS
+  return (fadeFrom ? FADE_OUT_MS : 0) + DEAL_CARD_MS
 }
 
 function now() {
@@ -675,13 +668,8 @@ function centerDelta(slots: Rect[], slot: number): { dx: number; dy: number } {
   }
 }
 
-function dealDrop(progress: number): { dy: number; scale: number } {
-  const p = clamp01(progress)
-  if (p >= 1) {
-    return { dy: 0, scale: 1 }
-  }
-  const k = easeOut(p)
-  return { dy: (1 - k) * -28, scale: 0.97 + 0.03 * k }
+function dealExpand(progress: number): { scale: number } {
+  return { scale: 0.96 + 0.04 * easeOut(progress) }
 }
 
 function popScale(progress: number) {
@@ -700,6 +688,7 @@ function drawPlayCard(
     dy?: number
     selected?: boolean
     glow?: number
+    numberScale?: number
   },
 ) {
   const alpha = look.alpha ?? 1
@@ -708,9 +697,11 @@ function drawPlayCard(
   }
   const scale = look.scale ?? 1
   const rect = look.rect
+  const cx = rect.x + rect.w / 2 + (look.dx ?? 0)
+  const cy = rect.y + rect.h / 2 + (look.dy ?? 0)
   ctx.save()
   ctx.globalAlpha = alpha
-  ctx.translate(rect.x + rect.w / 2 + (look.dx ?? 0), rect.y + rect.h / 2 + (look.dy ?? 0))
+  ctx.translate(cx, cy)
   ctx.scale(scale, scale)
   const local = { x: -rect.w / 2, y: -rect.h / 2, w: rect.w, h: rect.h }
   fillRound(ctx, local, Color.paper, 14, true)
@@ -718,7 +709,11 @@ function drawPlayCard(
   if (look.selected || glow > 0) {
     strokeRound(ctx, local, Color.gold, 14, 4 + glow * 4)
   }
-  text(ctx, look.label, 0, 0, look.fontSize, Color.coral)
+  ctx.restore()
+  ctx.save()
+  ctx.globalAlpha = alpha
+  const numberScale = look.numberScale ?? 1 + (scale - 1) * 3
+  text(ctx, look.label, cx, cy, look.fontSize * numberScale, Color.coral)
   ctx.restore()
 }
 
