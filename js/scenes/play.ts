@@ -102,10 +102,13 @@ export class PlayScene {
   }
 
   reset() {
-    const fadeFrom = this.state.cards.map((card) => ({
-      slot: card.slot,
-      value: { n: card.value.n, d: card.value.d },
-    }))
+    const fromDialog = Boolean(this.result)
+    const fadeFrom = fromDialog
+      ? undefined
+      : this.state.cards.map((card) => ({
+          slot: card.slot,
+          value: { n: card.value.n, d: card.value.d },
+        }))
     this.state = startGame(this.puzzle.nums)
     this.selectedId = 0
     this.selectedOp = ''
