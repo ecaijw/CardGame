@@ -4,3 +4,4 @@ project.private.config.json
 .DS_Store
 *.log
 .cursor/
+tmp-ref-frames/
