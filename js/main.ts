@@ -110,12 +110,7 @@ class App {
   private draw() {
     const { ctx, width, height } = this
     this.hits = []
-    if (this.scene === 'home' || this.scene === 'howto' || this.scene === 'settings') {
-      drawMenuBackground(ctx, width, height)
-    } else {
-      ctx.fillStyle = Color.bg
-      ctx.fillRect(0, 0, width, height)
-    }
+    drawMenuBackground(ctx, width, height)
     if (this.scene === 'home') {
       this.drawHome()
       return

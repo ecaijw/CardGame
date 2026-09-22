@@ -11,6 +11,7 @@ import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
   button,
+  drawMenuBackground,
   drawSettingsHit,
   fillRound,
   hit,
@@ -310,8 +311,7 @@ export class PlayScene {
     const t = now()
     this.tick(t)
     this.hits = []
-    ctx.fillStyle = Color.bg
-    ctx.fillRect(0, 0, width, height)
+    drawMenuBackground(ctx, width, height)
 
     text(ctx, `题目 ${this.puzzle.id}`, width / 2, 36, 14, Color.muted)
 
@@ -564,20 +564,21 @@ export class PlayScene {
     ctx.fillStyle = Color.mask
     ctx.fillRect(0, 0, width, height)
     const last = this.state.cards[0]
-    if (last) {
-      const look = this.cardLook(last.id, last.slot, slots, t)
-      if (look) {
-        drawPlayCard(ctx, {
-          rect: slots[last.slot],
-          label: formatFraction(last.value),
-          fontSize,
-          ...look,
-        })
-      }
+    const look = last ? this.cardLook(last.id, last.slot, slots, t) : null
+    if (last && look) {
+      drawPlayCard(ctx, {
+        rect: slots[last.slot],
+        label: formatFraction(last.value),
+        fontSize,
+        ...look,
+      })
     }
+    const lastBottom = last
+      ? slots[last.slot].y + slots[last.slot].h + (look?.dy ?? 0)
+      : slots[2].y + slots[2].h
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
     const scale = 0.97 + 0.03 * p
-    const dialog = { x: 32, y: opY, w: width - 64, h: 240 }
+    const dialog = { x: 32, y: (lastBottom + opY) / 2, w: width - 64, h: 240 }
     ctx.save()
     ctx.translate(width / 2, dialog.y + dialog.h / 2)
     ctx.scale(scale, scale)
