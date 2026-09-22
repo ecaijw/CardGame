@@ -31,10 +31,9 @@ const FILTERS: Array<{ label: string; filter: DealFilter }> = [
 const SELECT_MS = 180
 const SOURCE_FADE_MS = 280
 const OP_FLASH_MS = 180
-const RESULT_POP_MS = 280
-const MERGE_MS = 420
-const RESULT_AT = MERGE_MS - RESULT_POP_MS
 const DEAL_CARD_MS = 320
+const MERGE_MS = DEAL_CARD_MS
+const RESULT_POP_MS = MERGE_MS
 const FADE_OUT_MS = 160
 const SETTLE_MOVE_MS = 560
 const SETTLE_MS = 780
@@ -442,13 +441,6 @@ export class PlayScene {
           scale: 1 - 0.12 * p,
         })
       }
-      if (elapsed < RESULT_AT) {
-        drawPlayCard(ctx, {
-          rect: slots[motion.dest.slot],
-          label: formatFraction(motion.dest.value),
-          fontSize,
-        })
-      }
       if (elapsed < OP_FLASH_MS) {
         const src = slots[motion.source.slot]
         const dst = slots[motion.dest.slot]
@@ -481,7 +473,15 @@ export class PlayScene {
     slot: number,
     slots: Rect[],
     t: number,
-  ): { scale?: number; alpha?: number; dx?: number; dy?: number; selected?: boolean; glow?: number } | null {
+  ): {
+    scale?: number
+    alpha?: number
+    dx?: number
+    dy?: number
+    selected?: boolean
+    glow?: number
+    numberScale?: number
+  } | null {
     const motion = this.motion
     if (motion.kind === 'dealing') {
       const local = (t - motion.at - (motion.fadeFrom ? FADE_OUT_MS : 0)) / DEAL_CARD_MS
@@ -494,10 +494,14 @@ export class PlayScene {
     if (motion.kind === 'merging') {
       const elapsed = t - motion.at
       if (id === motion.resultId) {
-        if (elapsed < RESULT_AT) {
-          return null
+        const selected = id === this.selectedId
+        const cardEnd = selected ? 1.04 : 1
+        const p = elapsed / RESULT_POP_MS
+        return {
+          scale: popScale(p, cardEnd),
+          numberScale: 0.8 + 0.2 * easeOut(p),
+          selected,
         }
-        return { scale: popScale((elapsed - RESULT_AT) / RESULT_POP_MS), selected: id === this.selectedId }
       }
     }
     const last = this.state.cards[0]
@@ -516,7 +520,7 @@ export class PlayScene {
     }
     if (id === this.selectedId) {
       const p = easeOut((t - this.selectAt) / SELECT_MS)
-      return { scale: 1 + 0.04 * p, selected: true }
+      return { scale: 1 + 0.04 * p, selected: true, numberScale: 1 }
     }
     return {}
   }
@@ -656,6 +660,11 @@ function easeIn(value: number) {
   return t * t
 }
 
+function easeInOut(value: number) {
+  const t = clamp01(value)
+  return 0.5 - 0.5 * Math.cos(Math.PI * t)
+}
+
 function centerDelta(slots: Rect[], slot: number): { dx: number; dy: number } {
   const rect = slots[slot]
   const left = slots[0].x
@@ -672,8 +681,8 @@ function dealExpand(progress: number): { scale: number } {
   return { scale: 0.96 + 0.04 * easeOut(progress) }
 }
 
-function popScale(progress: number) {
-  return 0.94 + 0.06 * easeOut(progress)
+function popScale(progress: number, end = 1) {
+  return 0.94 + (end - 0.94) * easeInOut(progress)
 }
 
 function drawPlayCard(
