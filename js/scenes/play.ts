@@ -345,8 +345,6 @@ export class PlayScene {
     this.hits = []
     drawMenuBackground(ctx, width, height)
 
-    text(ctx, `题目 ${this.puzzle.id}`, width / 2, 36, 14, Color.muted)
-
     const topY = 72
     const gap = 16
     const cardW = Math.min(120, (width - 48 - gap) / 2)
@@ -371,22 +369,23 @@ export class PlayScene {
     const barH = 52
     const barY = height - 18 - barH
     const bar = { x: 20, y: barY, w: width - 40, h: barH }
+    const cellW = bar.w / 3
+    const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
+    const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
+    const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
     const actionH = 44
-    const actionW = Math.min(74, (width - 52) / 4)
-    const actionGap = 12
     const actionY = barY - 12 - actionH
-    const actionRowW = actionW * 2 + actionGap
-    const actionX = (width - actionRowW) / 2
     const dealActions: Array<{
       label: string
       kind: Hit['kind']
       icon: 'restart' | 'next'
+      x: number
     }> = [
-      { label: '重试', kind: 'restart', icon: 'restart' },
-      { label: '下一局', kind: 'next', icon: 'next' },
+      { label: '重试', kind: 'restart', icon: 'restart', x: answer.x },
+      { label: '下一局', kind: 'next', icon: 'next', x: settings.x },
     ]
-    dealActions.forEach((action, index) => {
-      const rect = { x: actionX + index * (actionW + actionGap), y: actionY, w: actionW, h: actionH }
+    dealActions.forEach((action) => {
+      const rect = { x: action.x, y: actionY, w: cellW, h: actionH }
       withButtonScale(ctx, rect, this.pressScale(action.kind, t), () => {
         iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
       })
@@ -395,12 +394,8 @@ export class PlayScene {
       }
     })
 
-    const cellW = bar.w / 3
-    const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
-    const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
-    const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
     drawSegmentBar(ctx, bar, [
-      { label: '查看答案', icon: 'answer', active: this.showAnswer, scale: this.pressScale('answer', t) },
+      { label: '答案', icon: 'answer', active: this.showAnswer, scale: this.pressScale('answer', t) },
       {
         label: current ? current.label : '难度',
         icon: 'difficulty',
@@ -595,7 +590,7 @@ export class PlayScene {
     ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2)
     ctx.scale(scale, scale)
     ctx.translate(-(rect.x + rect.w / 2), -(rect.y + rect.h / 2))
-    paintMenuChrome(ctx, rect, kind)
+    paintMenuChrome(ctx, rect, kind, 10)
     text(ctx, op, rect.x + rect.w / 2, rect.y + rect.h / 2, 24, menuInk(kind), 'center', '700')
     ctx.restore()
   }
