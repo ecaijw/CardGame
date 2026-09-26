@@ -5,6 +5,7 @@ import { SettingsScene } from './scenes/settings'
 import {
   Color,
   Menu,
+  bottomBarPad,
   drawMenuBackground,
   drawMenuFan,
   fillRound,
@@ -178,7 +179,7 @@ class App {
     menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
     const barH = 52
-    const barY = height - 18 - barH
+    const barY = height - bottomBarPad() - barH
     const barW = width - 40
     const cellW = barW / 3
     const settings = { x: 20 + cellW * 2, y: barY, w: cellW, h: barH }

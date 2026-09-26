@@ -29,6 +29,23 @@ export function capsuleBottom(fallback = 48): number {
   return fallback
 }
 
+export function safeBottom(fallback = 0): number {
+  try {
+    const info = wx.getSystemInfoSync()
+    const area = info.safeArea
+    if (area && typeof area.bottom === 'number' && typeof info.windowHeight === 'number') {
+      return Math.max(0, info.windowHeight - area.bottom)
+    }
+  } catch {
+    // ignore
+  }
+  return fallback
+}
+
+export function bottomBarPad(): number {
+  return Math.max(34, safeBottom() + 16)
+}
+
 export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,

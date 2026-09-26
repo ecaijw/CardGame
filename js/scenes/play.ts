@@ -13,6 +13,7 @@ import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
   capsuleBottom,
+  bottomBarPad,
   drawDialogTitle,
   drawMenuBackground,
   fillRound,
@@ -417,7 +418,7 @@ export class PlayScene {
 
     const current = FILTERS.find((item) => item.filter === this.filter)
     const barH = 52
-    const barY = height - 18 - barH
+    const barY = height - bottomBarPad() - barH
     const bar = { x: 20, y: barY, w: width - 40, h: barH }
     const cellW = bar.w / 3
     const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
