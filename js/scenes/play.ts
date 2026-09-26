@@ -34,11 +34,10 @@ const FILTERS: Array<{ label: string; filter: DealFilter }> = [
 ]
 
 const SELECT_MS = 180
-const SOURCE_FADE_MS = 280
-const OP_FLASH_MS = 180
+const FLY_MS = 220
 const DEAL_CARD_MS = 320
-const MERGE_MS = DEAL_CARD_MS
-const RESULT_POP_MS = MERGE_MS
+const RESULT_POP_MS = DEAL_CARD_MS
+const MERGE_MS = FLY_MS + RESULT_POP_MS
 const FADE_OUT_MS = 160
 const SETTLE_MOVE_MS = 560
 const SETTLE_MS = 780
@@ -477,26 +476,22 @@ export class PlayScene {
 
     if (motion.kind === 'merging') {
       const elapsed = t - motion.at
-      if (elapsed < SOURCE_FADE_MS) {
-        const p = easeIn(elapsed / SOURCE_FADE_MS)
-        drawPlayCard(ctx, {
-          rect: slots[motion.source.slot],
-          label: formatFraction(motion.source.value),
-          fontSize,
-          scale: 1 - 0.12 * p,
-        })
-      }
-      if (elapsed < OP_FLASH_MS) {
+      if (elapsed < FLY_MS) {
         const src = slots[motion.source.slot]
         const dst = slots[motion.dest.slot]
-        text(
-          ctx,
-          motion.op,
-          (src.x + src.w / 2 + dst.x + dst.w / 2) / 2,
-          (src.y + src.h / 2 + dst.y + dst.h / 2) / 2,
-          34,
-          Color.gold,
-        )
+        const p = easeOut(elapsed / FLY_MS)
+        drawPlayCard(ctx, {
+          rect: src,
+          label: formatFraction(motion.source.value),
+          fontSize,
+          dx: (dst.x + dst.w / 2 - (src.x + src.w / 2)) * p,
+          dy: (dst.y + dst.h / 2 - (src.y + src.h / 2)) * p,
+        })
+        drawPlayCard(ctx, {
+          rect: dst,
+          label: formatFraction(motion.dest.value),
+          fontSize,
+        })
       }
     }
 
@@ -539,9 +534,12 @@ export class PlayScene {
     if (motion.kind === 'merging') {
       const elapsed = t - motion.at
       if (id === motion.resultId) {
+        if (elapsed < FLY_MS) {
+          return null
+        }
         const selected = id === this.selectedId
         const cardEnd = selected ? 1.04 : 1
-        const p = elapsed / RESULT_POP_MS
+        const p = (elapsed - FLY_MS) / RESULT_POP_MS
         return {
           scale: popScale(p, cardEnd),
           numberScale: 0.8 + 0.2 * easeOut(p),
@@ -709,11 +707,6 @@ function clamp01(value: number) {
 function easeOut(value: number) {
   const t = clamp01(value)
   return 1 - (1 - t) * (1 - t) * (1 - t)
-}
-
-function easeIn(value: number) {
-  const t = clamp01(value)
-  return t * t
 }
 
 function easeInOut(value: number) {
