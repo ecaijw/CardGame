@@ -17,6 +17,18 @@ export function hit(rect: Rect, x: number, y: number): boolean {
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h
 }
 
+export function capsuleBottom(fallback = 48): number {
+  try {
+    const cap = wx.getMenuButtonBoundingClientRect()
+    if (cap && typeof cap.bottom === 'number' && cap.bottom > 0) {
+      return cap.bottom
+    }
+  } catch {
+    // simulator may not have the capsule
+  }
+  return fallback
+}
+
 export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,

@@ -12,6 +12,7 @@ import { addPlayedId, loadPlayedIds } from '../played'
 import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
+  capsuleBottom,
   drawDialogTitle,
   drawMenuBackground,
   fillRound,
@@ -394,7 +395,7 @@ export class PlayScene {
     this.hits = []
     drawMenuBackground(ctx, width, height)
 
-    const topY = 72
+    const topY = Math.max(72, capsuleBottom() + 16)
     const gap = 16
     const cardW = Math.min(120, (width - 48 - gap) / 2)
     const cardH = cardW * (88 / 63)
