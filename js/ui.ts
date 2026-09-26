@@ -451,6 +451,39 @@ export function drawActionIcon(
   ctx.restore()
 }
 
+export function drawDialogTitle(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  color: string,
+  image?: { width: number; height: number } | null,
+) {
+  const iconSize = fontSize * 0.7
+  const textW = fontSize * 2
+  const gap = Math.max(6, fontSize * 0.28)
+  const hasIcon = Boolean(image && image.width && image.height)
+  const total = (hasIcon ? iconSize + gap : 0) + textW
+  const left = x - total / 2
+  if (hasIcon && image) {
+    const aspect = image.width / image.height
+    const dw = aspect >= 1 ? iconSize : iconSize * aspect
+    const dh = aspect >= 1 ? iconSize / aspect : iconSize
+    ctx.drawImage(image as never, left + (iconSize - dw) / 2, y - dh / 2, dw, dh)
+  }
+  text(
+    ctx,
+    label,
+    hasIcon ? left + iconSize + gap + textW / 2 : x,
+    y,
+    fontSize,
+    color,
+    'center',
+    '700',
+  )
+}
+
 export function drawMenuFan(
   ctx: CanvasRenderingContext2D,
   width: number,

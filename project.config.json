@@ -51,6 +51,22 @@
       {
         "value": "js/game/puzzles.json",
         "type": "file"
+      },
+      {
+        "value": "tmp-ref-frames",
+        "type": "folder"
+      },
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
+        "value": "assets",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram",
+        "type": "folder"
       }
     ],
     "include": []

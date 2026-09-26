@@ -1,3 +1,4 @@
+import { getIcon } from '../art'
 import { formatFraction, type Fraction, type Op } from '../game/fraction'
 import {
   merge,
@@ -10,6 +11,7 @@ import { addPlayedId, loadPlayedIds } from '../played'
 import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
+  drawDialogTitle,
   drawMenuBackground,
   fillRound,
   hit,
@@ -627,13 +629,14 @@ export class PlayScene {
     ctx.scale(scale, scale)
     ctx.translate(-width / 2, -(dialog.y + dialog.h / 2))
     fillRound(ctx, dialog, Color.paper, 20, true)
-    text(
+    drawDialogTitle(
       ctx,
       this.result === 'success' ? '成功' : '失败',
       width / 2,
       dialog.y + 48,
       26,
       this.result === 'success' ? Color.pine : Color.coral,
+      getIcon(this.result === 'success' ? 'crown' : 'fist'),
     )
     if (this.result === 'success') {
       text(ctx, '太棒了，继续挑战吧！', width / 2, dialog.y + 84, 14, Color.muted)

@@ -19,6 +19,7 @@
 
 ```
 game.js / game.json
+icons/                  结算标题图标（设计稿裁切）
 js/
   main.ts           * 场景与触摸；首次开始游戏才抽题
   ui.ts             * Canvas 绘制
@@ -36,7 +37,7 @@ scripts/
   generate-puzzles.ts
   solve.ts              仅生成用，不进小游戏包
   test-game.ts
-project.config.json     compileType: game；pack ignore：docs、scripts、puzzles.json
+project.config.json     compileType: game；pack ignore：docs、scripts、puzzles.json、tmp-ref-frames、node_modules、assets、miniprogram
 ```
 
 `js/game/` 内模块**不引用 `wx`**，便于用 Node 跑单测和生成脚本。

@@ -1,3 +1,4 @@
+import { preloadIcons } from './art'
 import { PlayScene } from './scenes/play'
 import { SettingsScene } from './scenes/settings'
 import {
@@ -39,6 +40,7 @@ class App {
     this.canvas.height = this.height * dpr
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D
     this.ctx.scale(dpr, dpr)
+    preloadIcons()
     wx.onTouchStart((event) => {
       const touch = event.changedTouches[0] || event.touches[0]
       if (!touch || this.scene !== 'play' || !this.play) {
