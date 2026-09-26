@@ -20,6 +20,7 @@
 ```
 game.js / game.json
 icons/                  结算标题图标（设计稿裁切）
+docs/ux/                当前采用的设计稿（pack ignore）
 js/
   main.ts           * 场景与触摸；首次开始游戏才抽题
   ui.ts             * Canvas 绘制
