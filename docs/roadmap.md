@@ -2,9 +2,9 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)。
 
-当前状态：**第 1 期已完成（2026-09-11）。** 抽题、已玩记录、查看答案、难度筛选已接入。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2 期已完成（2026-09-26）。** 交接见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
-**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。
+**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。
 
 ## 第 0 期 — 可玩的单人局（MVP）· 已完成
 
@@ -27,12 +27,12 @@
 - 提示：对局左下角「查看答案」，显示该题 `expression` · 已接入
 - 难度：右下角筛选简单 / 中等 / 困难 / 全部，默认简单 · 已接入
 
-## 第 2 期 — 完善细节和美化
+## 第 2 期 — 完善细节和美化 · 已完成
 
 - 设置页：总数（发牌计 1 局；重开不加）、成功 / 失败以本局最后一次结算为准、连胜
 - 音效开关、音乐开关（默认开；音源已接，见 [audio.md](audio.md)）
-- 显示：数字或扑克
 - 基础牌面动画（已接入，见 [animation.md](animation.md)）
+- 「数字或扑克」已改列入后续，不在本期做
 
 ## 第 3 期 — 广告和收入
 
@@ -53,6 +53,7 @@
 
 ## 后续计划
 
+- 数字 / 扑克显示切换（自绘花色；产品细节见 [test.md](test.md) 第 12 条）
 - 无解发牌（玩家判断「无解」）
 - 一台手机双人对战
 - 两台手机云对战
