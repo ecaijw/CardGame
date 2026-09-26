@@ -620,23 +620,29 @@ export class PlayScene {
       : slots[2].y + slots[2].h
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
     const scale = 0.97 + 0.03 * p
-    const dialog = { x: 32, y: (lastBottom + opY) / 2, w: width - 64, h: 240 }
+    const fail = this.result === 'fail'
+    const dialog = { x: 32, y: (lastBottom + opY) / 2, w: width - 64, h: fail ? 280 : 240 }
     ctx.save()
     ctx.translate(width / 2, dialog.y + dialog.h / 2)
     ctx.scale(scale, scale)
     ctx.translate(-width / 2, -(dialog.y + dialog.h / 2))
     fillRound(ctx, dialog, Color.paper, 20, true)
-    text(ctx, this.result === 'success' ? '成功' : '差一点', width / 2, dialog.y + 48, 26, Color.coral)
     text(
       ctx,
-      this.result === 'success' ? '正好 24' : '最后一张不是 24',
+      this.result === 'success' ? '成功' : '失败',
       width / 2,
-      dialog.y + 84,
-      14,
-      Color.muted,
+      dialog.y + 48,
+      26,
+      this.result === 'success' ? Color.pine : Color.coral,
     )
-    if (this.result === 'fail') {
-      const restart = { x: dialog.x + 24, y: dialog.y + 118, w: dialog.w - 48, h: 50 }
+    if (this.result === 'success') {
+      text(ctx, '太棒了，继续挑战吧！', width / 2, dialog.y + 84, 14, Color.muted)
+    } else {
+      text(ctx, '成功条件：最后结果是24。', width / 2, dialog.y + 80, 14, Color.muted)
+      text(ctx, '加油再试一试吧！', width / 2, dialog.y + 102, 14, Color.muted)
+    }
+    if (fail) {
+      const restart = { x: dialog.x + 24, y: dialog.y + 128, w: dialog.w - 48, h: 50 }
       withButtonScale(ctx, restart, this.pressScale('dialog-restart', t), () => {
         menuButton(ctx, restart, '重开本局', 'ghost')
       })
@@ -644,7 +650,7 @@ export class PlayScene {
     }
     const next = {
       x: dialog.x + 24,
-      y: dialog.y + (this.result === 'fail' ? 176 : 136),
+      y: dialog.y + (fail ? 206 : 136),
       w: dialog.w - 48,
       h: 50,
     }

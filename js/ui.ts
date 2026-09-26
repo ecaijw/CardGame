@@ -6,6 +6,7 @@ export const Color = {
   ink: '#2C2C2C',
   muted: '#4A6670',
   coral: '#E85A4F',
+  pine: '#2F6B4F',
   gold: '#F5C542',
   lime: '#8FCB6D',
   shadow: 'rgba(30, 50, 48, 0.16)',
