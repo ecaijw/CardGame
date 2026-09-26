@@ -93,11 +93,12 @@ export function playSfx(name: SfxName): void {
   if (!ctx) {
     return
   }
-  try {
-    ctx.stop()
-  } catch {
-    // ignore
-  }
+  SFX_NAMES.forEach((other) => {
+    if (other !== name) {
+      silenceCtx(sfx[other])
+    }
+  })
+  silenceCtx(ctx)
   try {
     ctx.volume = SFX_VOLUME[name]
     ctx.play()
@@ -131,6 +132,20 @@ export function dispose(): void {
   unlocked = false
   hidden = false
   bgmPlaying = false
+}
+
+function silenceCtx(ctx: AudioCtx | undefined): void {
+  if (!ctx) {
+    return
+  }
+  try {
+    ctx.volume = 0
+    ctx.pause()
+    ctx.stop()
+    ctx.seek(0)
+  } catch {
+    // ignore
+  }
 }
 
 function makeCtx(src: string, volume: number, loop: boolean): AudioCtx {

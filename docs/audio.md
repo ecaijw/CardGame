@@ -136,7 +136,7 @@ audio/                 打进小游戏包（不要 ignore）
 | 设置返回                              | `settings.ts` `back`                    | `tap`                            |
 | 拨动音效 / 音乐开关                       | `settings.ts` ~~sound / music~~         | ~~可~~ `tap`~~（音效关时这下可以不响）并应用开关~~ |
 | ~~点牌~~                            | `play.ts` ~~~~`onCard` ~~仅改选中、未 merge~~ | `select`                         |
-| ~~点运算符~~                          | `play.ts` ~~~~`onOp` ~~选中或改选~~          | `select`                         |
+| 点运算符                              | `play.ts` `onOp` 选中或改选                  | `select`                         |
 | ~~未选牌点运算~~                        | `onOp` ~~toast「请先点选一张牌」~~               | `invalid`                        |
 | ~~除以 0 / 非法 merge~~               | `onCard` ~~~~`merged.ok === false`      | `invalid`                        |
 | ~~有效合并且~~ `outcome === 'playing'` | `onCard` 写入 merging 时                   | `merge`（排队的下一手也在真正 `onCard` 时响）  |
