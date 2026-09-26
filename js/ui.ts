@@ -85,20 +85,62 @@ export function text(
   ctx.fillText(label, x, y)
 }
 
+export type MenuKind = 'primary' | 'ghost' | 'mint' | 'blush'
+
+export function menuInk(kind: MenuKind) {
+  if (kind === 'primary') {
+    return Color.paper
+  }
+  if (kind === 'blush') {
+    return Menu.title
+  }
+  return Menu.buttonInk
+}
+
+export function menuSurface(kind: MenuKind) {
+  if (kind === 'blush') {
+    return '#FFD4C8'
+  }
+  if (kind === 'mint') {
+    return '#E3F4EA'
+  }
+  return Menu.paper
+}
+
+export function paintMenuChrome(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  kind: MenuKind,
+  radius = rect.h / 2,
+) {
+  ctx.save()
+  ctx.shadowColor = kind === 'primary' ? 'rgba(242, 85, 66, 0.22)' : 'rgba(36, 53, 47, 0.08)'
+  ctx.shadowBlur = kind === 'primary' ? 12 : 8
+  ctx.shadowOffsetY = 3
+  if (kind === 'primary') {
+    const fill = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h)
+    fill.addColorStop(0, '#FF6D57')
+    fill.addColorStop(1, '#F25542')
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+    ctx.fillStyle = fill
+    ctx.fill()
+  } else {
+    fillRound(ctx, rect, menuSurface(kind), radius)
+  }
+  ctx.restore()
+  if (kind === 'ghost') {
+    strokeRound(ctx, rect, '#D7EEE4', radius, 1.25)
+  }
+}
+
 export function button(
   ctx: CanvasRenderingContext2D,
   rect: Rect,
   label: string,
   kind: 'primary' | 'ghost' | 'plain' | 'disabled' = 'plain',
 ) {
-  const fill =
-    kind === 'primary' ? Color.coral : kind === 'disabled' ? '#D7E6E1' : Color.paper
-  const ink = kind === 'primary' ? Color.paper : kind === 'disabled' ? '#8AA39C' : Color.ink
-  fillRound(ctx, rect, fill, rect.h / 2, kind !== 'disabled')
-  if (kind === 'ghost') {
-    strokeRound(ctx, rect, Color.ink, rect.h / 2, 2)
-  }
-  text(ctx, label, rect.x + rect.w / 2, rect.y + rect.h / 2, 16, ink)
+  const menuKind: MenuKind = kind === 'primary' ? 'primary' : 'ghost'
+  menuButton(ctx, rect, label, menuKind)
 }
 
 export const Menu = {
@@ -235,36 +277,177 @@ export function menuButton(
   ctx: CanvasRenderingContext2D,
   rect: Rect,
   label: string,
-  kind: 'primary' | 'ghost',
+  kind: MenuKind,
 ) {
-  ctx.save()
-  ctx.shadowColor = kind === 'primary' ? 'rgba(242, 85, 66, 0.18)' : 'rgba(36, 53, 47, 0.08)'
-  ctx.shadowBlur = 10
-  ctx.shadowOffsetY = 3
-  if (kind === 'primary') {
-    const fill = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h)
-    fill.addColorStop(0, '#FF6D57')
-    fill.addColorStop(1, '#F25542')
-    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, rect.h / 2)
-    ctx.fillStyle = fill
-    ctx.fill()
-  } else {
-    fillRound(ctx, rect, Menu.paper, 22)
-  }
-  ctx.restore()
-  if (kind === 'ghost') {
-    strokeRound(ctx, rect, '#65A99B', 22, 1.5)
-  }
+  paintMenuChrome(ctx, rect, kind)
   text(
     ctx,
     label,
     rect.x + rect.w / 2,
     rect.y + rect.h / 2,
     kind === 'primary' ? 18 : 16,
-    kind === 'primary' ? Color.paper : Menu.buttonInk,
+    menuInk(kind),
     'center',
     '600',
   )
+}
+
+export type ActionIcon = 'restart' | 'next' | 'answer' | 'difficulty' | 'settings'
+
+export function iconButton(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  label: string,
+  kind: MenuKind,
+  icon: ActionIcon,
+) {
+  paintMenuChrome(ctx, rect, kind)
+  const cx = rect.x + rect.w / 2
+  const ink = menuInk(kind)
+  const iconSize = Math.min(rect.w * 0.34, 20)
+  drawActionIcon(ctx, cx, rect.y + 16, iconSize, icon, ink, kind)
+  text(ctx, label, cx, rect.y + rect.h - 12, 11, ink, 'center', '600')
+}
+
+export function iconLabelButton(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  label: string,
+  kind: MenuKind,
+  icon: ActionIcon,
+) {
+  paintMenuChrome(ctx, rect, kind)
+  const ink = menuInk(kind)
+  const cy = rect.y + rect.h / 2
+  const iconSize = 16
+  const gap = 6
+  ctx.save()
+  ctx.font = `600 13px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
+  const textW = ctx.measureText(label).width
+  ctx.restore()
+  const total = iconSize + gap + textW
+  const start = rect.x + (rect.w - total) / 2
+  drawActionIcon(ctx, start + iconSize / 2, cy, iconSize, icon, ink, kind)
+  text(ctx, label, start + iconSize + gap, cy, 13, ink, 'left', '600')
+}
+
+export function withButtonScale(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  scale: number,
+  draw: () => void,
+) {
+  if (Math.abs(scale - 1) < 0.002) {
+    draw()
+    return
+  }
+  const cx = rect.x + rect.w / 2
+  const cy = rect.y + rect.h / 2
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.scale(scale, scale)
+  ctx.translate(-cx, -cy)
+  draw()
+  ctx.restore()
+}
+
+export function drawSegmentBar(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  items: Array<{ label: string; icon: ActionIcon; active?: boolean; scale?: number }>,
+) {
+  paintMenuChrome(ctx, rect, 'ghost')
+  const cellW = rect.w / items.length
+  items.forEach((item, index) => {
+    const cell = { x: rect.x + index * cellW, y: rect.y + 3, w: cellW, h: rect.h - 6 }
+    const kind: MenuKind = item.active ? 'blush' : 'ghost'
+    withButtonScale(ctx, cell, item.scale ?? 1, () => {
+      if (item.active) {
+        const inset = { x: cell.x + 6, y: cell.y, w: cell.w - 12, h: cell.h }
+        fillRound(ctx, inset, menuSurface('blush'), inset.h / 2)
+      }
+      const cx = cell.x + cell.w / 2
+      const ink = menuInk(kind)
+      drawActionIcon(ctx, cx, cell.y + 11, 14, item.icon, ink, kind)
+      text(ctx, item.label, cx, cell.y + cell.h - 10, 13, ink, 'center', '600')
+    })
+    if (index > 0 && !item.active && !items[index - 1]?.active) {
+      ctx.beginPath()
+      ctx.strokeStyle = '#D7EEE4'
+      ctx.lineWidth = 1
+      const x = cell.x
+      ctx.moveTo(x, rect.y + 14)
+      ctx.lineTo(x, rect.y + rect.h - 14)
+      ctx.stroke()
+    }
+  })
+}
+
+export function drawActionIcon(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  icon: ActionIcon,
+  color: string,
+  kind: MenuKind = 'ghost',
+) {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  ctx.lineWidth = Math.max(2.2, size * 0.1)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  if (icon === 'restart') {
+    const r = size * 0.36
+    ctx.beginPath()
+    ctx.arc(cx, cy + 1, r, Math.PI * 0.2, Math.PI * 1.75)
+    ctx.stroke()
+    const a = Math.PI * 0.2
+    const x = cx + Math.cos(a) * r
+    const y = cy + 1 + Math.sin(a) * r
+    ctx.beginPath()
+    ctx.moveTo(x - size * 0.16, y - size * 0.02)
+    ctx.lineTo(x + size * 0.02, y + size * 0.18)
+    ctx.lineTo(x + size * 0.18, y - size * 0.08)
+    ctx.stroke()
+  } else if (icon === 'next') {
+    ctx.beginPath()
+    ctx.moveTo(cx - size * 0.22, cy - size * 0.28)
+    ctx.lineTo(cx + size * 0.16, cy)
+    ctx.lineTo(cx - size * 0.22, cy + size * 0.28)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx + size * 0.3, cy - size * 0.28)
+    ctx.lineTo(cx + size * 0.3, cy + size * 0.28)
+    ctx.stroke()
+  } else if (icon === 'answer') {
+    ctx.beginPath()
+    if (typeof ctx.ellipse === 'function') {
+      ctx.ellipse(cx, cy, size * 0.42, size * 0.26, 0, 0, Math.PI * 2)
+    } else {
+      ctx.moveTo(cx - size * 0.42, cy)
+      ctx.quadraticCurveTo(cx, cy - size * 0.32, cx + size * 0.42, cy)
+      ctx.quadraticCurveTo(cx, cy + size * 0.32, cx - size * 0.42, cy)
+    }
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(cx, cy, size * 0.12, 0, Math.PI * 2)
+    ctx.fill()
+  } else if (icon === 'difficulty') {
+    const barW = size * 0.16
+    const gap = size * 0.1
+    const hs = [0.28, 0.42, 0.58]
+    hs.forEach((h, i) => {
+      const x = cx - size * 0.3 + i * (barW + gap)
+      const y = cy + size * 0.28 - size * h
+      roundRect(ctx, x, y, barW, size * h, 2)
+      ctx.fill()
+    })
+  } else {
+    drawGear(ctx, cx, cy, size * 0.42, color, kind === 'primary' ? '#F25542' : menuSurface(kind))
+  }
+  ctx.restore()
 }
 
 export function drawMenuFan(

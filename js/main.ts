@@ -5,9 +5,9 @@ import {
   Menu,
   drawMenuBackground,
   drawMenuFan,
-  drawSettingsHit,
   fillRound,
   hit,
+  iconButton,
   menuButton,
   menuTitle,
   text,
@@ -39,12 +39,25 @@ class App {
     this.canvas.height = this.height * dpr
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D
     this.ctx.scale(dpr, dpr)
+    wx.onTouchStart((event) => {
+      const touch = event.changedTouches[0] || event.touches[0]
+      if (!touch || this.scene !== 'play' || !this.play) {
+        return
+      }
+      this.play.pressDown(touch.clientX, touch.clientY)
+    })
     wx.onTouchEnd((event) => {
       const touch = event.changedTouches[0]
       if (!touch) {
         return
       }
+      if (this.scene === 'play' && this.play) {
+        this.play.pressUp()
+      }
       this.onTap(touch.clientX, touch.clientY)
+    })
+    wx.onTouchCancel(() => {
+      this.play?.pressUp()
     })
     const raf =
       typeof this.canvas.requestAnimationFrame === 'function'
@@ -154,9 +167,8 @@ class App {
     menuButton(ctx, start, '开始游戏', 'primary')
     menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
-    const settings = { x: width - 16 - 88, y: height - 72, w: 88, h: 48 }
-    fillRound(ctx, settings, Menu.paper, 14, true)
-    drawSettingsHit(ctx, settings, Menu.buttonInk)
+    const settings = { x: width - 16 - 64, y: height - 68, w: 60, h: 52 }
+    iconButton(ctx, settings, '设置', 'ghost', 'settings')
     this.hits.push({ rect: settings, action: 'settings' })
   }
 

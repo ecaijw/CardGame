@@ -10,11 +10,15 @@ import { addPlayedId, loadPlayedIds } from '../played'
 import { applyDealOutcome, loadStats, recordDeal } from '../settings'
 import {
   Color,
-  button,
   drawMenuBackground,
-  drawSettingsHit,
   fillRound,
   hit,
+  drawSegmentBar,
+  iconLabelButton,
+  menuButton,
+  menuInk,
+  paintMenuChrome,
+  withButtonScale,
   strokeRound,
   text,
   type Rect,
@@ -41,6 +45,8 @@ const SETTLE_MS = 780
 const DIALOG_IN_MS = 220
 const OP_PULSE_MS = 160
 const OP_SHAKE_MS = 360
+const PRESS_MS = 90
+const PRESS_SCALE = 0.85
 
 type Hit =
   | { kind: 'card'; id: number }
@@ -86,6 +92,7 @@ export class PlayScene {
   private selectAt = 0
   private opPulseAt = 0
   private opShake: { op: Op; at: number } | null = null
+  private press: { key: string; down: boolean; at: number } | null = null
   onSettings?: () => void
 
   constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
@@ -143,6 +150,31 @@ export class PlayScene {
 
   private dialogOpen() {
     return Boolean(this.result) && this.dialogAt > 0 && this.motion.kind === 'idle'
+  }
+
+  pressDown(x: number, y: number) {
+    const found = this.hits.find((item) => hit(item.rect, x, y))
+    if (!found || found.hit.kind === 'op' || found.hit.kind === 'card') {
+      return
+    }
+    this.press = { key: pressKey(found.hit), down: true, at: now() }
+  }
+
+  pressUp() {
+    if (this.press && this.press.down) {
+      this.press = { key: this.press.key, down: false, at: now() }
+    }
+  }
+
+  private pressScale(key: string, t: number) {
+    if (!this.press || this.press.key !== key) {
+      return 1
+    }
+    const p = easeOut((t - this.press.at) / PRESS_MS)
+    if (this.press.down) {
+      return 1 - (1 - PRESS_SCALE) * p
+    }
+    return PRESS_SCALE + (1 - PRESS_SCALE) * p
   }
 
   tap(x: number, y: number) {
@@ -323,70 +355,88 @@ export class PlayScene {
     const slots = slotRects(width, topY, cardW, cardH, gap)
     this.drawBoard(ctx, slots, fontSize, t)
 
-    const opY = slots[2].y + slots[2].h + 36
-    const opGap = 10
+    const opGap = 12
     const opW = (width - 32 - opGap * 3) / 4
+    const opH = 56
+    const opY = slots[2].y + slots[2].h + 28
     OPS.forEach((op, index) => {
-      const rect = { x: 16 + index * (opW + opGap), y: opY, w: opW, h: 52 }
+      const rect = { x: 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
       this.drawOp(ctx, rect, op, t)
       if (!this.busy() && !this.dialogOpen()) {
         this.hits.push({ rect, hit: { kind: 'op', op } })
       }
     })
 
-    const actionY = opY + 72
-    const actionW = (width - 32 - 8) / 2
-    const actions: Array<{ label: string; kind: Hit['kind'] }> = [
-      { label: '重开本局', kind: 'restart' },
-      { label: '下一局', kind: 'next' },
+    const current = FILTERS.find((item) => item.filter === this.filter)
+    const barH = 52
+    const barY = height - 18 - barH
+    const bar = { x: 20, y: barY, w: width - 40, h: barH }
+    const actionH = 44
+    const actionW = Math.min(74, (width - 52) / 4)
+    const actionGap = 12
+    const actionY = barY - 12 - actionH
+    const actionRowW = actionW * 2 + actionGap
+    const actionX = (width - actionRowW) / 2
+    const dealActions: Array<{
+      label: string
+      kind: Hit['kind']
+      icon: 'restart' | 'next'
+    }> = [
+      { label: '重试', kind: 'restart', icon: 'restart' },
+      { label: '下一局', kind: 'next', icon: 'next' },
     ]
-    actions.forEach((action, index) => {
-      const rect = { x: 16 + index * (actionW + 8), y: actionY, w: actionW, h: 44 }
-      button(ctx, rect, action.label, 'plain')
+    dealActions.forEach((action, index) => {
+      const rect = { x: actionX + index * (actionW + actionGap), y: actionY, w: actionW, h: actionH }
+      withButtonScale(ctx, rect, this.pressScale(action.kind, t), () => {
+        iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
+      })
       if (!this.busy() && !this.dialogOpen()) {
         this.hits.push({ rect, hit: { kind: action.kind } as Hit })
       }
     })
 
-    const barY = height - 68
-    const answer = { x: 16, y: barY, w: 100, h: 44 }
-    button(ctx, answer, '查看答案', this.showAnswer ? 'ghost' : 'plain')
+    const cellW = bar.w / 3
+    const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
+    const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
+    const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
+    drawSegmentBar(ctx, bar, [
+      { label: '查看答案', icon: 'answer', active: this.showAnswer, scale: this.pressScale('answer', t) },
+      {
+        label: current ? current.label : '难度',
+        icon: 'difficulty',
+        active: this.showDifficulty,
+        scale: this.pressScale('difficulty', t),
+      },
+      { label: '设置', icon: 'settings', scale: this.pressScale('settings', t) },
+    ])
     if (!this.busy() && !this.dialogOpen()) {
-      this.hits.push({ rect: answer, hit: { kind: 'answer' } })
+      this.hits.push(
+        { rect: answer, hit: { kind: 'answer' } },
+        { rect: difficulty, hit: { kind: 'difficulty' } },
+        { rect: settings, hit: { kind: 'settings' } },
+      )
     }
     if (this.showAnswer) {
-      text(ctx, this.puzzle.expression, 16, answer.y - 22, 16, Color.ink, 'left')
-    }
-
-    const current = FILTERS.find((item) => item.filter === this.filter)
-    const difficulty = { x: (width - 100) / 2, y: barY, w: 100, h: 44 }
-    button(ctx, difficulty, current ? current.label : '难度', this.showDifficulty ? 'ghost' : 'plain')
-    if (!this.busy() && !this.dialogOpen()) {
-      this.hits.push({ rect: difficulty, hit: { kind: 'difficulty' } })
+      text(ctx, this.puzzle.expression, 20, actionY - 16, 14, Color.ink, 'left')
     }
     if (this.showDifficulty) {
       const menuHits: Array<{ rect: Rect; hit: Hit }> = []
       const rowH = 40
-      const gap = 4
+      const menuGap = 6
       FILTERS.forEach((item, index) => {
         const fromBottom = FILTERS.length - index
         const rect = {
-          x: difficulty.x,
-          y: difficulty.y - fromBottom * (rowH + gap),
-          w: difficulty.w,
+          x: difficulty.x + 8,
+          y: difficulty.y - fromBottom * (rowH + menuGap),
+          w: difficulty.w - 16,
           h: rowH,
         }
-        button(ctx, rect, item.label, item.filter === this.filter ? 'ghost' : 'plain')
+        withButtonScale(ctx, rect, this.pressScale(`filter-${item.filter}`, t), () => {
+          menuButton(ctx, rect, item.label, item.filter === this.filter ? 'blush' : 'ghost')
+        })
         menuHits.push({ rect, hit: { kind: 'set-filter', filter: item.filter } })
       })
       this.hits = [...menuHits, ...this.hits]
-    }
-
-    const settings = { x: width - 16 - 88, y: barY, w: 88, h: 44 }
-    fillRound(ctx, settings, Color.paper, 12, true)
-    drawSettingsHit(ctx, settings, Color.ink)
-    if (!this.busy() && !this.dialogOpen()) {
-      this.hits.push({ rect: settings, hit: { kind: 'settings' } })
     }
 
     if (this.dialogOpen()) {
@@ -539,15 +589,14 @@ export class PlayScene {
       const p = easeOut((t - this.opPulseAt) / OP_PULSE_MS)
       scale = 0.98 + 0.02 * p
     }
+    const kind = this.selectedOp === op ? 'blush' : 'ghost'
     ctx.save()
-    ctx.translate(rect.x + rect.w / 2 + dx, rect.y + rect.h / 2)
+    ctx.translate(dx, 0)
+    ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2)
     ctx.scale(scale, scale)
-    const local = { x: -rect.w / 2, y: -rect.h / 2, w: rect.w, h: rect.h }
-    fillRound(ctx, local, this.selectedOp === op ? '#FFF4C4' : Color.paper, 12, true)
-    if (this.selectedOp === op) {
-      strokeRound(ctx, local, Color.gold, 12, 3)
-    }
-    text(ctx, op, 0, 0, 24, Color.ink)
+    ctx.translate(-(rect.x + rect.w / 2), -(rect.y + rect.h / 2))
+    paintMenuChrome(ctx, rect, kind)
+    text(ctx, op, rect.x + rect.w / 2, rect.y + rect.h / 2, 24, menuInk(kind), 'center', '700')
     ctx.restore()
   }
 
@@ -594,20 +643,31 @@ export class PlayScene {
       Color.muted,
     )
     if (this.result === 'fail') {
-      const restart = { x: dialog.x + 24, y: dialog.y + 124, w: dialog.w - 48, h: 44 }
-      button(ctx, restart, '重开本局', 'ghost')
+      const restart = { x: dialog.x + 24, y: dialog.y + 118, w: dialog.w - 48, h: 50 }
+      withButtonScale(ctx, restart, this.pressScale('dialog-restart', t), () => {
+        menuButton(ctx, restart, '重开本局', 'ghost')
+      })
       this.hits.push({ rect: restart, hit: { kind: 'dialog-restart' } })
     }
     const next = {
       x: dialog.x + 24,
-      y: dialog.y + (this.result === 'fail' ? 180 : 140),
+      y: dialog.y + (this.result === 'fail' ? 176 : 136),
       w: dialog.w - 48,
-      h: 44,
+      h: 50,
     }
-    button(ctx, next, '下一局', 'primary')
+    withButtonScale(ctx, next, this.pressScale('dialog-next', t), () => {
+      menuButton(ctx, next, '下一局', 'ghost')
+    })
     this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
     ctx.restore()
   }
+}
+
+function pressKey(action: Hit) {
+  if (action.kind === 'set-filter') {
+    return `filter-${action.filter}`
+  }
+  return action.kind
 }
 
 function dealPuzzle(excludeId?: string, filter: DealFilter = 'easy'): Puzzle {
