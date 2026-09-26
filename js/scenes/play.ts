@@ -94,6 +94,7 @@ export class PlayScene {
   private opPulseAt = 0
   private opShake: { op: Op; at: number } | null = null
   private press: { key: string; down: boolean; at: number } | null = null
+  private queuedMerge: { op: Op; destId: number } | null = null
   onSettings?: () => void
 
   constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
@@ -119,6 +120,7 @@ export class PlayScene {
     this.state = startGame(this.puzzle.nums)
     this.selectedId = 0
     this.selectedOp = ''
+    this.queuedMerge = null
     this.result = ''
     this.showAnswer = false
     this.showDifficulty = false
@@ -147,6 +149,10 @@ export class PlayScene {
 
   private busy() {
     return this.motion.kind !== 'idle'
+  }
+
+  private canInputNext() {
+    return !this.dialogOpen() && !this.result && (this.motion.kind === 'idle' || this.motion.kind === 'merging')
   }
 
   private dialogOpen() {
@@ -201,6 +207,14 @@ export class PlayScene {
       return
     }
     if (this.busy()) {
+      if (this.canInputNext()) {
+        if (action.kind === 'op') {
+          this.onOp(action.op)
+        }
+        if (action.kind === 'card') {
+          this.queueOrSelectCard(action.id)
+        }
+      }
       return
     }
     if (action.kind === 'card') {
@@ -297,9 +311,19 @@ export class PlayScene {
     }
   }
 
+  private queueOrSelectCard(id: number) {
+    if (!this.selectedOp || id === this.selectedId) {
+      this.onCard(id)
+      this.queuedMerge = null
+      return
+    }
+    this.queuedMerge = { op: this.selectedOp, destId: id }
+  }
+
   private onOp(op: Op) {
     if (this.selectedOp === op) {
       this.selectedOp = ''
+      this.queuedMerge = null
       return
     }
     if (!this.selectedId) {
@@ -319,6 +343,7 @@ export class PlayScene {
     }
     if (motion.kind === 'merging' && t - motion.at >= MERGE_MS) {
       if (this.result === 'success' || this.result === 'fail') {
+        this.queuedMerge = null
         const last = this.state.cards[0]
         this.motion = {
           kind: 'settling',
@@ -328,7 +353,13 @@ export class PlayScene {
         }
         return
       }
+      const queued = this.queuedMerge
+      this.queuedMerge = null
       this.motion = { kind: 'idle' }
+      if (queued) {
+        this.selectedOp = queued.op
+        this.onCard(queued.destId)
+      }
       return
     }
     if (motion.kind === 'settling') {
@@ -361,7 +392,7 @@ export class PlayScene {
     OPS.forEach((op, index) => {
       const rect = { x: 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
       this.drawOp(ctx, rect, op, t)
-      if (!this.busy() && !this.dialogOpen()) {
+      if (this.canInputNext()) {
         this.hits.push({ rect, hit: { kind: 'op', op } })
       }
     })
@@ -462,6 +493,9 @@ export class PlayScene {
       }
       const rect = slots[card.slot]
       const look = this.cardLook(card.id, card.slot, slots, t)
+      if (this.canInputNext()) {
+        this.hits.push({ rect, hit: { kind: 'card', id: card.id } })
+      }
       if (!look) {
         return
       }
@@ -471,9 +505,6 @@ export class PlayScene {
         fontSize,
         ...look,
       })
-      if (!this.busy()) {
-        this.hits.push({ rect, hit: { kind: 'card', id: card.id } })
-      }
     })
 
     if (motion.kind === 'merging') {
