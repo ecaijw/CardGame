@@ -19,6 +19,7 @@
 
 ```
 game.js / game.json
+audio/                  进包：bgm + 6 个音效（不要 ignore）
 icons/                  结算标题图标（设计稿裁切）
 docs/ux/                当前采用的设计稿（pack ignore）
 js/
@@ -26,6 +27,7 @@ js/
   ui.ts             * Canvas 绘制
   played.ts             已玩 id（wx 存储）
   settings.ts           对局统计、音效 / 音乐开关（wx 存储）
+  audio/audio-manager.ts  播放单例（wx；见 [audio.md](audio.md)）
   scenes/play.ts    * 对局
   scenes/settings.ts    设置页
   game/
@@ -118,6 +120,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 第 0 期：Canvas 长方形 + 数字，比例接近扑克（约 63:88）
 - 第 2 期：自绘 4 花色 × 13 点，避免版权图；显示模式可切换
 - 动画：第 2 期已接入对局场景时间轴（发牌 / 合并 / 结算），规则仍走 `merge.ts`，见 [animation.md](animation.md)
+- 音频：第 2 期已接入；BGM 首次点「开始游戏」后循环，音效跟对局操作走，见 [audio.md](audio.md)
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）
 

@@ -1,4 +1,9 @@
 import {
+  playSfx,
+  setMusicEnabled as applyMusicEnabled,
+  setSfxEnabled,
+} from '../audio/audio-manager'
+import {
   loadMusicEnabled,
   loadSoundEnabled,
   loadStats,
@@ -33,11 +38,15 @@ export class SettingsScene {
     if (found.action === 'sound') {
       this.sound = !this.sound
       setSoundEnabled(this.sound)
+      setSfxEnabled(this.sound)
+      playSfx('tap')
       return ''
     }
     if (found.action === 'music') {
       this.music = !this.music
       setMusicEnabled(this.music)
+      applyMusicEnabled(this.music)
+      playSfx('tap')
       return ''
     }
     return 'back'

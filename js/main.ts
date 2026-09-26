@@ -1,3 +1,4 @@
+import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-manager'
 import { preloadIcons } from './art'
 import { PlayScene } from './scenes/play'
 import { SettingsScene } from './scenes/settings'
@@ -41,6 +42,7 @@ class App {
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D
     this.ctx.scale(dpr, dpr)
     preloadIcons()
+    initAudio()
     wx.onTouchStart((event) => {
       const touch = event.changedTouches[0] || event.touches[0]
       if (!touch || this.scene !== 'play' || !this.play) {
@@ -79,6 +81,7 @@ class App {
     }
     if (this.scene === 'settings') {
       if (this.settings.tap(x, y) === 'back') {
+        playSfx('tap')
         this.scene = this.settingsBack
       }
       return
@@ -88,6 +91,8 @@ class App {
       return
     }
     if (found.action === 'start') {
+      playSfx('tap')
+      unlockAndStartBgm()
       if (this.play) {
         this.play.reset()
       } else {
@@ -98,14 +103,17 @@ class App {
       return
     }
     if (found.action === 'howto') {
+      playSfx('tap')
       this.scene = 'howto'
       return
     }
     if (found.action === 'settings') {
+      playSfx('tap')
       this.openSettings('home')
       return
     }
     if (found.action === 'back') {
+      playSfx('tap')
       this.scene = 'home'
     }
   }

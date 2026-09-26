@@ -1,4 +1,5 @@
 import { getIcon } from '../art'
+import { playSfx } from '../audio/audio-manager'
 import { formatFraction, type Fraction, type Op } from '../game/fraction'
 import {
   merge,
@@ -199,9 +200,11 @@ export class PlayScene {
     const action = found.hit
     if (this.dialogOpen()) {
       if (action.kind === 'dialog-restart') {
+        playSfx('next')
         this.reset()
       }
       if (action.kind === 'dialog-next') {
+        playSfx('next')
         this.nextPuzzle()
       }
       return
@@ -226,22 +229,27 @@ export class PlayScene {
       return
     }
     if (action.kind === 'restart') {
+      playSfx('next')
       this.reset()
       return
     }
     if (action.kind === 'next') {
+      playSfx('next')
       this.nextPuzzle()
       return
     }
     if (action.kind === 'answer') {
+      playSfx('tap')
       this.showAnswer = !this.showAnswer
       return
     }
     if (action.kind === 'difficulty') {
+      playSfx('tap')
       this.showDifficulty = !this.showDifficulty
       return
     }
     if (action.kind === 'set-filter') {
+      playSfx('tap')
       this.showDifficulty = false
       if (action.filter === this.filter) {
         return
@@ -253,6 +261,7 @@ export class PlayScene {
       return
     }
     if (action.kind === 'settings') {
+      playSfx('tap')
       this.onSettings?.()
     }
   }
@@ -261,15 +270,18 @@ export class PlayScene {
     if (!this.selectedId) {
       this.selectedId = id
       this.selectAt = now()
+      playSfx('select')
       return
     }
     if (id === this.selectedId) {
       this.selectedId = 0
+      playSfx('select')
       return
     }
     if (!this.selectedOp) {
       this.selectedId = id
       this.selectAt = now()
+      playSfx('select')
       return
     }
     const source = this.state.cards.find((card) => card.id === this.selectedId)
@@ -277,6 +289,7 @@ export class PlayScene {
     const op = this.selectedOp
     const merged = merge(this.state, this.selectedId, op, id)
     if (!merged.ok) {
+      playSfx('invalid')
       wx.showToast({
         title: merged.reason === 'div0' ? '不能除以 0' : '请选择两张不同的牌',
         icon: 'none',
@@ -292,6 +305,7 @@ export class PlayScene {
       this.lastOutcome = end
     }
     this.result = end === 'playing' ? '' : end
+    playSfx(end === 'success' ? 'success' : end === 'fail' ? 'invalid' : 'merge')
     if (this.result) {
       this.showDifficulty = false
     }
@@ -324,15 +338,18 @@ export class PlayScene {
     if (this.selectedOp === op) {
       this.selectedOp = ''
       this.queuedMerge = null
+      playSfx('select')
       return
     }
     if (!this.selectedId) {
       this.opShake = { op, at: now() }
+      playSfx('invalid')
       wx.showToast({ title: '请先点选一张牌', icon: 'none' })
       return
     }
     this.selectedOp = op
     this.opPulseAt = now()
+    playSfx('select')
   }
 
   private tick(t: number) {
