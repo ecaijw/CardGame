@@ -412,7 +412,7 @@ export class PlayScene {
       )
     }
     if (this.showAnswer) {
-      text(ctx, this.puzzle.expression, 20, actionY - 16, 14, Color.ink, 'left')
+      text(ctx, this.puzzle.expression, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
     }
     if (this.showDifficulty) {
       const menuHits: Array<{ rect: Rect; hit: Hit }> = []
