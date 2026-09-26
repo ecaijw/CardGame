@@ -51,6 +51,7 @@ const OP_PULSE_MS = 160
 const OP_SHAKE_MS = 360
 const PRESS_MS = 90
 const PRESS_SCALE = 0.85
+const HINT_MS = 1800
 
 type Hit =
   | { kind: 'card'; id: number }
@@ -98,6 +99,8 @@ export class PlayScene {
   private opShake: { op: Op; at: number } | null = null
   private press: { key: string; down: boolean; at: number } | null = null
   private queuedMerge: { op: Op; destId: number } | null = null
+  private hint = ''
+  private hintAt = 0
   onSettings?: () => void
 
   constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
@@ -127,6 +130,7 @@ export class PlayScene {
     this.result = ''
     this.showAnswer = false
     this.showDifficulty = false
+    this.hint = ''
     this.dialogAt = 0
     this.startDeal(fadeFrom)
   }
@@ -292,10 +296,7 @@ export class PlayScene {
     const merged = merge(this.state, this.selectedId, op, id)
     if (!merged.ok) {
       playSfx('invalid')
-      wx.showToast({
-        title: merged.reason === 'div0' ? '不能除以 0' : '请选择两张不同的牌',
-        icon: 'none',
-      })
+      this.showHint(merged.reason === 'div0' ? '不能除以 0' : '请选择两张不同的牌')
       return
     }
     const resultCard = merged.state.cards[merged.state.cards.length - 1]
@@ -336,6 +337,11 @@ export class PlayScene {
     this.queuedMerge = { op: this.selectedOp, destId: id }
   }
 
+  private showHint(message: string) {
+    this.hint = message
+    this.hintAt = now()
+  }
+
   private onOp(op: Op) {
     if (this.selectedOp === op) {
       this.selectedOp = ''
@@ -346,7 +352,7 @@ export class PlayScene {
     if (!this.selectedId) {
       this.opShake = { op, at: now() }
       playSfx('invalid')
-      wx.showToast({ title: '请先点选一张牌', icon: 'none' })
+      this.showHint('请先点选一张牌')
       return
     }
     this.selectedOp = op
@@ -462,7 +468,10 @@ export class PlayScene {
         { rect: settings, hit: { kind: 'settings' } },
       )
     }
-    if (this.showAnswer) {
+    const hintOn = Boolean(this.hint) && t - this.hintAt < HINT_MS
+    if (hintOn) {
+      text(ctx, this.hint, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
+    } else if (this.showAnswer) {
       text(ctx, this.puzzle.expression, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
     }
     if (this.showDifficulty) {
