@@ -120,25 +120,54 @@ interface PlatformServices {
 
 ## 4. 建议目录
 
-短期不为了目录美观大规模重构。先保持现有 `js/game/` 纯净，迁移开始时再演进为：
+微信小游戏没有打包步骤。`game.js` 只 `require('./js/main')`，开发者工具直接编译导入目录里的 TypeScript。本地包不会被微信编译器解析，所以共享源码必须位于微信工程内部，或由脚本拷进该工程。移动端可以引用仓库里的其他目录。
+
+第 2.1 期保持今天的仓库根。下面两段从决定做移动端原型才开始。小游戏运行时继续 `require` `puzzles.catalog.js`，不直接加载 `puzzles.json`。求解器仍只放 `scripts/`。
+
+### 4.1 第一阶段：加移动端，微信仍从仓库根导入
 
 ```text
 CardGame/
-  packages/
-    game-core/             分数、合牌、状态机、抽题、双人规则
-    puzzle-catalog/        运行时题库与类型
-    design-tokens/         颜色、字号、间距、圆角和动画时长
-  apps/
-    wechat-game/           微信 Canvas、wx 存储、wx 音频
-    mobile/
-      src/                 HTML Canvas 与移动端页面
-      ios/                 Capacitor 生成的 Xcode 工程
-      android/             Capacitor 生成的 Android 工程
-  scripts/                 求解器与离线题库生成，不进客户端
-  tests/                   平台无关核心测试
+  game.js
+  game.json
+  project.config.json
+  js/
+    game/                 共享规则，继续纯 TypeScript
+    main.ts ui.ts art.ts  微信绘制与场景
+    scenes/ audio/        微信触摸、音频
+    played.ts settings.ts 微信存储
+  audio/ icons/           微信进包资源
+  apps/mobile/            Capacitor + HTML Canvas
+  scripts/                求解器与题库生成，不进包
+  docs/
 ```
 
-迁移前不改变现有硬约束：小游戏运行时继续 `require` `puzzles.catalog.js`，不直接加载 `puzzles.json`；求解器仍只放 `scripts/`。
+- `js/game/fraction.ts`、`merge.ts`、`puzzles.ts` 留在原地。移动端用相对路径引用。
+- `js/scenes/play.ts`、`ui.ts`、`main.ts`、`audio/audio-manager.ts`、`played.ts`、`settings.ts`、`art.ts` 留在微信侧。移动端重写画布、触摸和音频。
+- `audio/`、`icons/` 仍在微信工程内。移动端使用自己的资源副本。
+- `apps/mobile/ios` 与 `apps/mobile/android` 由 Capacitor 生成。手写代码放 `apps/mobile/src`。
+- `project.config.json` 的 pack ignore 增加 `apps`。`docs`、`scripts`、`puzzles.json`、`assets` 继续忽略。
+
+这一阶段的代码缝：`js/game/puzzles.ts` 里的 `require('./puzzles.catalog')` 改为由调用方传入题目数组。微信入口传入 catalog，移动端传入同一份数据。生成脚本仍写出 `js/game/puzzles.catalog.js`。
+
+颜色和字号先留在 `ui.ts`。移动端开始对稿时，再抽一份双方都读的常量，放在 `js/game/` 旁或 `js/theme.ts`。
+
+### 4.2 第二阶段：两边都在用同一套会话之后再搬
+
+单人会话已经在 `js/game/`，并且移动端原型直接调用它之后，再收成：
+
+```text
+CardGame/
+  packages/game-core/          原 js/game 的规则、会话、抽题
+  packages/puzzle-catalog/     生成出的 puzzles.json 与 puzzles.catalog.js
+  apps/wechat-game/            原仓库根的 game.js、js 场景、audio、icons、project.config.json
+  apps/mobile/                 已有的 Capacitor 工程
+  scripts/ docs/
+```
+
+开发者工具的导入目录从仓库根改为 `apps/wechat-game`。共享规则用生成或拷贝进入该目录，微信仍用相对路径 `require`。
+
+`packages/puzzle-catalog` 是生成物。正本 JSON 不进小游戏包。`puzzles.catalog.js` 拷进 `apps/wechat-game` 供运行时 require。求解器留在根目录 `scripts/`。
 
 ## 5. 双人模式范围
 
@@ -189,7 +218,7 @@ type DuelState = {
 
 ### 阶段 C：移动端最小原型
 
-只实现首页、单人局、四张牌、四则运算、下一局、查看答案、本地设置与音频。原型不得重新实现求解、题库和胜负规则，而应直接使用共享核心。
+按第 4.1 节加 `apps/mobile`，微信仍从仓库根导入。只实现首页、单人局、四张牌、四则运算、下一局、查看答案、本地设置与音频。原型直接调用 `js/game/`，题库由入口传入。pack ignore 加上 `apps`。
 
 ### 阶段 D：双平台发布
 
@@ -365,7 +394,8 @@ Thank you!
 - [ ] 当前微信分期已跑测试、对齐文档并写完 handoff。
 - [ ] 工作区没有混入未提交的其他功能。
 - [ ] `js/game/` 没有 `wx` 或 UI 依赖。
-- [ ] 确定共享核心的包边界和导出 API。
+- [ ] 移动端原型放在 `apps/mobile`，微信导入目录仍是仓库根；`puzzles.ts` 改为由调用方传入题库。
+- [ ] 两边都调用同一套 `js/game/` 会话之后，再考虑 `packages/` 与 `apps/wechat-game`。
 - [ ] 为存储、音频、生命周期定义平台接口。
 - [ ] 单人会话（选牌、取消、合牌、结算原因）已在 `js/game/`，场景不再自带一套规则。
 - [ ] 先完成移动端单人原型，再迁移双人。双人状态机调用该会话，比分与单人统计分开。
@@ -378,6 +408,7 @@ Thank you!
 ## 12. 明确不做的事
 
 - 不因为计划发布 App，就在第 2.1 期重构现有微信上线版本。
+- 不在移动端原型开工时把仓库改成 `packages/`，也不把微信工程挪进 `apps/wechat-game`。那一步等到两边都在调用 `js/game/` 之后。
 - 不把选牌、取消、结算原因和同机双人只写在 `js/scenes/play.ts`。这些规则进 `js/game/` 的纯会话，场景只翻译点击。
 - 不复制三份运算、题库或胜负代码。
 - 不在首个移动版同时实现两台设备联网对战。
