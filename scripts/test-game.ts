@@ -142,14 +142,19 @@ function testSolver() {
   }
   const eight = solve([1, 1, 1, 8])
   assert(!!eight, '1,1,1,8 should be solvable')
-  assert(eight!.best.expression === '(1+(1+1))×8', 'strip outermost parens')
+  assert(eight!.best.expression === '8×(1+(1+1))', 'strip outermost parens')
   assert(classifyDifficulty(solve([1, 1, 1, 8])) === 'easy', '1,1,1,8 easy')
   assert(classifyDifficulty(solve([1, 1, 6, 8])) === 'medium', '1,1,6,8 needs integer divide')
+  assert(classifyDifficulty(solve([1, 3, 7, 9])) === 'medium', '1,3,7,9 direct divide stays medium')
+  assert(classifyDifficulty(solve([1, 5, 5, 12])) === 'medium', '1,5,5,12 unit divide stays medium')
+  assert(classifyDifficulty(solve([1, 2, 7, 7])) === 'hard', '1,2,7,7 constructed divide is hard')
   assert(classifyDifficulty(solve([11, 11, 1, 3])) === 'easy', '11,11,1,3 easy')
   assert(classifyDifficulty(solve([12, 12, 12, 12])) === 'easy', '12,12,12,12 easy')
   assert(classifyDifficulty(solve([1, 3, 4, 6])) === 'hard', '1,3,4,6 hard')
   assert(classifyDifficulty(solve([3, 3, 8, 8])) === 'hard', '3,3,8,8 hard')
   assert(classifyDifficulty(solve([1, 5, 5, 5])) === 'hard', '1,5,5,5 hard')
+  const direct = solve([1, 3, 7, 9])
+  assert(direct?.best.steps.includes('9÷3=3'), '1,3,7,9 shows direct divide')
 }
 
 function testCatalog() {
@@ -166,6 +171,8 @@ function testCatalog() {
   const ids = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]))
   assert(ids.get('1,1,1,8')?.difficulty === 'easy', 'catalog 1,1,1,8 easy')
   assert(ids.get('1,1,6,8')?.difficulty === 'medium', 'catalog 1,1,6,8 medium')
+  assert(ids.get('1,3,7,9')?.difficulty === 'medium', 'catalog 1,3,7,9 medium')
+  assert(ids.get('1,2,7,7')?.difficulty === 'hard', 'catalog 1,2,7,7 hard')
   assert(ids.get('1,3,4,6')?.difficulty === 'hard', 'catalog 1,3,4,6 hard')
   assert(ids.get('3,3,8,8')?.difficulty === 'hard', 'catalog 3,3,8,8 hard')
   assert(ids.get('1,5,5,5')?.difficulty === 'hard', 'catalog 1,5,5,5 hard')
@@ -223,8 +230,8 @@ function testPick() {
 
   assert(puzzlesFor('all').length === 1362, 'all filter is solvable pool')
   assert(puzzlesFor('easy').length === 1163, 'easy pool')
-  assert(puzzlesFor('medium').length === 183, 'medium pool')
-  assert(puzzlesFor('hard').length === 16, 'hard pool')
+  assert(puzzlesFor('medium').length === 137, 'medium pool')
+  assert(puzzlesFor('hard').length === 62, 'hard pool')
   assert(
     puzzlesFor('easy').every((puzzle) => puzzle.difficulty === 'easy'),
     'easy filter only easy',

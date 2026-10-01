@@ -98,7 +98,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 }
 ```
 
-难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。按中间步骤分档：全程正整数且不必除法为 easy；必须整除但不需要非整数分数为 medium；所有解都需要非整数分数为 hard。不用「最大点数 ≤ 10」或「出现除法就算 hard」。`expression` 去掉最外层一对括号。运行时只读字段。
+难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。简单：存在全程正整数且不用除法的解法。困难：所有解都要非整数分数，或去掉加法、乘法交换后正整数模式不超过 2 种且不能用两张原始牌直接整除。其余有解题为中等。简单先判定。`expression` 去掉最外层一对括号。运行时只读字段。
 
 提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单；`pickPuzzle` 只在对应有解池里抽，优先未玩。抽题时跳过 `unsolvable`。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
 
