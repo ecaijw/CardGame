@@ -472,7 +472,11 @@ export class PlayScene {
     if (hintOn) {
       text(ctx, this.hint, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
     } else if (this.showAnswer) {
-      text(ctx, this.puzzle.expression, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
+      const answerY = opY + opH + 52
+      text(ctx, this.puzzle.expression, width / 2, answerY, 22, Color.coral, 'center', '700')
+      this.puzzle.steps.forEach((step, index) => {
+        text(ctx, step, width / 2, answerY + 28 + index * 22, 15, Color.muted, 'center', '500')
+      })
     }
     if (this.showDifficulty) {
       const menuHits: Array<{ rect: Rect; hit: Hit }> = []
