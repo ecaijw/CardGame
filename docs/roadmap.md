@@ -2,9 +2,9 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)。
 
-当前状态：**第 2 期已完成（2026-09-26）。** 交接见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.1 期进行中（2026-09-26 起）。** 目标是完成上线；过程中修小问题、做优化。不是第 3 期。交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
-**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。
+**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
 ## 第 0 期 — 可玩的单人局（MVP）· 已完成
 
@@ -34,9 +34,20 @@
 - 基础牌面动画（已接入，见 [animation.md](animation.md)）
 - 「数字或扑克」已改列入后续，不在本期做
 
+## 第 2.1 期 — 上线 · 进行中
+
+不是第 3 期。目标是把当前可玩版本完成微信小游戏上线（类目、资质、备案、提审、发布）。过程中修小问题、做体验优化。
+
+- 上线当前版本：对局、题库、设置统计、音效 / 音乐、基础牌面动画
+- 小修复与优化先记 [test.md](test.md)，讨论后再改代码
+- 不接广告、不接支付、不用云
+- 数字 / 扑克、无解发牌、对战仍在后续计划
+
+交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
+
 ## 第 3 期 — 广告和收入
 
-开工前：企业主体、流量主、类目；以及小程序 vs 小游戏的 go/no-go。
+开工前：企业主体、流量主。客户端已定为小游戏。
 
 - 每 20 局广告一次
 - 简单免费；中等 / 困难对免费用户一次激励视频

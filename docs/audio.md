@@ -1,6 +1,6 @@
 # 24 点 — 背景音乐与音效（第 2 期）
 
-产品入口见 [prd.md](prd.md)，技术边界见 [tech.md](tech.md)。玩法仍以 [rules.md](rules.md) 为准。本文件是接入方案，**先落地文档，音源由你手动下载后再改代码。**
+产品入口见 [prd.md](prd.md)，技术边界见 [tech.md](tech.md)。玩法仍以 [rules.md](rules.md) 为准。本文件是第 2 期接入方案，音源与播放已落地。
 
 **现状（2026-09-26）：** 设置页「音效 / 音乐」开关仍写 `soundEnabled` / `musicEnabled`。7 个 MP3 在 `audio/`，授权见 [audio-assets.md](audio-assets.md)。播放由 `[js/audio/audio-manager.ts](../js/audio/audio-manager.ts)` 接入首页、对局和设置。
 
