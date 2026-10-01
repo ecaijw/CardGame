@@ -1,6 +1,6 @@
 # 24 点 — 分期路线图
 
-玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)。
+玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
 当前状态：**第 2.1 期进行中（2026-09-26 起）。** 目标是完成上线；过程中修小问题、做优化。不是第 3 期。交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
@@ -69,5 +69,5 @@
 - 一台手机双人对战
 - 两台手机云对战
 - 英语等多语言
-- 网页版、安卓、iPhone
+- 网页版、安卓、iPhone（共享 TypeScript 核心与移动端方案见 [app-cross-platform.md](app-cross-platform.md)）
 - 若政策允许：自定义金额赞赏

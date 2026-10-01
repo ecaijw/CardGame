@@ -1,6 +1,6 @@
 # 24 点 — 技术方案
 
-玩法见 [rules.md](rules.md)，产品需求见 [prd.md](prd.md)，分期见 [roadmap.md](roadmap.md)。
+玩法见 [rules.md](rules.md)，产品需求见 [prd.md](prd.md)，分期见 [roadmap.md](roadmap.md)。iOS / Android 的共享核心、移动端技术选型、海外命名和测试者招募见 [app-cross-platform.md](app-cross-platform.md)。
 
 ## 1. 选型
 
