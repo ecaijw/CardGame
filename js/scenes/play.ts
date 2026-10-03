@@ -9,9 +9,10 @@ import {
 } from '../game/merge'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
 import { addPlayedId, loadPlayedIds } from '../played'
-import { applyDealOutcome, loadStats, recordDeal } from '../settings'
+import { applyDealOutcome, loadStats, recordDeal, type GameStats } from '../settings'
 import {
   Color,
+  Menu,
   capsuleBottom,
   bottomBarPad,
   drawDialogTitle,
@@ -90,6 +91,7 @@ export class PlayScene {
   private showAnswer = false
   private showDifficulty = false
   private lastOutcome: 'success' | 'fail' | '' = ''
+  private stats: GameStats = loadStats()
   private streakAtDealStart = 0
   private hits: Array<{ rect: Rect; hit: Hit }> = []
   private motion: Motion = { kind: 'idle' }
@@ -143,7 +145,8 @@ export class PlayScene {
 
   private beginDealtRound() {
     this.lastOutcome = ''
-    this.streakAtDealStart = loadStats().streak
+    this.stats = loadStats()
+    this.streakAtDealStart = this.stats.streak
   }
 
   private startDeal(fadeFrom?: Face[]) {
@@ -306,6 +309,7 @@ export class PlayScene {
     if (end === 'success' || end === 'fail') {
       applyDealOutcome(end, this.lastOutcome, this.streakAtDealStart)
       this.lastOutcome = end
+      this.stats = loadStats()
     }
     this.result = end === 'playing' ? '' : end
     playSfx(end === 'success' ? 'success' : end === 'fail' ? 'invalid' : 'merge')
@@ -402,20 +406,25 @@ export class PlayScene {
     this.hits = []
     drawMenuBackground(ctx, width, height)
 
-    const topY = Math.max(72, capsuleBottom() + 16)
+    const frame = playFrame(width)
+    const minTop = Math.max(72, capsuleBottom() + 16)
     const gap = 16
-    const cardW = Math.min(120, (width - 48 - gap) / 2)
+    const cardW = Math.min(120, (frame.play.w - 48 - gap) / 2)
     const cardH = cardW * (88 / 63)
     const fontSize = cardW > 90 ? 32 : 26
-    const slots = slotRects(width, topY, cardW, cardH, gap)
+    const opH = 56
+    const belowCards = 28
+    const stackH = cardH * 2 + gap + belowCards + opH
+    const floorTop = height - bottomBarPad() - stackH
+    const topY = frame.side ? minTop + Math.max(0, floorTop - minTop) * 0.42 : minTop
+    const slots = slotRects(frame.play.x, frame.play.w, topY, cardW, cardH, gap)
     this.drawBoard(ctx, slots, fontSize, t)
 
     const opGap = 12
-    const opW = (width - 32 - opGap * 3) / 4
-    const opH = 56
-    const opY = slots[2].y + slots[2].h + 28
+    const opW = (frame.play.w - 32 - opGap * 3) / 4
+    const opY = slots[2].y + slots[2].h + belowCards
     OPS.forEach((op, index) => {
-      const rect = { x: 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
+      const rect = { x: frame.play.x + 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
       this.drawOp(ctx, rect, op, t)
       if (this.canInputNext()) {
         this.hits.push({ rect, hit: { kind: 'op', op } })
@@ -424,8 +433,10 @@ export class PlayScene {
 
     const current = FILTERS.find((item) => item.filter === this.filter)
     const barH = 52
-    const barY = height - bottomBarPad() - barH
-    const bar = { x: 20, y: barY, w: width - 40, h: barH }
+    const barY = frame.side ? opY : height - bottomBarPad() - barH
+    const bar = frame.side
+      ? { x: frame.side.x, y: barY, w: frame.side.w, h: barH }
+      : { x: 20, y: barY, w: width - 40, h: barH }
     const cellW = bar.w / 3
     const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
     const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
@@ -469,14 +480,15 @@ export class PlayScene {
       )
     }
     const hintOn = Boolean(this.hint) && t - this.hintAt < HINT_MS
+    const statsRect = frame.side
+      ? { x: frame.side.x, y: topY + 8, w: frame.side.w, h: actionY - topY - 16 }
+      : { x: 24, y: opY + opH + 12, w: width - 48, h: actionY - (opY + opH + 20) }
     if (hintOn) {
-      text(ctx, this.hint, width / 2, opY + opH + 52, 22, Color.coral, 'center', '700')
+      drawCopyCard(ctx, statsRect, this.hint, [])
     } else if (this.showAnswer) {
-      const answerY = opY + opH + 52
-      text(ctx, this.puzzle.expression, width / 2, answerY, 22, Color.coral, 'center', '700')
-      this.puzzle.steps.forEach((step, index) => {
-        text(ctx, step, width / 2, answerY + 28 + index * 22, 15, Color.muted, 'center', '500')
-      })
+      drawCopyCard(ctx, statsRect, this.puzzle.expression, this.puzzle.steps)
+    } else if (frame.side) {
+      drawDealStats(ctx, statsRect, this.stats)
     }
     if (this.showDifficulty) {
       const menuHits: Array<{ rect: Rect; hit: Hit }> = []
@@ -499,7 +511,7 @@ export class PlayScene {
     }
 
     if (this.dialogOpen()) {
-      this.drawDialog(ctx, width, height, t, opY, slots, fontSize)
+      this.drawDialog(ctx, width, height, t, slots, fontSize)
     }
   }
 
@@ -663,7 +675,6 @@ export class PlayScene {
     width: number,
     height: number,
     t: number,
-    opY: number,
     slots: Rect[],
     fontSize: number,
   ) {
@@ -686,26 +697,40 @@ export class PlayScene {
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
     const scale = 0.97 + 0.03 * p
     const fail = this.result === 'fail'
-    const dialog = { x: 32, y: (lastBottom + opY) / 2, w: width - 64, h: fail ? 280 : 240 }
+    const dialogH = fail ? 280 : 240
+    const dialogW = Math.min(400, width - 48)
+    const minY = 24
+    const maxY = Math.max(minY, height - 24 - dialogH)
+    const belowCard = lastBottom + 24
+    let dialogY = belowCard + dialogH <= height - 24 ? belowCard : (height - dialogH) / 2
+    dialogY = Math.min(Math.max(dialogY, minY), maxY)
+    const dialog = {
+      x: (width - dialogW) / 2,
+      y: dialogY,
+      w: dialogW,
+      h: dialogH,
+    }
+    const dialogCx = dialog.x + dialog.w / 2
+    const dialogCy = dialog.y + dialog.h / 2
     ctx.save()
-    ctx.translate(width / 2, dialog.y + dialog.h / 2)
+    ctx.translate(dialogCx, dialogCy)
     ctx.scale(scale, scale)
-    ctx.translate(-width / 2, -(dialog.y + dialog.h / 2))
+    ctx.translate(-dialogCx, -dialogCy)
     fillRound(ctx, dialog, Color.paper, 20, true)
     drawDialogTitle(
       ctx,
       this.result === 'success' ? '成功' : '失败',
-      width / 2,
+      dialogCx,
       dialog.y + 48,
       26,
       this.result === 'success' ? Color.pine : Color.coral,
       getIcon(this.result === 'success' ? 'crown' : 'fist'),
     )
     if (this.result === 'success') {
-      text(ctx, '太棒了，继续挑战吧！', width / 2, dialog.y + 84, 14, Color.muted)
+      text(ctx, '太棒了，继续挑战吧！', dialogCx, dialog.y + 84, 14, Color.muted)
     } else {
-      text(ctx, '成功条件：最后结果是24。', width / 2, dialog.y + 80, 14, Color.muted)
-      text(ctx, '加油再试一试吧！', width / 2, dialog.y + 102, 14, Color.muted)
+      text(ctx, '成功条件：最后结果是24。', dialogCx, dialog.y + 80, 14, Color.muted)
+      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
     }
     if (fail) {
       const restart = { x: dialog.x + 24, y: dialog.y + 128, w: dialog.w - 48, h: 50 }
@@ -742,14 +767,114 @@ function dealPuzzle(excludeId?: string, filter: DealFilter = 'easy'): Puzzle {
   return puzzle
 }
 
+function drawDealStats(ctx: CanvasRenderingContext2D, rect: Rect, stats: GameStats) {
+  const card = panelCard(rect)
+  if (!card) {
+    return
+  }
+  if (rect.h < 130) {
+    const cx = card.x + card.w / 2
+    const cy = card.y + card.h / 2
+    fillRound(ctx, card, Menu.paper, 16, true)
+    if (rect.h >= 52) {
+      text(ctx, `连胜 ${stats.streak}`, cx, cy - 14, 16, Menu.title, 'center', '700')
+      text(
+        ctx,
+        `总数 ${stats.deals}    成功 ${stats.wins}    失败 ${stats.losses}`,
+        cx,
+        cy + 16,
+        14,
+        Color.muted,
+        'center',
+        '500',
+      )
+      return
+    }
+    text(
+      ctx,
+      `连胜 ${stats.streak}   总数 ${stats.deals}   成功 ${stats.wins}   失败 ${stats.losses}`,
+      cx,
+      cy,
+      14,
+      Color.muted,
+      'center',
+      '500',
+    )
+    return
+  }
+  fillRound(ctx, card, Menu.paper, 16, true)
+  text(ctx, '对局统计', card.x + 20, card.y + 28, 15, Menu.subtitle, 'left', '600')
+  text(ctx, `连胜 ${stats.streak}`, card.x + card.w - 20, card.y + 28, 15, Menu.title, 'right', '700')
+  const colW = (card.w - 40) / 3
+  const rowY = card.y + 78
+  const cols: Array<[string, number, string]> = [
+    ['总数', stats.deals, '#7DB8A8'],
+    ['成功', stats.wins, '#8FCB6D'],
+    ['失败', stats.losses, Color.coral],
+  ]
+  cols.forEach(([label, value, color], index) => {
+    const colX = card.x + 20 + colW * index + colW / 2
+    text(ctx, String(value), colX, rowY, 26, color, 'center', '700')
+    text(ctx, label, colX, rowY + 28, 13, Menu.subtitle, 'center', '500')
+  })
+}
+
+function drawCopyCard(ctx: CanvasRenderingContext2D, rect: Rect, expression: string, steps: string[]) {
+  const card = panelCard(rect)
+  const cx = card ? card.x + card.w / 2 : rect.x + rect.w / 2
+  const block = steps.length === 0 ? 0 : 28 + 22 * (steps.length - 1)
+  const expressionY = card ? card.y + card.h / 2 - block / 2 : rect.y + rect.h / 2
+  if (card) {
+    fillRound(ctx, card, Menu.paper, 16, true)
+  }
+  text(ctx, expression, cx, expressionY, 22, Color.coral, 'center', '700')
+  steps.forEach((step, index) => {
+    text(ctx, step, cx, expressionY + 28 + index * 22, 15, Color.muted, 'center', '500')
+  })
+}
+
+function panelCard(rect: Rect): Rect | null {
+  if (rect.h < 72 || rect.w < 140) {
+    return null
+  }
+  if (rect.h < 130) {
+    return rect
+  }
+  const cardH = Math.min(160, rect.h)
+  const cardW = Math.min(rect.w, 420)
+  return {
+    x: rect.x + (rect.w - cardW) / 2,
+    y: rect.y + (rect.h - cardH) / 2,
+    w: cardW,
+    h: cardH,
+  }
+}
+
+function playFrame(width: number): {
+  play: { x: number; w: number }
+  side: { x: number; w: number } | null
+} {
+  const playW = 400
+  const sideMin = 280
+  const edge = 20
+  const colGap = 28
+  if (width < edge + playW + colGap + sideMin + edge) {
+    return { play: { x: 0, w: width }, side: null }
+  }
+  const play = { x: edge, w: playW }
+  const sideX = play.x + play.w + colGap
+  return { play, side: { x: sideX, w: width - sideX - edge } }
+}
+
 function slotRects(
-  width: number,
+  originX: number,
+  columnW: number,
   topY: number,
   cardW: number,
   cardH: number,
   gap: number,
 ): Rect[] {
-  const startX = (width - (2 * cardW + gap)) / 2
+  const startX = originX + (columnW - (2 * cardW + gap)) / 2
   return [0, 1, 2, 3].map((slot) => ({
     x: startX + (slot % 2) * (cardW + gap),
     y: topY + Math.floor(slot / 2) * (cardH + gap),

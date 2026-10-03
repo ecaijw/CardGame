@@ -171,7 +171,7 @@ class App {
     menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
     text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 64, 15, Menu.subtitle, 'center', '400')
     text(ctx, '来挑战一下', width / 2, titleY + 94, 15, Menu.subtitle, 'center', '400')
-    const btnW = Math.min(280, width - 72)
+    const btnW = Math.min(220, width - 72)
     const btnX = (width - btnW) / 2
     const start = { x: btnX, y: height * 0.575, w: btnW, h: 58 }
     const howto = { x: btnX, y: start.y + 72, w: btnW, h: 58 }
@@ -180,9 +180,7 @@ class App {
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
     const barH = 52
     const barY = height - bottomBarPad() - barH
-    const barW = width - 40
-    const cellW = barW / 3
-    const settings = { x: 20 + cellW * 2, y: barY, w: cellW, h: barH }
+    const settings = { x: btnX, y: barY, w: btnW, h: barH }
     drawSegmentBar(ctx, settings, [{ label: '设置', icon: 'settings' }])
     this.hits.push({ rect: settings, action: 'settings' })
   }
