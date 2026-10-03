@@ -62,6 +62,9 @@ type Hit =
   | { kind: 'answer' }
   | { kind: 'difficulty' }
   | { kind: 'set-filter'; filter: DealFilter }
+  | { kind: 'toggle-unsolvable' }
+  | { kind: 'declare-unsolvable' }
+  | { kind: 'notice-close' }
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
   | { kind: 'settings' }
@@ -90,6 +93,10 @@ export class PlayScene {
   private result: 'success' | 'fail' | '' = ''
   private showAnswer = false
   private showDifficulty = false
+  private includeUnsolvable = false
+  private unsolvableNotice = false
+  private noticeAt = 0
+  private wrongUnsolvableCall = false
   private lastOutcome: 'success' | 'fail' | '' = ''
   private stats: GameStats = loadStats()
   private streakAtDealStart = 0
@@ -132,13 +139,15 @@ export class PlayScene {
     this.result = ''
     this.showAnswer = false
     this.showDifficulty = false
+    this.unsolvableNotice = false
+    this.wrongUnsolvableCall = false
     this.hint = ''
     this.dialogAt = 0
     this.startDeal(fadeFrom)
   }
 
   nextPuzzle() {
-    this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
+    this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
     this.beginDealtRound()
     this.reset()
   }
@@ -197,7 +206,14 @@ export class PlayScene {
   tap(x: number, y: number) {
     this.tick(now())
     const found = this.hits.find((item) => hit(item.rect, x, y))
-    if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty'))) {
+    if (this.unsolvableNotice) {
+      if (found?.hit.kind === 'notice-close') {
+        playSfx('tap')
+        this.unsolvableNotice = false
+      }
+      return
+    }
+    if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty' && found.hit.kind !== 'toggle-unsolvable'))) {
       this.showDifficulty = false
       if (!found) {
         return
@@ -264,9 +280,23 @@ export class PlayScene {
         return
       }
       this.filter = action.filter
-      this.puzzle = dealPuzzle(this.puzzle.id, this.filter)
+      this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
       this.beginDealtRound()
       this.reset()
+      return
+    }
+    if (action.kind === 'toggle-unsolvable') {
+      playSfx('tap')
+      this.showDifficulty = false
+      this.includeUnsolvable = !this.includeUnsolvable
+      if (this.includeUnsolvable) {
+        this.unsolvableNotice = true
+        this.noticeAt = now()
+      }
+      return
+    }
+    if (action.kind === 'declare-unsolvable') {
+      this.declareUnsolvable()
       return
     }
     if (action.kind === 'settings') {
@@ -339,6 +369,25 @@ export class PlayScene {
       return
     }
     this.queuedMerge = { op: this.selectedOp, destId: id }
+  }
+
+  private declareUnsolvable() {
+    const correct = this.puzzle.difficulty === 'unsolvable'
+    const end = correct ? 'success' : 'fail'
+    applyDealOutcome(end, this.lastOutcome, this.streakAtDealStart)
+    this.lastOutcome = end
+    this.stats = loadStats()
+    this.result = end
+    this.wrongUnsolvableCall = !correct
+    this.showDifficulty = false
+    this.showAnswer = false
+    this.unsolvableNotice = false
+    this.selectedId = 0
+    this.selectedOp = ''
+    this.queuedMerge = null
+    this.motion = { kind: 'idle' }
+    this.dialogAt = now()
+    playSfx(correct ? 'success' : 'invalid')
   }
 
   private showHint(message: string) {
@@ -457,10 +506,19 @@ export class PlayScene {
       withButtonScale(ctx, rect, this.pressScale(action.kind, t), () => {
         iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
       })
-      if (!this.busy() && !this.dialogOpen()) {
+      if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
         this.hits.push({ rect, hit: { kind: action.kind } as Hit })
       }
     })
+    if (this.includeUnsolvable) {
+      const noSolution = { x: difficulty.x, y: actionY, w: cellW, h: actionH }
+      withButtonScale(ctx, noSolution, this.pressScale('declare-unsolvable', t), () => {
+        menuButton(ctx, noSolution, '本题无解', 'ghost')
+      })
+      if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
+        this.hits.push({ rect: noSolution, hit: { kind: 'declare-unsolvable' } })
+      }
+    }
 
     drawSegmentBar(ctx, bar, [
       { label: '答案', icon: 'answer', active: this.showAnswer, scale: this.pressScale('answer', t) },
@@ -472,7 +530,7 @@ export class PlayScene {
       },
       { label: '设置', icon: 'settings', scale: this.pressScale('settings', t) },
     ])
-    if (!this.busy() && !this.dialogOpen()) {
+    if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
       this.hits.push(
         { rect: answer, hit: { kind: 'answer' } },
         { rect: difficulty, hit: { kind: 'difficulty' } },
@@ -486,7 +544,11 @@ export class PlayScene {
     if (hintOn) {
       drawCopyCard(ctx, statsRect, this.hint, [])
     } else if (this.showAnswer) {
-      drawCopyCard(ctx, statsRect, this.puzzle.expression, this.puzzle.steps)
+      if (this.puzzle.difficulty === 'unsolvable') {
+        drawCopyCard(ctx, statsRect, '本题无解，无法算出24', [])
+      } else {
+        drawCopyCard(ctx, statsRect, this.puzzle.expression, this.puzzle.steps)
+      }
     } else if (frame.side) {
       drawDealStats(ctx, statsRect, this.stats)
     }
@@ -509,9 +571,13 @@ export class PlayScene {
       })
       this.hits = [...menuHits, ...this.hits]
     }
+    this.drawUnsolvableToggle(ctx, difficulty, t)
 
     if (this.dialogOpen()) {
       this.drawDialog(ctx, width, height, t, slots, fontSize)
+    }
+    if (this.unsolvableNotice) {
+      this.drawUnsolvableNotice(ctx, width, height, t)
     }
   }
 
@@ -681,28 +747,48 @@ export class PlayScene {
     this.hits = []
     ctx.fillStyle = Color.mask
     ctx.fillRect(0, 0, width, height)
-    const last = this.state.cards[0]
-    const look = last ? this.cardLook(last.id, last.slot, slots, t) : null
-    if (last && look) {
-      drawPlayCard(ctx, {
-        rect: slots[last.slot],
-        label: formatFraction(last.value),
-        fontSize,
-        ...look,
+    const keepBoard = this.state.cards.length > 1
+    let anchorBottom = slots[2].y + slots[2].h
+    if (keepBoard) {
+      this.state.cards.forEach((card) => {
+        const look = this.cardLook(card.id, card.slot, slots, t)
+        if (!look) {
+          return
+        }
+        drawPlayCard(ctx, {
+          rect: slots[card.slot],
+          label: formatFraction(card.value),
+          fontSize,
+          ...look,
+        })
+        anchorBottom = Math.max(anchorBottom, slots[card.slot].y + slots[card.slot].h)
       })
+    } else {
+      const last = this.state.cards[0]
+      const look = last ? this.cardLook(last.id, last.slot, slots, t) : null
+      if (last && look) {
+        drawPlayCard(ctx, {
+          rect: slots[last.slot],
+          label: formatFraction(last.value),
+          fontSize,
+          ...look,
+        })
+        anchorBottom = slots[last.slot].y + slots[last.slot].h + (look.dy ?? 0)
+      }
     }
-    const lastBottom = last
-      ? slots[last.slot].y + slots[last.slot].h + (look?.dy ?? 0)
-      : slots[2].y + slots[2].h
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
     const scale = 0.97 + 0.03 * p
     const fail = this.result === 'fail'
-    const dialogH = fail ? 280 : 240
+    const longFail = fail && !this.wrongUnsolvableCall && this.includeUnsolvable
+    const dialogH = fail ? (longFail ? 304 : 280) : 240
     const dialogW = Math.min(400, width - 48)
     const minY = 24
     const maxY = Math.max(minY, height - 24 - dialogH)
-    const belowCard = lastBottom + 24
+    const belowCard = anchorBottom + 24
     let dialogY = belowCard + dialogH <= height - 24 ? belowCard : (height - dialogH) / 2
+    if (keepBoard && belowCard + dialogH > height - 24) {
+      dialogY = maxY
+    }
     dialogY = Math.min(Math.max(dialogY, minY), maxY)
     const dialog = {
       x: (width - dialogW) / 2,
@@ -728,12 +814,21 @@ export class PlayScene {
     )
     if (this.result === 'success') {
       text(ctx, '太棒了，继续挑战吧！', dialogCx, dialog.y + 84, 14, Color.muted)
+    } else if (this.wrongUnsolvableCall) {
+      text(ctx, '太遗憾了，这个题目可以算出24。', dialogCx, dialog.y + 80, 14, Color.muted)
+      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
+    } else if (longFail) {
+      const copySize = dialog.w < 360 ? 13 : 14
+      text(ctx, '成功条件：如果有解，最后结果需要算出24。', dialogCx, dialog.y + 76, copySize, Color.muted)
+      text(ctx, '如果无解，点击「本题无解」按钮。', dialogCx, dialog.y + 98, copySize, Color.muted)
+      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 120, copySize, Color.muted)
     } else {
       text(ctx, '成功条件：最后结果是24。', dialogCx, dialog.y + 80, 14, Color.muted)
       text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
     }
+    const buttonShift = longFail ? 24 : 0
     if (fail) {
-      const restart = { x: dialog.x + 24, y: dialog.y + 128, w: dialog.w - 48, h: 50 }
+      const restart = { x: dialog.x + 24, y: dialog.y + 128 + buttonShift, w: dialog.w - 48, h: 50 }
       withButtonScale(ctx, restart, this.pressScale('dialog-restart', t), () => {
         menuButton(ctx, restart, '重开本局', 'ghost')
       })
@@ -741,7 +836,7 @@ export class PlayScene {
     }
     const next = {
       x: dialog.x + 24,
-      y: dialog.y + (fail ? 206 : 136),
+      y: dialog.y + (fail ? 206 + buttonShift : 136),
       w: dialog.w - 48,
       h: 50,
     }
@@ -751,6 +846,98 @@ export class PlayScene {
     this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
     ctx.restore()
   }
+
+  private drawUnsolvableToggle(ctx: CanvasRenderingContext2D, difficulty: Rect, t: number) {
+    if (!this.showDifficulty) {
+      return
+    }
+    const rowH = 40
+    const menuGap = 6
+    const rect = {
+      x: difficulty.x + 8,
+      y: difficulty.y - (FILTERS.length + 1) * (rowH + menuGap),
+      w: difficulty.w - 16,
+      h: rowH,
+    }
+    withButtonScale(ctx, rect, this.pressScale('toggle-unsolvable', t), () => {
+      paintMenuChrome(ctx, rect, 'ghost')
+      const label = '含无解题'
+      const fontSize = rect.w < 100 ? 13 : 15
+      const midY = rect.y + rect.h / 2
+      const cx = rect.x + rect.w / 2
+      ctx.save()
+      ctx.font = `600 ${fontSize}px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
+      const textW = ctx.measureText(label).width
+      ctx.restore()
+      if (this.includeUnsolvable) {
+        const mark = 12
+        const gap = 6
+        const start = cx - (mark + gap + textW) / 2
+        drawGreenCheck(ctx, start + mark / 2, midY)
+        text(ctx, label, start + mark + gap, midY, fontSize, menuInk('ghost'), 'left', '600')
+      } else {
+        text(ctx, label, cx, midY, fontSize, menuInk('ghost'), 'center', '600')
+      }
+    })
+    this.hits.unshift({ rect, hit: { kind: 'toggle-unsolvable' } })
+  }
+
+  private drawUnsolvableNotice(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    t: number,
+  ) {
+    this.hits = []
+    ctx.fillStyle = Color.mask
+    ctx.fillRect(0, 0, width, height)
+    const dialogW = Math.min(400, width - 48)
+    const dialogH = 268
+    const dialog = {
+      x: (width - dialogW) / 2,
+      y: Math.max(24, (height - dialogH) / 2),
+      w: dialogW,
+      h: dialogH,
+    }
+    const p = easeOut((t - this.noticeAt) / DIALOG_IN_MS)
+    const scale = 0.97 + 0.03 * p
+    const cx = dialog.x + dialog.w / 2
+    const cy = dialog.y + dialog.h / 2
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.scale(scale, scale)
+    ctx.translate(-cx, -cy)
+    fillRound(ctx, dialog, Color.paper, 20, true)
+    text(ctx, '已开启「含无解题」模式', cx, dialog.y + 48, dialogW < 340 ? 16 : 20, Color.ink, 'center', '600')
+    const lines = [
+      '接下来的题目中会随机出现无解题。',
+      '如果你判断无法算出 24，',
+      '请点击「本题无解」。',
+    ]
+    lines.forEach((line, index) => {
+      text(ctx, line, cx, dialog.y + 96 + index * 26, 14, Color.muted)
+    })
+    const close = { x: dialog.x + 24, y: dialog.y + dialog.h - 74, w: dialog.w - 48, h: 50 }
+    withButtonScale(ctx, close, this.pressScale('notice-close', t), () => {
+      menuButton(ctx, close, '关闭', 'ghost')
+    })
+    this.hits.push({ rect: close, hit: { kind: 'notice-close' } })
+    ctx.restore()
+  }
+}
+
+function drawGreenCheck(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.save()
+  ctx.strokeStyle = Color.lime
+  ctx.lineWidth = 2.5
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(x - 5, y)
+  ctx.lineTo(x - 1, y + 4)
+  ctx.lineTo(x + 6, y - 4)
+  ctx.stroke()
+  ctx.restore()
 }
 
 function pressKey(action: Hit) {
@@ -760,8 +947,12 @@ function pressKey(action: Hit) {
   return action.kind
 }
 
-function dealPuzzle(excludeId?: string, filter: DealFilter = 'easy'): Puzzle {
-  const puzzle = pickPuzzle(loadPlayedIds(), excludeId, Math.random, filter)
+function dealPuzzle(
+  excludeId?: string,
+  filter: DealFilter = 'easy',
+  includeUnsolvable = false,
+): Puzzle {
+  const puzzle = pickPuzzle(loadPlayedIds(), excludeId, Math.random, filter, includeUnsolvable)
   addPlayedId(puzzle.id)
   recordDeal()
   return puzzle

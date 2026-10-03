@@ -83,7 +83,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 枚举 1–13 的四元组（可重复、与顺序无关，1820 种全部写入）
 - 用分数穷举逐步合并；有解写入代表解，无解 `difficulty` 为 `unsolvable`
 - 写出 `js/game/puzzles.json`（正本）和 `js/game/puzzles.catalog.js`（小游戏 `require`），提交进仓库
-- 运行时只读 catalog，设备上不再穷举；第 0–4 期对局仍只发有解题
+- 运行时只读 catalog，设备上不再穷举；默认只发有解题，打开「含无解题」后当前难度的抽题池接上无解题
 - `puzzles.json` 已 pack ignore；小游戏不能 `require` JSON（会去找 `.json.js`）
 
 条目形状：
@@ -100,7 +100,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 
 难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。简单：存在全程正整数且不用除法的解法。困难：所有解都要非整数分数，或去掉加法、乘法交换后正整数模式不超过 2 种且不能用两张原始牌直接整除。其余有解题为中等。简单先判定。`expression` 去掉最外层一对括号。运行时只读字段。
 
-提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单；`pickPuzzle` 只在对应有解池里抽，优先未玩。抽题时跳过 `unsolvable`。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
+提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。无解题没有算式，答案区显示「本题无解，无法算出24」。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单；`pickPuzzle` 默认只在对应有解池里抽，优先未玩。玩家在当次对局打开「含无解题」后，抽题把该难度的有解池接上全部 `unsolvable`；这个开关不写入存储。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
 
 已玩记录：**不要**写进 JSON。用 `wx.setStorage` 存题目 id 集合（key：`playedPuzzleIds`）。清缓存即重置优先未玩。
 

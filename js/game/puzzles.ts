@@ -14,11 +14,21 @@ const ALL = require('./puzzles.catalog') as Puzzle[]
 
 export const SOLVABLE: Puzzle[] = ALL.filter((puzzle) => puzzle.difficulty !== 'unsolvable')
 
+const UNSOLVABLE: Puzzle[] = ALL.filter((puzzle) => puzzle.difficulty === 'unsolvable')
+
 export function puzzlesFor(filter: DealFilter): Puzzle[] {
   if (filter === 'all') {
     return SOLVABLE
   }
   return SOLVABLE.filter((puzzle) => puzzle.difficulty === filter)
+}
+
+export function puzzlesForDeal(filter: DealFilter, includeUnsolvable = false): Puzzle[] {
+  const solvable = puzzlesFor(filter)
+  if (!includeUnsolvable) {
+    return solvable
+  }
+  return solvable.concat(UNSOLVABLE)
 }
 
 export function candidatePuzzles(
@@ -39,7 +49,8 @@ export function pickPuzzle(
   excludeId?: string,
   random: () => number = Math.random,
   filter: DealFilter = 'all',
+  includeUnsolvable = false,
 ): Puzzle {
-  const pool = candidatePuzzles(puzzlesFor(filter), played, excludeId)
+  const pool = candidatePuzzles(puzzlesForDeal(filter, includeUnsolvable), played, excludeId)
   return pool[Math.floor(random() * pool.length)]
 }

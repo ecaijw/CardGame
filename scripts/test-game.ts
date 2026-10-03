@@ -8,7 +8,7 @@ import {
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
-import { candidatePuzzles, pickPuzzle, puzzlesFor, SOLVABLE } from '../js/game/puzzles'
+import { candidatePuzzles, pickPuzzle, puzzlesFor, puzzlesForDeal, SOLVABLE } from '../js/game/puzzles'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
 
 const FIXTURES: Array<{ id: string; nums: [number, number, number, number] }> = [
@@ -240,6 +240,17 @@ function testPick() {
   assert(easyPick.difficulty === 'easy', 'pick easy stays easy')
   const hardPick = pickPuzzle(new Set(), undefined, () => 0, 'hard')
   assert(hardPick.difficulty === 'hard', 'pick hard stays hard')
+
+  assert(puzzlesForDeal('easy', false).length === 1163, 'deal pool without unsolvable stays easy')
+  const mixed = puzzlesForDeal('hard', true)
+  assert(mixed.length === 62 + 458, 'hard pool can include unsolvable')
+  assert(mixed[62].difficulty === 'unsolvable', 'unsolvable puzzles follow the solvable pool')
+  const unsolvablePick = pickPuzzle(new Set(), undefined, () => 62.1 / mixed.length, 'hard', true)
+  assert(unsolvablePick.difficulty === 'unsolvable', 'include flag can deal an unsolvable puzzle')
+  assert(
+    pickPuzzle(new Set(), undefined, () => 0.99, 'easy').difficulty !== 'unsolvable',
+    'default pick still skips unsolvable',
+  )
 }
 
 testFractions()

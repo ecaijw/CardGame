@@ -35,7 +35,7 @@
 1. 求解器只放 `scripts/`，不要打进小游戏包。
 2. `docs/`、`scripts/`、`js/game/puzzles.json`、`assets/` 已在 `project.config.json` 的 pack ignore 里。进包音频放仓库根目录 `audio/`，不要放进 `assets/`。
 3. 对局 `require` `puzzles.catalog.js`，不要直接 require JSON。
-4. 第 0–4 期对局只发有解题。`puzzles.json` 含 `unsolvable`，抽题须跳过。
+4. `puzzles.json` 含 `unsolvable`。默认抽题跳过。玩家打开「含无解题」后，当前难度的有解池接上全部无解题再抽。
 
 ## 文档分工
 
