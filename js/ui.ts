@@ -345,20 +345,21 @@ export function iconLabelButton(
   label: string,
   kind: MenuKind,
   icon: ActionIcon,
+  fontSize = 13,
 ) {
   paintMenuChrome(ctx, rect, kind)
   const ink = menuInk(kind)
   const cy = rect.y + rect.h / 2
-  const iconSize = 16
+  const iconSize = Math.round((fontSize * 16) / 13)
   const gap = 6
   ctx.save()
-  ctx.font = `600 13px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
+  ctx.font = `600 ${fontSize}px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
   const textW = ctx.measureText(label).width
   ctx.restore()
   const total = iconSize + gap + textW
   const start = rect.x + (rect.w - total) / 2
   drawActionIcon(ctx, start + iconSize / 2, cy, iconSize, icon, ink, kind)
-  text(ctx, label, start + iconSize + gap, cy, 13, ink, 'left', '600')
+  text(ctx, label, start + iconSize + gap, cy, fontSize, ink, 'left', '600')
 }
 
 export function withButtonScale(

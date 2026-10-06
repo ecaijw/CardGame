@@ -10,7 +10,7 @@ import {
   drawMenuFan,
   fillRound,
   hit,
-  drawSegmentBar,
+  iconLabelButton,
   menuButton,
   menuTitle,
   text,
@@ -178,10 +178,10 @@ class App {
     menuButton(ctx, start, '开始游戏', 'primary')
     menuButton(ctx, howto, '玩法说明', 'ghost')
     this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
-    const barH = 52
-    const barY = height - bottomBarPad() - barH
-    const settings = { x: btnX, y: barY, w: btnW, h: barH }
-    drawSegmentBar(ctx, settings, [{ label: '设置', icon: 'settings' }])
+    const settingsH = 58
+    const settingsY = height - bottomBarPad() - settingsH
+    const settings = { x: btnX, y: settingsY, w: btnW, h: settingsH }
+    iconLabelButton(ctx, settings, '设置', 'ghost', 'settings', 16)
     this.hits.push({ rect: settings, action: 'settings' })
   }
 
