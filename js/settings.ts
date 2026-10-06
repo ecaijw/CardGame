@@ -47,6 +47,9 @@ export function applyDealOutcome(
   if (result === 'fail') {
     stats.losses += 1
     stats.streak = 0
+  } else if (previous === 'fail') {
+    stats.wins += 1
+    stats.streak = 1
   } else {
     stats.wins += 1
     stats.streak = streakAtDealStart + 1

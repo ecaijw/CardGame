@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
 import { candidatePuzzles, pickPuzzle, puzzlesFor, puzzlesForDeal, SOLVABLE } from '../js/game/puzzles'
+import { applyDealOutcome, loadStats } from '../js/settings'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
 
 const FIXTURES: Array<{ id: string; nums: [number, number, number, number] }> = [
@@ -253,6 +254,34 @@ function testPick() {
   )
 }
 
+function testStreakAfterFail() {
+  const store = new Map<string, unknown>()
+  const previous = (globalThis as { wx?: unknown }).wx
+  ;(globalThis as { wx?: unknown }).wx = {
+    getStorageSync(key: string) {
+      return store.get(key)
+    },
+    setStorageSync(key: string, value: unknown) {
+      store.set(key, value)
+    },
+  }
+  try {
+    store.set('gameStats', { deals: 5, wins: 5, losses: 0, streak: 5 })
+    applyDealOutcome('success', '', 5)
+    assert(loadStats().streak === 6, 'a first success continues the streak')
+    store.set('gameStats', { deals: 6, wins: 5, losses: 0, streak: 5 })
+    applyDealOutcome('fail', '', 5)
+    assert(loadStats().streak === 0, 'a fail clears the streak')
+    applyDealOutcome('success', 'fail', 5)
+    const stats = loadStats()
+    assert(stats.streak === 1, 'success after a fail starts the streak at 1')
+    assert(stats.wins === 6, 'replacing a fail counts one win')
+    assert(stats.losses === 0, 'replacing a fail removes that loss')
+  } finally {
+    ;(globalThis as { wx?: unknown }).wx = previous
+  }
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -262,4 +291,5 @@ testFailAndUndo()
 testSolver()
 testCatalog()
 testPick()
+testStreakAfterFail()
 console.log('game tests passed')

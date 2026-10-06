@@ -117,6 +117,8 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 
+连胜存在 `gameStats`。本局还没失败过时，成功是开局连胜加 1。先失败再成功则从 1 开始。失败写成 0。
+
 ## 5. UI 与资源
 
 - 单位：逻辑像素（`windowWidth`），竖屏
