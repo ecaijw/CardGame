@@ -1,6 +1,12 @@
 const STATS_KEY = 'gameStats'
 const SOUND_KEY = 'soundEnabled'
 const MUSIC_KEY = 'musicEnabled'
+const FILTER_KEY = 'dealFilter'
+const INCLUDE_UNSOLVABLE_KEY = 'includeUnsolvable'
+
+const DEAL_FILTERS = ['easy', 'medium', 'hard', 'all'] as const
+
+export type StoredDealFilter = (typeof DEAL_FILTERS)[number]
 
 export type GameStats = {
   deals: number
@@ -71,6 +77,30 @@ export function setSoundEnabled(on: boolean): void {
 
 export function setMusicEnabled(on: boolean): void {
   wx.setStorageSync(MUSIC_KEY, on)
+}
+
+export function loadDealFilter(): StoredDealFilter {
+  try {
+    const raw = wx.getStorageSync(FILTER_KEY)
+    if (typeof raw === 'string' && (DEAL_FILTERS as readonly string[]).includes(raw)) {
+      return raw as StoredDealFilter
+    }
+  } catch {
+    // ignore
+  }
+  return 'easy'
+}
+
+export function saveDealFilter(filter: StoredDealFilter): void {
+  wx.setStorageSync(FILTER_KEY, filter)
+}
+
+export function loadIncludeUnsolvable(): boolean {
+  return loadFlag(INCLUDE_UNSOLVABLE_KEY, false)
+}
+
+export function saveIncludeUnsolvable(on: boolean): void {
+  wx.setStorageSync(INCLUDE_UNSOLVABLE_KEY, on)
 }
 
 function readCount(value: unknown): number {

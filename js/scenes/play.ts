@@ -9,7 +9,7 @@ import {
 } from '../game/merge'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
 import { addPlayedId, loadPlayedIds } from '../played'
-import { applyDealOutcome, loadStats, recordDeal, type GameStats } from '../settings'
+import { applyDealOutcome, loadDealFilter, loadIncludeUnsolvable, loadStats, recordDeal, saveDealFilter, saveIncludeUnsolvable, type GameStats } from '../settings'
 import {
   Color,
   Menu,
@@ -112,16 +112,19 @@ export class PlayScene {
   private hintAt = 0
   onSettings?: () => void
 
-  constructor(puzzle: Puzzle, filter: DealFilter = 'easy') {
+  constructor(puzzle: Puzzle, filter: DealFilter = 'easy', includeUnsolvable = false) {
     this.puzzle = puzzle
     this.filter = filter
+    this.includeUnsolvable = includeUnsolvable
     this.state = startGame(puzzle.nums)
     this.beginDealtRound()
     this.startDeal()
   }
 
-  static deal(excludeId?: string, filter: DealFilter = 'easy'): PlayScene {
-    return new PlayScene(dealPuzzle(excludeId, filter), filter)
+  static deal(excludeId?: string): PlayScene {
+    const filter = loadDealFilter()
+    const includeUnsolvable = loadIncludeUnsolvable()
+    return new PlayScene(dealPuzzle(excludeId, filter, includeUnsolvable), filter, includeUnsolvable)
   }
 
   reset() {
@@ -280,6 +283,7 @@ export class PlayScene {
         return
       }
       this.filter = action.filter
+      saveDealFilter(this.filter)
       this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
       this.beginDealtRound()
       this.reset()
@@ -289,6 +293,7 @@ export class PlayScene {
       playSfx('tap')
       this.showDifficulty = false
       this.includeUnsolvable = !this.includeUnsolvable
+      saveIncludeUnsolvable(this.includeUnsolvable)
       if (this.includeUnsolvable) {
         this.unsolvableNotice = true
         this.noticeAt = now()

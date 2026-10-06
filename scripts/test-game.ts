@@ -9,7 +9,14 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
 import { candidatePuzzles, pickPuzzle, puzzlesFor, puzzlesForDeal, SOLVABLE } from '../js/game/puzzles'
-import { applyDealOutcome, loadStats } from '../js/settings'
+import {
+  applyDealOutcome,
+  loadDealFilter,
+  loadIncludeUnsolvable,
+  loadStats,
+  saveDealFilter,
+  saveIncludeUnsolvable,
+} from '../js/settings'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
 
 const FIXTURES: Array<{ id: string; nums: [number, number, number, number] }> = [
@@ -282,6 +289,31 @@ function testStreakAfterFail() {
   }
 }
 
+function testDealSettings() {
+  const store = new Map<string, unknown>()
+  const previous = (globalThis as { wx?: unknown }).wx
+  ;(globalThis as { wx?: unknown }).wx = {
+    getStorageSync(key: string) {
+      return store.get(key)
+    },
+    setStorageSync(key: string, value: unknown) {
+      store.set(key, value)
+    },
+  }
+  try {
+    assert(loadDealFilter() === 'easy', 'missing difficulty defaults to easy')
+    assert(loadIncludeUnsolvable() === false, 'missing unsolvable flag defaults to off')
+    saveDealFilter('hard')
+    saveIncludeUnsolvable(true)
+    assert(loadDealFilter() === 'hard', 'saved difficulty is read back')
+    assert(loadIncludeUnsolvable() === true, 'saved unsolvable flag is read back')
+    store.set('dealFilter', 'nightmare')
+    assert(loadDealFilter() === 'easy', 'an invalid difficulty falls back to easy')
+  } finally {
+    ;(globalThis as { wx?: unknown }).wx = previous
+  }
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -292,4 +324,5 @@ testSolver()
 testCatalog()
 testPick()
 testStreakAfterFail()
+testDealSettings()
 console.log('game tests passed')

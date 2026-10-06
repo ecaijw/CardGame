@@ -100,7 +100,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 
 难度在生成时写入，规则见 [puzzles-preview.md](puzzles-preview.md)。简单：存在全程正整数且不用除法的解法。困难：所有解都要非整数分数，或去掉加法、乘法交换后正整数模式不超过 2 种且不能用两张原始牌直接整除。其余有解题为中等。简单先判定。`expression` 去掉最外层一对括号。运行时只读字段。
 
-提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。无解题没有算式，答案区显示「本题无解，无法算出24」。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单；`pickPuzzle` 默认只在对应有解池里抽，优先未玩。玩家在当次对局打开「含无解题」后，抽题把该难度的有解池接上全部 `unsolvable`；这个开关不写入存储。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
+提示：对局左下角「查看答案」显示该题 `expression`，不现场穷举。无解题没有算式，答案区显示「本题无解，无法算出24」。难度：右下角筛选 `easy` / `medium` / `hard` / `all`，默认简单。难度和「含无解题」写入本地存储，清缓存才恢复默认。`pickPuzzle` 默认只在对应有解池里抽，优先未玩。打开「含无解题」后，抽题把该难度的有解池接上全部 `unsolvable`；打开时不重发当前这题。场景层用 `wx.setStorage` 存已玩 id，发出该题时写入。
 
 已玩记录：**不要**写进 JSON。用 `wx.setStorage` 存题目 id 集合（key：`playedPuzzleIds`）。清缓存即重置优先未玩。
 
@@ -113,7 +113,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | 0 | 无 | — |
 | 1 | 已玩题目 id | `wx.setStorage` |
 | 2 | 总数 / 成功 / 失败 / 连胜、音效、音乐 | 同上 |
-| 2.1 | 无新增 | — |
+| 2.1 | 难度 `dealFilter`、含无解题 `includeUnsolvable` | 同上 |
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 
