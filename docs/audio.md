@@ -32,7 +32,7 @@
 | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `[js/scenes/settings.ts](../js/scenes/settings.ts)` 音效 / 音乐两行开关       | 开关仍写 `setSoundEnabled` / `setMusicEnabled`，并立刻调用音频模块静音或恢复          |
 | `[js/settings.ts](../js/settings.ts)` `soundEnabled` / `musicEnabled` | 继续用这两个 key。不要改成 `audio.sfxEnabled`                                 |
-| `[js/main.ts](../js/main.ts)` 首页「开始游戏 / 玩法说明 / 设置」                    | 点「开始游戏」：先 `tap`，再 `unlockAndStartBgm()`，再进对局。说明、设置：`tap`           |
+| `[js/main.ts](../js/main.ts)` 首页「开始游戏 / 游戏说明 / 设置」                    | 点「开始游戏」：先 `tap`，再 `unlockAndStartBgm()`，再进对局。说明、设置：`tap`           |
 | `[js/scenes/play.ts](../js/scenes/play.ts)`                           | 只在场景里调 `playSfx`，不要在 `js/game/` 里播声音                               |
 | `assets/` 已在 pack ignore                                              | **不要**把进包音频放进 `assets/audio/`。用仓库根目录 `audio/`                      |
 | `docs/` 已 pack ignore                                                 | 授权记录放 `docs/audio-assets.md`，证明图放 `docs/ux/` 或 `docs/audio-proof/` |
@@ -132,7 +132,7 @@ audio/                 打进小游戏包（不要 ignore）
 | 时机                                | 现有入口                                    | 声音                               |
 | --------------------------------- | --------------------------------------- | -------------------------------- |
 | 开始游戏                              | `main.ts` `action === 'start'`          | `tap`，然后 `unlockAndStartBgm`     |
-| 玩法说明 / 说明返回 / 首页设置                | `main.ts` howto / back / settings       | `tap`                            |
+| 游戏说明 / 说明返回 / 首页设置                | `main.ts` howto / back / settings       | `tap`                            |
 | 设置返回                              | `settings.ts` `back`                    | `tap`                            |
 | 拨动音效 / 音乐开关                       | `settings.ts` ~~sound / music~~         | ~~可~~ `tap`~~（音效关时这下可以不响）并应用开关~~ |
 | ~~点牌~~                            | `play.ts` ~~~~`onCard` ~~仅改选中、未 merge~~ | `select`                         |

@@ -174,12 +174,12 @@ class App {
     const btnW = Math.min(220, width - 72)
     const btnX = (width - btnW) / 2
     const start = { x: btnX, y: height * 0.575, w: btnW, h: 58 }
-    const howto = { x: btnX, y: start.y + 72, w: btnW, h: 58 }
     menuButton(ctx, start, '开始游戏', 'primary')
-    menuButton(ctx, howto, '玩法说明', 'ghost')
-    this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
     const settingsH = 58
     const settingsY = height - bottomBarPad() - settingsH
+    const howto = { x: btnX, y: settingsY - 16 - 58, w: btnW, h: 58 }
+    menuButton(ctx, howto, '游戏说明', 'ghost')
+    this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
     const settings = { x: btnX, y: settingsY, w: btnW, h: settingsH }
     iconLabelButton(ctx, settings, '设置', 'ghost', 'settings', 16)
     this.hits.push({ rect: settings, action: 'settings' })
@@ -188,29 +188,101 @@ class App {
   private drawHowTo() {
     const { ctx, width } = this
     const titleY = this.capsuleBottom() + 20
-    menuTitle(ctx, '怎么玩', width / 2, titleY, 28)
-    const card = { x: 24, y: titleY + 36, w: width - 48, h: 360 }
-    fillRound(ctx, card, Color.paper, 16, true)
-    const lines = [
-      '每局 4 张牌，点数 1 到 13。每张牌必须用一次，也只能用一次。',
-      '先点一张牌，再点 + − × ÷，再点另一张牌。两张牌会合成为一张结果牌。',
-      '减法和除法：先点的是左边。例如先 3 后 4，再点减，得到 −1。',
-      '可以出现分数、负数和 0，但不能除以 0。',
-      '一直合并到场上只剩一张。这张牌精确等于 24 才算成功。中间某张已经是 24、但还剩别的牌，不算赢。',
+    menuTitle(ctx, '游戏说明', width / 2, titleY, 28)
+    const sections: Array<{ title: string; lines: string[] }> = [
+      {
+        title: '游戏目标',
+        lines: ['使用 + − × ÷，把 4 张数字牌最终算成 24。每张牌必须使用，而且只能使用一次。'],
+      },
+      {
+        title: '操作方法',
+        lines: ['点一张牌 → 选运算符 → 再点另一张牌。两张牌会合成为结果牌，继续计算，直到只剩一张牌。'],
+      },
+      {
+        title: '注意',
+        lines: [
+          '计算中可以出现分数、负数和 0，但不能除以 0。',
+          '中途得到 24 但仍有其他牌，不算成功。',
+          '「含无解题」模式下，如果你判断无法算出 24，请点击「本题无解」。判断正确算成功，判断错误算失败。',
+        ],
+      },
     ]
+    const cardX = 24
+    const cardW = width - 48
+    const textX = cardX + 18
+    const textW = cardW - 36
+    const headFont = '600 15px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
+    const bodyFont = '400 14px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
+    const headLine = 22
+    const bodyLine = 22
+    const afterHead = 8
+    const afterPara = 10
+    const afterSection = 16
+    const padY = 20
+    ctx.font = bodyFont
+    let contentH = padY
+    sections.forEach((section, index) => {
+      contentH += headLine + afterHead
+      section.lines.forEach((line, lineIndex) => {
+        contentH += textBlockHeight(ctx, line, textW, bodyLine)
+        if (lineIndex < section.lines.length - 1) {
+          contentH += afterPara
+        }
+      })
+      if (index < sections.length - 1) {
+        contentH += afterSection
+      }
+    })
+    contentH += padY
+    const card = { x: cardX, y: titleY + 36, w: cardW, h: contentH }
+    fillRound(ctx, card, Color.paper, 16, true)
     ctx.fillStyle = Menu.buttonInk
-    ctx.font = '400 14px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-    let y = card.y + 20
-    lines.forEach((line) => {
-      y = wrapText(ctx, line, card.x + 18, y, card.w - 36, 22) + 14
+    let y = card.y + padY
+    sections.forEach((section, index) => {
+      ctx.font = headFont
+      ctx.fillText(section.title, textX, y)
+      y += headLine + afterHead
+      ctx.font = bodyFont
+      section.lines.forEach((line, lineIndex) => {
+        y = wrapText(ctx, line, textX, y, textW, bodyLine)
+        if (lineIndex < section.lines.length - 1) {
+          y += afterPara
+        }
+      })
+      if (index < sections.length - 1) {
+        y += afterSection
+      }
     })
     const btnW = Math.min(248, width - 96)
     const back = { x: (width - btnW) / 2, y: card.y + card.h + 24, w: btnW, h: 50 }
     menuButton(ctx, back, '返回', 'ghost')
     this.hits.push({ rect: back, action: 'back' })
   }
+}
+
+function textBlockHeight(
+  ctx: CanvasRenderingContext2D,
+  content: string,
+  maxWidth: number,
+  lineHeight: number,
+) {
+  let line = ''
+  let height = 0
+  for (const ch of content) {
+    const test = line + ch
+    if (ctx.measureText(test).width > maxWidth && line) {
+      line = ch
+      height += lineHeight
+    } else {
+      line = test
+    }
+  }
+  if (line) {
+    height += lineHeight
+  }
+  return height
 }
 
 function wrapText(
