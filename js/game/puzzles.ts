@@ -16,6 +16,8 @@ export const SOLVABLE: Puzzle[] = ALL.filter((puzzle) => puzzle.difficulty !== '
 
 const UNSOLVABLE: Puzzle[] = ALL.filter((puzzle) => puzzle.difficulty === 'unsolvable')
 
+const UNSOLVABLE_DEAL_RATE = 0.25
+
 export function puzzlesFor(filter: DealFilter): Puzzle[] {
   if (filter === 'all') {
     return SOLVABLE
@@ -23,12 +25,8 @@ export function puzzlesFor(filter: DealFilter): Puzzle[] {
   return SOLVABLE.filter((puzzle) => puzzle.difficulty === filter)
 }
 
-export function puzzlesForDeal(filter: DealFilter, includeUnsolvable = false): Puzzle[] {
-  const solvable = puzzlesFor(filter)
-  if (!includeUnsolvable) {
-    return solvable
-  }
-  return solvable.concat(UNSOLVABLE)
+export function puzzlesForDeal(filter: DealFilter): Puzzle[] {
+  return puzzlesFor(filter)
 }
 
 export function candidatePuzzles(
@@ -51,6 +49,10 @@ export function pickPuzzle(
   filter: DealFilter = 'all',
   includeUnsolvable = false,
 ): Puzzle {
-  const pool = candidatePuzzles(puzzlesForDeal(filter, includeUnsolvable), played, excludeId)
-  return pool[Math.floor(random() * pool.length)]
+  const solvable = candidatePuzzles(puzzlesFor(filter), played, excludeId)
+  if (!includeUnsolvable || random() >= UNSOLVABLE_DEAL_RATE) {
+    return solvable[Math.floor(random() * solvable.length)]
+  }
+  const unsolvable = candidatePuzzles(UNSOLVABLE, played, excludeId)
+  return unsolvable[Math.floor(random() * unsolvable.length)]
 }

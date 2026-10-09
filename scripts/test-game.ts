@@ -249,12 +249,18 @@ function testPick() {
   const hardPick = pickPuzzle(new Set(), undefined, () => 0, 'hard')
   assert(hardPick.difficulty === 'hard', 'pick hard stays hard')
 
-  assert(puzzlesForDeal('easy', false).length === 1163, 'deal pool without unsolvable stays easy')
-  const mixed = puzzlesForDeal('hard', true)
-  assert(mixed.length === 62 + 458, 'hard pool can include unsolvable')
-  assert(mixed[62].difficulty === 'unsolvable', 'unsolvable puzzles follow the solvable pool')
-  const unsolvablePick = pickPuzzle(new Set(), undefined, () => 62.1 / mixed.length, 'hard', true)
-  assert(unsolvablePick.difficulty === 'unsolvable', 'include flag can deal an unsolvable puzzle')
+  assert(puzzlesForDeal('easy').length === 1163, 'deal pool without unsolvable stays easy')
+  const unsolvablePick = pickPuzzle(new Set(), undefined, () => 0.24, 'hard', true)
+  assert(unsolvablePick.difficulty === 'unsolvable', 'a roll under 25% can deal an unsolvable puzzle')
+  assert(
+    pickPuzzle(new Set(), undefined, () => 0.25, 'hard', true).difficulty === 'hard',
+    'a roll of 25% stays in the selected difficulty',
+  )
+  const playedEasy = new Set(puzzlesFor('easy').map((puzzle) => puzzle.id))
+  assert(
+    pickPuzzle(playedEasy, undefined, () => 0.5, 'easy', true).difficulty === 'easy',
+    'a played solvable pool does not force an unsolvable deal',
+  )
   assert(
     pickPuzzle(new Set(), undefined, () => 0.99, 'easy').difficulty !== 'unsolvable',
     'default pick still skips unsolvable',

@@ -1,6 +1,6 @@
 # 24 点题库预览
 
-由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)；对局 `require` [`js/game/puzzles.catalog.js`](../js/game/puzzles.catalog.js)。默认抽题跳过 `unsolvable`。玩家打开「含无解题」后，当前难度的有解池会接上全部无解题。
+由 `npm run generate:puzzles` 生成。正本在 [`js/game/puzzles.json`](../js/game/puzzles.json)；对局 `require` [`js/game/puzzles.catalog.js`](../js/game/puzzles.catalog.js)。默认抽题跳过 `unsolvable`。玩家打开「含无解题」后，每次发牌有 25% 的机会抽到无解题。
 
 ## 难度分级
 
@@ -9,7 +9,7 @@
 1. **easy**：存在全程正整数、且不用除法的解法。只使用加、减、乘。
 2. **hard**：每一条解法都至少出现一次非整数分数；或者去掉加法、乘法左右交换后，正整数解法模式不超过 2 种，并且这些解法都不能用两张原始牌直接整除。
 3. **medium**：其余有解题。包括可以先用两张原始牌直接整除的题，例如 `9÷3` 或 `5÷5`。
-4. **unsolvable**：穷举后没有任何合法合并路径得到 24。`steps` 为空，`expression` 为空字符串。默认不发这类题；玩家打开「含无解题」后，它们进入当前难度的抽题池。
+4. **unsolvable**：穷举后没有任何合法合并路径得到 24。`steps` 为空，`expression` 为空字符串。默认不发这类题；玩家打开「含无解题」后，每次发牌有 25% 的机会抽到它们。
 
 简单先于困难判定，避免把 `1,1,1,8` 这类不用除法的题划进困难。代表解优先全程正整数、不用除法、两张原始牌直接整除、除数构造更浅、除法更少、中间结果绝对值更小、不用负数。`expression` 去掉最外层一对括号。
 
