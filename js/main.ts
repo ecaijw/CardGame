@@ -95,6 +95,7 @@ class App {
       playSfx('tap')
       unlockAndStartBgm()
       if (this.play) {
+        this.play.clearStreakIfUnsettled()
         this.play.reset()
       } else {
         this.play = PlayScene.deal()

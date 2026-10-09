@@ -9,7 +9,17 @@ import {
 } from '../game/merge'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
 import { addPlayedId, loadPlayedIds } from '../played'
-import { applyDealOutcome, loadDealFilter, loadIncludeUnsolvable, loadStats, recordDeal, saveDealFilter, saveIncludeUnsolvable, type GameStats } from '../settings'
+import {
+  applyDealOutcome,
+  clearStreak,
+  loadDealFilter,
+  loadIncludeUnsolvable,
+  loadStats,
+  recordDeal,
+  saveDealFilter,
+  saveIncludeUnsolvable,
+  type GameStats,
+} from '../settings'
 import {
   Color,
   Menu,
@@ -150,9 +160,19 @@ export class PlayScene {
   }
 
   nextPuzzle() {
+    this.clearStreakIfUnsettled()
     this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
     this.beginDealtRound()
     this.reset()
+  }
+
+  clearStreakIfUnsettled() {
+    if (this.lastOutcome !== '') {
+      return
+    }
+    clearStreak()
+    this.streakAtDealStart = 0
+    this.stats = loadStats()
   }
 
   private beginDealtRound() {
@@ -268,6 +288,9 @@ export class PlayScene {
     }
     if (action.kind === 'answer') {
       playSfx('tap')
+      if (!this.showAnswer) {
+        this.clearStreakIfUnsettled()
+      }
       this.showAnswer = !this.showAnswer
       return
     }
@@ -284,6 +307,7 @@ export class PlayScene {
       }
       this.filter = action.filter
       saveDealFilter(this.filter)
+      this.clearStreakIfUnsettled()
       this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
       this.beginDealtRound()
       this.reset()

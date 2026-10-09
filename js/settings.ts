@@ -63,6 +63,15 @@ export function applyDealOutcome(
   saveStats(stats)
 }
 
+export function clearStreak(): void {
+  const stats = loadStats()
+  if (stats.streak === 0) {
+    return
+  }
+  stats.streak = 0
+  saveStats(stats)
+}
+
 export function loadSoundEnabled(): boolean {
   return loadFlag(SOUND_KEY, true)
 }

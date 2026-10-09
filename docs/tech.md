@@ -117,7 +117,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 
-连胜存在 `gameStats`。本局还没失败过时，成功是开局连胜加 1。先失败再成功则从 1 开始。失败写成 0。
+连胜存在 `gameStats`。本局还没失败过时，成功是开局连胜加 1。先失败再成功则从 1 开始。失败写成 0。本局尚未结算时点下一局、换难度、打开答案或回首页，只调用 `clearStreak`，不加失败；同时把本局的 `streakAtDealStart` 置 0，避免稍后成功又加回旧连胜。
 
 ## 5. UI 与资源
 

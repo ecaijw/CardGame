@@ -11,6 +11,7 @@ import { merge, outcome, startGame, undo } from '../js/game/merge'
 import { candidatePuzzles, pickPuzzle, puzzlesFor, puzzlesForDeal, SOLVABLE } from '../js/game/puzzles'
 import {
   applyDealOutcome,
+  clearStreak,
   loadDealFilter,
   loadIncludeUnsolvable,
   loadStats,
@@ -290,6 +291,11 @@ function testStreakAfterFail() {
     assert(stats.streak === 1, 'success after a fail starts the streak at 1')
     assert(stats.wins === 6, 'replacing a fail counts one win')
     assert(stats.losses === 0, 'replacing a fail removes that loss')
+    store.set('gameStats', { deals: 7, wins: 6, losses: 0, streak: 4 })
+    clearStreak()
+    assert(loadStats().streak === 0, 'clearStreak zeroes the streak')
+    assert(loadStats().wins === 6, 'clearStreak does not change wins')
+    assert(loadStats().losses === 0, 'clearStreak does not change losses')
   } finally {
     ;(globalThis as { wx?: unknown }).wx = previous
   }
