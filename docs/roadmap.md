@@ -2,7 +2,7 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.1 期进行中（2026-09-26 起）。** 目标是完成上线；过程中修小问题、做优化。不是第 3 期。交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.2 期准备开工（2026-10-18）。** 目标是上线前做完同一设备双人对战。详细产品方案下次再讨论，这里只记大目标和界面思路。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
 **开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
@@ -42,9 +42,20 @@
 - 小修复与优化先记 [test.md](test.md)，讨论后再改代码
 - 不接广告、不接支付、不用云
 - 难度菜单可打开「含无解题」：默认关，打开后每次发牌有 25% 的机会是无解题，对局可判断「本题无解」
-- 数字 / 扑克、对战仍在后续计划
+- 数字 / 扑克、两台手机云对战仍在后续计划。同一设备双人对战改为第 2.2 期
 
 交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
+
+## 第 2.2 期 — 同机双人对战 · 准备开工
+
+上线前的一个大功能：同一台设备上两个人对战。本地完成，沿用现有题库和合牌。两台手机云对战仍留在后续计划。
+
+详细方案（计分、回合、超时、和单人统计怎么分开）下次再讨论。定稿前只改本文，不改玩法、不写代码。早先预研见 [app-cross-platform.md](app-cross-platform.md) §5.1，未确认的规则以接下来的讨论为准。
+
+- 首页增加「双人对战」。现在的「开始游戏」改为「单人游戏」
+- 双人对战的牌面和单人一样：固定 2×2，点牌、运算符、合并
+- 卡牌下面：左边一个红色大「抢答」，右边一个蓝色大「抢答」
+- 点过「抢答」之后，才能移动卡牌给出答案
 
 ## 第 3 期 — 广告和收入
 
@@ -66,7 +77,6 @@
 ## 后续计划
 
 - 数字 / 扑克显示切换（自绘花色；产品细节见 [test.md](test.md) 第 12 条）
-- 一台手机双人对战
 - 两台手机云对战
 - 英语等多语言
 - 网页版、安卓、iPhone（共享 TypeScript 核心与移动端方案见 [app-cross-platform.md](app-cross-platform.md)）
