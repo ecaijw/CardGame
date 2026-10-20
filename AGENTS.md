@@ -46,3 +46,4 @@
 5. 题库预览与难度：`docs/puzzles-preview.md`
 6. 牌面动画（参考拆解与第 2 期方案）：`docs/animation.md`
 7. 音效方案：`docs/audio.md`；授权记录：`docs/audio-assets.md`
+8. 同机双人产品与技术定稿：`docs/phase-2.2-duel.md`（第 2.2 期；实现前先对齐 rules / prd / tech）

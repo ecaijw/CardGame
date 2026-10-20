@@ -1,8 +1,8 @@
 # 24 点 — 分期路线图
 
-玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
+玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.2 期准备开工（2026-10-18）。** 目标是上线前做完同一设备双人对战。详细产品方案下次再讨论，这里只记大目标和界面思路。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.2 期准备开工（2026-10-18）。** 目标是上线前做完同一设备双人对战。详细方案已定稿，见 [phase-2.2-duel.md](phase-2.2-duel.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
 **开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
@@ -50,12 +50,11 @@
 
 上线前的一个大功能：同一台设备上两个人对战。本地完成，沿用现有题库和合牌。两台手机云对战仍留在后续计划。
 
-详细方案（计分、回合、超时、和单人统计怎么分开）下次再讨论。定稿前只改本文，不改玩法、不写代码。早先预研见 [app-cross-platform.md](app-cross-platform.md) §5.1，未确认的规则以接下来的讨论为准。
+详细产品与技术方案见 [phase-2.2-duel.md](phase-2.2-duel.md)（2026-10-20 定稿）。实现前先对齐 [rules.md](rules.md) / [prd.md](prd.md) / [tech.md](tech.md)，再写代码。早先预研见 [app-cross-platform.md](app-cross-platform.md) §5.1。
 
-- 首页增加「双人对战」。现在的「开始游戏」改为「单人游戏」
-- 双人对战的牌面和单人一样：固定 2×2，点牌、运算符、合并
-- 卡牌下面：左边一个红色大「抢答」，右边一个蓝色大「抢答」
-- 点过「抢答」之后，才能移动卡牌给出答案
+- 首页「单人游戏」「双人对战」
+- 抢答 → 限时合牌；第一位失败后换对方；先到 5 分获胜
+- 双人题库、难度、统计与单人分开；答题时长默认 20 秒，设置页每次 ±5，夹在 10～60
 
 ## 第 3 期 — 广告和收入
 
