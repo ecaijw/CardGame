@@ -189,13 +189,15 @@ export class DuelScene {
   }
 
   private dialogOpen() {
+    return this.keepsPage() && this.dialogAt > 0 && this.motion.kind === 'idle'
+  }
+
+  private keepsPage() {
     return (
-      (this.match.phase === 'handoff' ||
-        this.match.phase === 'roundEnd' ||
-        this.match.phase === 'matchEnd' ||
-        this.match.phase === 'revealed') &&
-      this.dialogAt > 0 &&
-      this.motion.kind === 'idle'
+      this.match.phase === 'handoff' ||
+      this.match.phase === 'roundEnd' ||
+      this.match.phase === 'matchEnd' ||
+      this.match.phase === 'revealed'
     )
   }
 
@@ -678,7 +680,7 @@ export class DuelScene {
       const show =
         action.kind === 'restart'
           ? this.match.phase === 'answering' && !this.busy()
-          : this.match.phase === 'thinking' && !this.busy()
+          : (this.match.phase === 'thinking' || this.keepsPage()) && !this.busy()
       if (show) {
         withButtonScale(ctx, rect, this.press.scale(action.kind, t), () => {
           iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
@@ -740,11 +742,13 @@ export class DuelScene {
       ]
     }
 
-    const showHome = this.match.phase === 'thinking' && !this.dialogOpen()
+    const showHome = this.match.phase === 'thinking' || this.keepsPage()
     if (showHome) {
       const homeRect = houseButtonRect()
       drawHouseButton(ctx, homeRect, this.press.scale('home', t))
-      this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
+      if (!this.dialogOpen()) {
+        this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
+      }
     }
 
     if (this.dialogOpen()) {
@@ -779,9 +783,6 @@ export class DuelScene {
     drawDealFade(ctx, slots, fontSize, t, motion)
 
     this.state.cards.forEach((card) => {
-      if (this.dialogOpen()) {
-        return
-      }
       const rect = slots[card.slot]
       const look = this.look(card.id, card.slot, slots, t)
       if (this.canInputNext()) {
@@ -841,8 +842,8 @@ export class DuelScene {
     const scoreRect = { x: play.x + 16 + sideW + gap, y, w: sideW, h }
     const tipY = y + h + 4
 
-    const showRedBuzz = this.match.phase === 'thinking'
-    const showBlueBuzz = this.match.phase === 'thinking'
+    const showRedBuzz = this.match.phase === 'thinking' || this.keepsPage()
+    const showBlueBuzz = this.match.phase === 'thinking' || this.keepsPage()
     const showRedCountdown = this.match.phase === 'answering' && this.match.answering === 'red'
     const showBlueCountdown = this.match.phase === 'answering' && this.match.answering === 'blue'
 
@@ -929,8 +930,6 @@ export class DuelScene {
     fontSize: number,
   ) {
     this.hits = []
-    ctx.fillStyle = Color.mask
-    ctx.fillRect(0, 0, width, height)
     const cardAnchor = this.paintSuccessCard(ctx, slots, fontSize, t)
 
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
