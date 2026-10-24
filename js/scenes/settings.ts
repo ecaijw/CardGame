@@ -157,7 +157,7 @@ export class SettingsScene {
     text(
       ctx,
       `${this.answerSeconds}秒`,
-      duration.x + duration.w - 102,
+      (minus.x + minus.w + plus.x) / 2,
       duration.y + 32,
       16,
       Menu.title,
