@@ -30,11 +30,14 @@ js/
   played.ts             已玩 id（wx 存储）
   settings.ts           对局统计、音效 / 音乐开关（wx 存储）
   audio/audio-manager.ts  播放单例（wx；见 [audio.md](audio.md)）
-  scenes/play.ts    * 对局
+  scenes/play.ts    * 单人对局
+  scenes/duel.ts        同机双人对局（第 2.2 期）
   scenes/settings.ts    设置页
   game/
     fraction.ts     * 分数与是否等于 24
     merge.ts        * 合并一步；undo 函数保留，UI 已去掉
+    session.ts          选牌 / 选运算符纯会话（单人与双人共用）
+    duel.ts             双人抢答状态机与胜利统计变换
     puzzles.ts          加载题库、有解池、抽题
     puzzles.catalog.js      运行时题库（小游戏可 require）
     puzzles.json            题库正本（pack ignore，生成用）
@@ -114,6 +117,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | 1 | 已玩题目 id | `wx.setStorage` |
 | 2 | 总数 / 成功 / 失败 / 连胜、音效、音乐 | 同上 |
 | 2.1 | 难度 `dealFilter`、含无解题 `includeUnsolvable` | 同上 |
+| 2.2 | 双人难度 / 含无解题 / 已玩 id、答题秒数、`duelStats`（红蓝胜利局数与场数） | 同上；与单人 key 分开 |
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 
@@ -124,7 +128,8 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 单位：逻辑像素（`windowWidth`），竖屏
 - 第 0 期：Canvas 长方形 + 数字，比例接近扑克（约 63:88）
 - 动画：第 2 期已接入对局场景时间轴（发牌 / 合并 / 结算），规则仍走 `merge.ts`，见 [animation.md](animation.md)
-- 音频：第 2 期已接入；BGM 首次点「开始游戏」后循环，音效跟对局操作走，见 [audio.md](audio.md)
+- 音频：第 2 期已接入；BGM 首次点「单人游戏」或「双人对战」后循环，音效跟对局操作走，见 [audio.md](audio.md)
+- 同机双人：独立 `DuelScene` + `js/game/duel.ts`，方案见 [phase-2.2-duel.md](phase-2.2-duel.md)
 - 后续：自绘 4 花色 × 13 点，避免版权图；显示模式可切换（数字 / 扑克）
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）

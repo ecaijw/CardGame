@@ -7,15 +7,38 @@ import {
 } from '../js/game/fraction'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  applyDuelStats,
+  buzz,
+  createMatch,
+  DUEL_ANSWER_DEFAULT_SEC,
+  DUEL_HANDOFF_MS,
+  DUEL_TARGET,
+  failAttempt,
+  nextRound,
+  remainingAnswerSeconds,
+  resign,
+  revealAnswer,
+  startSecond,
+  stepAnswerSeconds,
+  succeed,
+  tickHandoff,
+  timeout,
+} from '../js/game/duel'
 import { merge, outcome, startGame, undo } from '../js/game/merge'
 import { candidatePuzzles, pickPuzzle, puzzlesFor, puzzlesForDeal, SOLVABLE } from '../js/game/puzzles'
+import { createSession, selectCard, selectOp } from '../js/game/session'
 import {
   applyDealOutcome,
+  bumpDuelAnswerSeconds,
   clearStreak,
   loadDealFilter,
+  loadDuelAnswerSeconds,
+  loadDuelDealFilter,
   loadIncludeUnsolvable,
   loadStats,
   saveDealFilter,
+  saveDuelDealFilter,
   saveIncludeUnsolvable,
 } from '../js/settings'
 import { classifyDifficulty, enumerateTuples, solve } from './solve'
@@ -326,6 +349,109 @@ function testDealSettings() {
   }
 }
 
+function testSessionSelect() {
+  let session = createSession([1, 3, 4, 6])
+  const first = selectCard(session, session.game.cards[0].id)
+  session = first.state
+  assert(first.effect.kind === 'select', 'first card selects')
+  const need = selectOp(session, '+')
+  assert(need.effect.kind === 'select', 'op after card')
+  session = need.state
+  const empty = createSession([1, 2, 3, 8])
+  const bad = selectOp(empty, '+')
+  assert(bad.effect.kind === 'invalid' && bad.effect.reason === 'needCard', 'op needs a card')
+}
+
+function testDuelFlow() {
+  let match = createMatch(20)
+  assert(match.phase === 'thinking', 'starts thinking')
+  const locked = buzz(match, 'red', 1000)
+  assert(!!locked && locked.phase === 'answering' && locked.answering === 'red', 'red buzzes first')
+  match = locked!
+  assert(buzz(match, 'blue', 1001) === null, 'second buzz ignored')
+  const beforeRetryDeadline = match.answerDeadline
+  const resigned = resign(match, 1500)
+  assert(!!resigned && resigned.phase === 'handoff', 'first fail goes to handoff')
+  match = resigned!
+  const second = startSecond(match, 2000)
+  assert(!!second && second.answering === 'blue', 'blue answers second')
+  assert(second!.answerDeadline === 2000 + second!.answerMs, 'second gets full timer')
+  match = second!
+  const miss = failAttempt(match, 2100)
+  assert(miss.phase === 'roundEnd', 'second fail ends round')
+  assert(miss.scoreRed === 0 && miss.scoreBlue === 0, 'no score on both fail')
+
+  match = createMatch(20)
+  match = buzz(match, 'red', 0)!
+  const win = succeed(match)
+  assert(!!win && win.match.scoreRed === 1, 'round score +1')
+  assert(win!.events.some((e) => e.kind === 'round' && e.player === 'red'), 'round win event')
+  let stats = applyDuelStats(
+    { redRoundWins: 0, blueRoundWins: 0, redMatchWins: 0, blueMatchWins: 0 },
+    win!.events[0],
+  )
+  assert(stats.redRoundWins === 1, 'round win counted')
+
+  match = createMatch(10)
+  match = { ...match, scoreRed: DUEL_TARGET - 1 }
+  match = buzz(match, 'red', 0)!
+  const matchWin = succeed(match)
+  assert(!!matchWin && matchWin.match.phase === 'matchEnd', 'fifth point ends match')
+  assert(matchWin!.events.length === 2, 'round and match events')
+
+  match = createMatch(20)
+  const revealed = revealAnswer(match)
+  assert(!!revealed && revealed.phase === 'revealed', 'reveal locks buzz')
+  assert(buzz(revealed!, 'red', 1) === null, 'cannot buzz after reveal')
+
+  match = createMatch(20)
+  match = buzz(match, 'red', 0)!
+  assert(timeout(match, match.answerDeadline! - 1) === null, 'not yet timed out')
+  const timed = timeout(match, match.answerDeadline!)
+  assert(!!timed && timed.phase === 'handoff', 'timeout fails first player')
+
+  match = createMatch(20)
+  match = buzz(match, 'red', 0)!
+  match = resign(match, 10)!
+  const auto = tickHandoff(match, match.handoffDeadline!)
+  assert(!!auto && auto.phase === 'answering' && auto.answering === 'blue', 'handoff auto start')
+  assert(DUEL_HANDOFF_MS === 3000, 'handoff is 3s')
+  assert(remainingAnswerSeconds(auto!, auto!.answerDeadline! - 500) === 1, 'ceil remaining seconds')
+
+  match = nextRound(createMatch(20))
+  assert(match.phase === 'thinking' && match.scoreRed === 0, 'nextRound resets attempt')
+  assert(stepAnswerSeconds(20, 5) === 25, '+5 seconds')
+  assert(stepAnswerSeconds(12, -5) === 10, 'clamp to min')
+  assert(stepAnswerSeconds(58, 5) === 60, 'clamp to max')
+  assert(DUEL_ANSWER_DEFAULT_SEC === 20, 'default 20')
+}
+
+function testDuelSettingsStorage() {
+  const store = new Map<string, unknown>()
+  const previous = (globalThis as { wx?: unknown }).wx
+  ;(globalThis as { wx?: unknown }).wx = {
+    getStorageSync(key: string) {
+      return store.get(key)
+    },
+    setStorageSync(key: string, value: unknown) {
+      store.set(key, value)
+    },
+  }
+  try {
+    assert(loadDuelDealFilter() === 'easy', 'duel difficulty defaults easy')
+    assert(loadDealFilter() === 'easy', 'solo difficulty still easy')
+    saveDuelDealFilter('hard')
+    saveDealFilter('medium')
+    assert(loadDuelDealFilter() === 'hard', 'duel filter separate')
+    assert(loadDealFilter() === 'medium', 'solo filter separate')
+    assert(loadDuelAnswerSeconds() === 20, 'answer seconds default 20')
+    assert(bumpDuelAnswerSeconds(1) === 25, 'bump +5')
+    assert(bumpDuelAnswerSeconds(-1) === 20, 'bump -5')
+  } finally {
+    ;(globalThis as { wx?: unknown }).wx = previous
+  }
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -337,4 +463,7 @@ testCatalog()
 testPick()
 testStreakAfterFail()
 testDealSettings()
+testSessionSelect()
+testDuelFlow()
+testDuelSettingsStorage()
 console.log('game tests passed')

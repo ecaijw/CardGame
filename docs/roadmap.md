@@ -2,7 +2,7 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.2 期准备开工（2026-10-18）。** 目标是上线前做完同一设备双人对战。详细方案已定稿，见 [phase-2.2-duel.md](phase-2.2-duel.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.2 期进行中（2026-10-20 起）。** 目标是上线前做完同一设备双人对战。定稿见 [phase-2.2-duel.md](phase-2.2-duel.md)，交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
 **开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
@@ -46,7 +46,7 @@
 
 交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
-## 第 2.2 期 — 同机双人对战 · 准备开工
+## 第 2.2 期 — 同机双人对战 · 进行中
 
 上线前的一个大功能：同一台设备上两个人对战。本地完成，沿用现有题库和合牌。两台手机云对战仍留在后续计划。
 

@@ -32,7 +32,7 @@
 | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `[js/scenes/settings.ts](../js/scenes/settings.ts)` 音效 / 音乐两行开关       | 开关仍写 `setSoundEnabled` / `setMusicEnabled`，并立刻调用音频模块静音或恢复          |
 | `[js/settings.ts](../js/settings.ts)` `soundEnabled` / `musicEnabled` | 继续用这两个 key。不要改成 `audio.sfxEnabled`                                 |
-| `[js/main.ts](../js/main.ts)` 首页「开始游戏 / 游戏说明 / 设置」                    | 点「开始游戏」：先 `tap`，再 `unlockAndStartBgm()`，再进对局。说明、设置：`tap`           |
+| `[js/main.ts](../js/main.ts)` 首页「单人游戏 / 双人对战 / 游戏说明 / 设置」                    | 点「单人游戏」或「双人对战」：先 `tap`，再 `unlockAndStartBgm()`，再进对局。说明、设置：`tap`           |
 | `[js/scenes/play.ts](../js/scenes/play.ts)`                           | 只在场景里调 `playSfx`，不要在 `js/game/` 里播声音                               |
 | `assets/` 已在 pack ignore                                              | **不要**把进包音频放进 `assets/audio/`。用仓库根目录 `audio/`                      |
 | `docs/` 已 pack ignore                                                 | 授权记录放 `docs/audio-assets.md`，证明图放 `docs/ux/` 或 `docs/audio-proof/` |
@@ -112,7 +112,7 @@ audio/                 打进小游戏包（不要 ignore）
 实现要点：
 
 1. `wx.createInnerAudioContext()`；BGM `loop = true`。
-2. BGM 只在玩家第一次点「开始游戏」后开始，不要进页就播。
+2. BGM 只在玩家第一次点「单人游戏」或「双人对战」后开始，不要进页就播。
 3. BGM 音量约 0.16–0.22；普通音效 0.35–0.55；success 可略高但不刺耳。
 4. 播音效不得让 BGM 重头开始。
 5. 连点不能无限 new 音频对象（音效用固定实例，必要时停掉再播）。
@@ -131,7 +131,8 @@ audio/                 打进小游戏包（不要 ignore）
 
 | 时机                                | 现有入口                                    | 声音                               |
 | --------------------------------- | --------------------------------------- | -------------------------------- |
-| 开始游戏                              | `main.ts` `action === 'start'`          | `tap`，然后 `unlockAndStartBgm`     |
+| 单人游戏                              | `main.ts` `action === 'start'`          | `tap`，然后 `unlockAndStartBgm`     |
+| 双人对战                              | `main.ts` `action === 'duel'`           | `tap`，然后 `unlockAndStartBgm`     |
 | 游戏说明 / 说明返回 / 首页设置                | `main.ts` howto / back / settings       | `tap`                            |
 | 设置返回                              | `settings.ts` `back`                    | `tap`                            |
 | 拨动音效 / 音乐开关                       | `settings.ts` ~~sound / music~~         | ~~可~~ `tap`~~（音效关时这下可以不响）并应用开关~~ |
@@ -147,7 +148,7 @@ audio/                 打进小游戏包（不要 ignore）
 | 答案、难度、对局设置                        | play 底栏                                 | `tap`                            |
 
 
-点「开始游戏」会切到对局；`tap` 必须在切场景前发出，且不因场景切换掐掉（音频模块是 App 级单例）。
+点「单人游戏」或「双人对战」会切到对局；`tap` 必须在切场景前发出，且不因场景切换掐掉（音频模块是 App 级单例）。
 
 ---
 
@@ -164,7 +165,7 @@ audio/                 打进小游戏包（不要 ignore）
 ## 8. 验收
 
 1. 首次进首页不自动出 BGM。
-2. 点「开始游戏」后 BGM 开始；回首页再进对局不叠两路。
+2. 点「单人游戏」或「双人对战」后 BGM 开始；回首页再进对局不叠两路。
 3. 连点牌不卡、不泄漏音频实例。
 4. merge / success / invalid 能分开。
 5. 关音乐立刻静；关音效后按钮和对局操作静；重启小游戏设置还在。

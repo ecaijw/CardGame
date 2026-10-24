@@ -1,5 +1,6 @@
 import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-manager'
 import { preloadIcons } from './art'
+import { DuelScene } from './scenes/duel'
 import { PlayScene } from './scenes/play'
 import { SettingsScene } from './scenes/settings'
 import {
@@ -17,7 +18,7 @@ import {
   type Rect,
 } from './ui'
 
-type Scene = 'home' | 'howto' | 'play' | 'settings'
+type Scene = 'home' | 'howto' | 'play' | 'duel' | 'settings'
 
 type Hit = { rect: Rect; action: string }
 
@@ -28,8 +29,9 @@ class App {
   private height = 667
   private scene: Scene = 'home'
   private play: PlayScene | null = null
+  private duel: DuelScene | null = null
   private settings = new SettingsScene()
-  private settingsBack: 'home' | 'play' = 'home'
+  private settingsBack: 'home' | 'play' | 'duel' = 'home'
   private hits: Hit[] = []
 
   constructor() {
@@ -46,10 +48,16 @@ class App {
     initAudio()
     wx.onTouchStart((event) => {
       const touch = event.changedTouches[0] || event.touches[0]
-      if (!touch || this.scene !== 'play' || !this.play) {
+      if (!touch) {
         return
       }
-      this.play.pressDown(touch.clientX, touch.clientY)
+      if (this.scene === 'play' && this.play) {
+        this.play.pressDown(touch.clientX, touch.clientY)
+        return
+      }
+      if (this.scene === 'duel' && this.duel) {
+        this.duel.pressDown(touch.clientX, touch.clientY)
+      }
     })
     wx.onTouchEnd((event) => {
       const touch = event.changedTouches[0]
@@ -59,10 +67,14 @@ class App {
       if (this.scene === 'play' && this.play) {
         this.play.pressUp()
       }
+      if (this.scene === 'duel' && this.duel) {
+        this.duel.pressUp()
+      }
       this.onTap(touch.clientX, touch.clientY)
     })
     wx.onTouchCancel(() => {
       this.play?.pressUp()
+      this.duel?.pressUp()
     })
     const raf =
       typeof this.canvas.requestAnimationFrame === 'function'
@@ -80,6 +92,10 @@ class App {
       this.play.tap(x, y)
       return
     }
+    if (this.scene === 'duel' && this.duel) {
+      this.duel.tap(x, y)
+      return
+    }
     if (this.scene === 'settings') {
       if (this.settings.tap(x, y) === 'back') {
         playSfx('tap')
@@ -94,6 +110,7 @@ class App {
     if (found.action === 'start') {
       playSfx('tap')
       unlockAndStartBgm()
+      this.duel = null
       if (this.play) {
         this.play.clearStreakIfUnsettled()
         this.play.reset()
@@ -102,6 +119,14 @@ class App {
       }
       this.bindPlaySettings()
       this.scene = 'play'
+      return
+    }
+    if (found.action === 'duel') {
+      playSfx('tap')
+      unlockAndStartBgm()
+      this.duel = DuelScene.deal()
+      this.bindDuelCallbacks()
+      this.scene = 'duel'
       return
     }
     if (found.action === 'howto') {
@@ -127,7 +152,18 @@ class App {
     this.play.onSettings = () => this.openSettings('play')
   }
 
-  private openSettings(from: 'home' | 'play') {
+  private bindDuelCallbacks() {
+    if (!this.duel) {
+      return
+    }
+    this.duel.onSettings = () => this.openSettings('duel')
+    this.duel.onHome = () => {
+      this.duel = null
+      this.scene = 'home'
+    }
+  }
+
+  private openSettings(from: 'home' | 'play' | 'duel') {
     this.settingsBack = from
     this.scene = 'settings'
   }
@@ -146,6 +182,10 @@ class App {
     }
     if (this.scene === 'settings') {
       this.settings.draw(ctx, width, height)
+      return
+    }
+    if (this.scene === 'duel' && this.duel) {
+      this.duel.draw(ctx, width, height)
       return
     }
     this.play?.draw(ctx, width, height)
@@ -168,22 +208,34 @@ class App {
     const top = this.capsuleBottom() + 28
     const fanBottom = drawMenuFan(ctx, width, top)
     const titleSize = Math.min(52, width * 0.14)
-    const titleY = Math.max(height * 0.345, fanBottom + 40)
+    const titleY = Math.max(height * 0.32, fanBottom + 36)
     menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
-    text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 64, 15, Menu.subtitle, 'center', '400')
-    text(ctx, '来挑战一下', width / 2, titleY + 94, 15, Menu.subtitle, 'center', '400')
+    text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 56, 15, Menu.subtitle, 'center', '400')
+    text(ctx, '来挑战一下', width / 2, titleY + 82, 15, Menu.subtitle, 'center', '400')
     const btnW = Math.min(220, width - 72)
     const btnX = (width - btnW) / 2
-    const start = { x: btnX, y: height * 0.575, w: btnW, h: 58 }
-    menuButton(ctx, start, '开始游戏', 'primary')
-    const settingsH = 58
+    const gap = 12
+    const btnH = 52
+    const settingsH = 52
     const settingsY = height - bottomBarPad() - settingsH
-    const howto = { x: btnX, y: settingsY - 16 - 58, w: btnW, h: 58 }
-    menuButton(ctx, howto, '游戏说明', 'ghost')
-    this.hits.push({ rect: start, action: 'start' }, { rect: howto, action: 'howto' })
+    const howtoY = settingsY - gap - btnH
+    const startY = Math.min(height * 0.52, howtoY - gap * 2 - btnH * 2)
+    const duelY = startY + btnH + gap
+    const start = { x: btnX, y: startY, w: btnW, h: btnH }
+    const duel = { x: btnX, y: duelY, w: btnW, h: btnH }
+    const howto = { x: btnX, y: howtoY, w: btnW, h: btnH }
     const settings = { x: btnX, y: settingsY, w: btnW, h: settingsH }
+    menuButton(ctx, start, '单人游戏', 'primary')
+    fillRound(ctx, duel, '#2F6FED', duel.h / 2, true)
+    text(ctx, '双人对战', duel.x + duel.w / 2, duel.y + duel.h / 2, 18, Color.paper, 'center', '600')
+    menuButton(ctx, howto, '游戏说明', 'ghost')
     iconLabelButton(ctx, settings, '设置', 'ghost', 'settings', 16)
-    this.hits.push({ rect: settings, action: 'settings' })
+    this.hits.push(
+      { rect: start, action: 'start' },
+      { rect: duel, action: 'duel' },
+      { rect: howto, action: 'howto' },
+      { rect: settings, action: 'settings' },
+    )
   }
 
   private drawHowTo() {
@@ -198,6 +250,10 @@ class App {
       {
         title: '操作方法',
         lines: ['点一张牌 → 选运算符 → 再点另一张牌。两张牌会合成为结果牌，继续计算，直到只剩一张牌。'],
+      },
+      {
+        title: '双人对战',
+        lines: ['双方先抢答，抢到的人在限定秒数内算出 24。第一位失败后换对方。先到 5 分获胜。'],
       },
       {
         title: '注意',

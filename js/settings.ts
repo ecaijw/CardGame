@@ -1,12 +1,26 @@
+import {
+  DUEL_ANSWER_DEFAULT_SEC,
+  DUEL_ANSWER_STEP_SEC,
+  clampAnswerSeconds,
+  emptyDuelStats,
+  stepAnswerSeconds,
+  type DuelStats,
+} from './game/duel'
+
 const STATS_KEY = 'gameStats'
 const SOUND_KEY = 'soundEnabled'
 const MUSIC_KEY = 'musicEnabled'
 const FILTER_KEY = 'dealFilter'
 const INCLUDE_UNSOLVABLE_KEY = 'includeUnsolvable'
+const DUEL_FILTER_KEY = 'duelDealFilter'
+const DUEL_INCLUDE_UNSOLVABLE_KEY = 'duelIncludeUnsolvable'
+const DUEL_ANSWER_SEC_KEY = 'duelAnswerSeconds'
+const DUEL_STATS_KEY = 'duelStats'
 
 const DEAL_FILTERS = ['easy', 'medium', 'hard', 'all'] as const
 
 export type StoredDealFilter = (typeof DEAL_FILTERS)[number]
+export type { DuelStats }
 
 export type GameStats = {
   deals: number
@@ -89,15 +103,7 @@ export function setMusicEnabled(on: boolean): void {
 }
 
 export function loadDealFilter(): StoredDealFilter {
-  try {
-    const raw = wx.getStorageSync(FILTER_KEY)
-    if (typeof raw === 'string' && (DEAL_FILTERS as readonly string[]).includes(raw)) {
-      return raw as StoredDealFilter
-    }
-  } catch {
-    // ignore
-  }
-  return 'easy'
+  return loadDealFilterKey(FILTER_KEY)
 }
 
 export function saveDealFilter(filter: StoredDealFilter): void {
@@ -110,6 +116,77 @@ export function loadIncludeUnsolvable(): boolean {
 
 export function saveIncludeUnsolvable(on: boolean): void {
   wx.setStorageSync(INCLUDE_UNSOLVABLE_KEY, on)
+}
+
+export function loadDuelDealFilter(): StoredDealFilter {
+  return loadDealFilterKey(DUEL_FILTER_KEY)
+}
+
+export function saveDuelDealFilter(filter: StoredDealFilter): void {
+  wx.setStorageSync(DUEL_FILTER_KEY, filter)
+}
+
+export function loadDuelIncludeUnsolvable(): boolean {
+  return loadFlag(DUEL_INCLUDE_UNSOLVABLE_KEY, false)
+}
+
+export function saveDuelIncludeUnsolvable(on: boolean): void {
+  wx.setStorageSync(DUEL_INCLUDE_UNSOLVABLE_KEY, on)
+}
+
+export function loadDuelAnswerSeconds(): number {
+  try {
+    const raw = wx.getStorageSync(DUEL_ANSWER_SEC_KEY)
+    if (typeof raw === 'number' || typeof raw === 'string') {
+      return clampAnswerSeconds(Number(raw))
+    }
+  } catch {
+    // ignore
+  }
+  return DUEL_ANSWER_DEFAULT_SEC
+}
+
+export function saveDuelAnswerSeconds(seconds: number): void {
+  wx.setStorageSync(DUEL_ANSWER_SEC_KEY, clampAnswerSeconds(seconds))
+}
+
+export function bumpDuelAnswerSeconds(deltaSteps: number): number {
+  const next = stepAnswerSeconds(
+    loadDuelAnswerSeconds(),
+    deltaSteps * DUEL_ANSWER_STEP_SEC,
+  )
+  saveDuelAnswerSeconds(next)
+  return next
+}
+
+export function loadDuelStats(): DuelStats {
+  try {
+    const raw = wx.getStorageSync(DUEL_STATS_KEY)
+    return {
+      redRoundWins: readCount(raw?.redRoundWins),
+      blueRoundWins: readCount(raw?.blueRoundWins),
+      redMatchWins: readCount(raw?.redMatchWins),
+      blueMatchWins: readCount(raw?.blueMatchWins),
+    }
+  } catch {
+    return emptyDuelStats()
+  }
+}
+
+export function saveDuelStats(stats: DuelStats): void {
+  wx.setStorageSync(DUEL_STATS_KEY, stats)
+}
+
+function loadDealFilterKey(key: string): StoredDealFilter {
+  try {
+    const raw = wx.getStorageSync(key)
+    if (typeof raw === 'string' && (DEAL_FILTERS as readonly string[]).includes(raw)) {
+      return raw as StoredDealFilter
+    }
+  } catch {
+    // ignore
+  }
+  return 'easy'
 }
 
 function readCount(value: unknown): number {

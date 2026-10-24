@@ -1,13 +1,36 @@
 import { getIcon } from '../art'
 import { playSfx } from '../audio/audio-manager'
-import { formatFraction, type Fraction, type Op } from '../game/fraction'
+import { formatFraction, type Op } from '../game/fraction'
 import {
-  merge,
-  outcome,
-  startGame,
-  type GameState,
-} from '../game/merge'
+  MERGE_MS,
+  SETTLE_MOVE_MS,
+  SETTLE_MS,
+  cardLook,
+  dealDuration,
+  drawCopyCard,
+  drawDealFade,
+  drawMergeFlight,
+  drawOp,
+  drawPlayCard,
+  drawSuccessBurst,
+  easeOut,
+  panelCard,
+  playFrame,
+  slotRects,
+  type Face,
+  type Motion,
+} from './board'
+import type { GameState } from '../game/merge'
+import {
+  createSession,
+  restartSession,
+  selectCard,
+  selectOp,
+  type SessionState,
+} from '../game/session'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
+import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
+import { PressFeedback } from './press'
 import { addPlayedId, loadPlayedIds } from '../played'
 import {
   applyDealOutcome,
@@ -32,36 +55,14 @@ import {
   drawSegmentBar,
   iconLabelButton,
   menuButton,
-  menuInk,
-  paintMenuChrome,
   withButtonScale,
-  strokeRound,
   text,
   type Rect,
 } from '../ui'
 
 const OPS: Op[] = ['+', '−', '×', '÷']
 
-const FILTERS: Array<{ label: string; filter: DealFilter }> = [
-  { label: '简单', filter: 'easy' },
-  { label: '中等', filter: 'medium' },
-  { label: '困难', filter: 'hard' },
-  { label: '全部', filter: 'all' },
-]
-
-const SELECT_MS = 180
-const FLY_MS = 220
-const DEAL_CARD_MS = 320
-const RESULT_POP_MS = DEAL_CARD_MS
-const MERGE_MS = FLY_MS + RESULT_POP_MS
-const FADE_OUT_MS = 160
-const SETTLE_MOVE_MS = 560
-const SETTLE_MS = 780
 const DIALOG_IN_MS = 220
-const OP_PULSE_MS = 160
-const OP_SHAKE_MS = 360
-const PRESS_MS = 90
-const PRESS_SCALE = 0.85
 const HINT_MS = 1800
 
 type Hit =
@@ -79,27 +80,10 @@ type Hit =
   | { kind: 'dialog-next' }
   | { kind: 'settings' }
 
-type Face = { slot: number; value: Fraction }
-
-type Motion =
-  | { kind: 'idle' }
-  | { kind: 'dealing'; at: number; fadeFrom?: Face[] }
-  | {
-      kind: 'merging'
-      at: number
-      op: Op
-      source: Face
-      dest: Face
-      resultId: number
-    }
-  | { kind: 'settling'; at: number; end: 'success' | 'fail'; slot: number }
-
 export class PlayScene {
   puzzle: Puzzle
   filter: DealFilter
-  private state: GameState
-  private selectedId = 0
-  private selectedOp: Op | '' = ''
+  private session: SessionState
   private result: 'success' | 'fail' | '' = ''
   private showAnswer = false
   private showDifficulty = false
@@ -116,7 +100,7 @@ export class PlayScene {
   private selectAt = 0
   private opPulseAt = 0
   private opShake: { op: Op; at: number } | null = null
-  private press: { key: string; down: boolean; at: number } | null = null
+  private press = new PressFeedback()
   private queuedMerge: { op: Op; destId: number } | null = null
   private hint = ''
   private hintAt = 0
@@ -126,9 +110,29 @@ export class PlayScene {
     this.puzzle = puzzle
     this.filter = filter
     this.includeUnsolvable = includeUnsolvable
-    this.state = startGame(puzzle.nums)
+    this.session = createSession(puzzle.nums)
     this.beginDealtRound()
     this.startDeal()
+  }
+
+  private get state(): GameState {
+    return this.session.game
+  }
+
+  private get selectedId(): number {
+    return this.session.selectedId
+  }
+
+  private set selectedId(id: number) {
+    this.session = { ...this.session, selectedId: id }
+  }
+
+  private get selectedOp(): Op | '' {
+    return this.session.selectedOp
+  }
+
+  private set selectedOp(op: Op | '') {
+    this.session = { ...this.session, selectedOp: op }
   }
 
   static deal(excludeId?: string): PlayScene {
@@ -145,9 +149,7 @@ export class PlayScene {
           slot: card.slot,
           value: { n: card.value.n, d: card.value.d },
         }))
-    this.state = startGame(this.puzzle.nums)
-    this.selectedId = 0
-    this.selectedOp = ''
+    this.session = restartSession(this.puzzle.nums)
     this.queuedMerge = null
     this.result = ''
     this.showAnswer = false
@@ -206,24 +208,11 @@ export class PlayScene {
     if (!found || found.hit.kind === 'op' || found.hit.kind === 'card') {
       return
     }
-    this.press = { key: pressKey(found.hit), down: true, at: now() }
+    this.press.down(pressKey(found.hit), now())
   }
 
   pressUp() {
-    if (this.press && this.press.down) {
-      this.press = { key: this.press.key, down: false, at: now() }
-    }
-  }
-
-  private pressScale(key: string, t: number) {
-    if (!this.press || this.press.key !== key) {
-      return 1
-    }
-    const p = easeOut((t - this.press.at) / PRESS_MS)
-    if (this.press.down) {
-      return 1 - (1 - PRESS_SCALE) * p
-    }
-    return PRESS_SCALE + (1 - PRESS_SCALE) * p
+    this.press.up(now())
   }
 
   tap(x: number, y: number) {
@@ -335,36 +324,25 @@ export class PlayScene {
   }
 
   private onCard(id: number) {
-    if (!this.selectedId) {
-      this.selectedId = id
+    const before = this.session
+    const source = before.game.cards.find((card) => card.id === before.selectedId)
+    const dest = before.game.cards.find((card) => card.id === id)
+    const { state, effect } = selectCard(before, id)
+    this.session = state
+    if (effect.kind === 'select') {
       this.selectAt = now()
       playSfx('select')
       return
     }
-    if (id === this.selectedId) {
-      this.selectedId = 0
-      playSfx('select')
-      return
-    }
-    if (!this.selectedOp) {
-      this.selectedId = id
-      this.selectAt = now()
-      playSfx('select')
-      return
-    }
-    const source = this.state.cards.find((card) => card.id === this.selectedId)
-    const dest = this.state.cards.find((card) => card.id === id)
-    const op = this.selectedOp
-    const merged = merge(this.state, this.selectedId, op, id)
-    if (!merged.ok) {
+    if (effect.kind === 'invalid') {
       playSfx('invalid')
-      this.showHint(merged.reason === 'div0' ? '不能除以 0' : '请选择两张不同的牌')
+      this.showHint(effect.reason === 'div0' ? '不能除以 0' : '请选择两张不同的牌')
       return
     }
-    const resultCard = merged.state.cards[merged.state.cards.length - 1]
-    this.state = merged.state
-    this.selectedOp = ''
-    const end = outcome(this.state)
+    if (effect.kind !== 'merge') {
+      return
+    }
+    const end = effect.end
     if (end === 'success' || end === 'fail') {
       applyDealOutcome(end, this.lastOutcome, this.streakAtDealStart)
       this.lastOutcome = end
@@ -375,19 +353,19 @@ export class PlayScene {
     if (this.result) {
       this.showDifficulty = false
     }
-    this.selectedId = end === 'playing' ? resultCard.id : 0
     this.selectAt = now()
+    const resultCard = this.state.cards.find((card) => card.id === effect.resultId)
     this.motion = {
       kind: 'merging',
       at: now(),
-      op,
+      op: effect.op,
       source: source
         ? { slot: source.slot, value: { n: source.value.n, d: source.value.d } }
         : { slot: 0, value: { n: 0, d: 1 } },
       dest: dest
         ? { slot: dest.slot, value: { n: dest.value.n, d: dest.value.d } }
-        : { slot: resultCard.slot, value: { n: 0, d: 1 } },
-      resultId: resultCard.id,
+        : { slot: resultCard?.slot ?? 0, value: { n: 0, d: 1 } },
+      resultId: effect.resultId,
     }
   }
 
@@ -425,20 +403,18 @@ export class PlayScene {
   }
 
   private onOp(op: Op) {
-    if (this.selectedOp === op) {
-      this.selectedOp = ''
-      this.queuedMerge = null
-      playSfx('select')
-      return
-    }
-    if (!this.selectedId) {
+    const { state, effect } = selectOp(this.session, op)
+    this.session = state
+    if (effect.kind === 'invalid') {
       this.opShake = { op, at: now() }
       playSfx('invalid')
       this.showHint('请先点选一张牌')
       return
     }
-    this.selectedOp = op
-    this.opPulseAt = now()
+    this.queuedMerge = null
+    if (effect.kind === 'select' && state.selectedOp) {
+      this.opPulseAt = now()
+    }
     playSfx('select')
   }
 
@@ -509,7 +485,7 @@ export class PlayScene {
       }
     })
 
-    const current = FILTERS.find((item) => item.filter === this.filter)
+    const current = DIFFICULTY_FILTERS.find((item) => item.filter === this.filter)
     const barH = 52
     const barY = frame.side ? opY : height - bottomBarPad() - barH
     const bar = frame.side
@@ -532,7 +508,7 @@ export class PlayScene {
     ]
     dealActions.forEach((action) => {
       const rect = { x: action.x, y: actionY, w: cellW, h: actionH }
-      withButtonScale(ctx, rect, this.pressScale(action.kind, t), () => {
+      withButtonScale(ctx, rect, this.press.scale(action.kind, t), () => {
         iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
       })
       if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
@@ -541,7 +517,7 @@ export class PlayScene {
     })
     if (this.includeUnsolvable) {
       const noSolution = { x: difficulty.x, y: actionY, w: cellW, h: actionH }
-      withButtonScale(ctx, noSolution, this.pressScale('declare-unsolvable', t), () => {
+      withButtonScale(ctx, noSolution, this.press.scale('declare-unsolvable', t), () => {
         menuButton(ctx, noSolution, '本题无解', 'ghost')
       })
       if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
@@ -550,14 +526,14 @@ export class PlayScene {
     }
 
     drawSegmentBar(ctx, bar, [
-      { label: '答案', icon: 'answer', active: this.showAnswer, scale: this.pressScale('answer', t) },
+      { label: '答案', icon: 'answer', active: this.showAnswer, scale: this.press.scale('answer', t) },
       {
         label: current ? current.label : '难度',
         icon: 'difficulty',
         active: this.showDifficulty,
-        scale: this.pressScale('difficulty', t),
+        scale: this.press.scale('difficulty', t),
       },
-      { label: '设置', icon: 'settings', scale: this.pressScale('settings', t) },
+      { label: '设置', icon: 'settings', scale: this.press.scale('settings', t) },
     ])
     if (!this.busy() && !this.dialogOpen() && !this.unsolvableNotice) {
       this.hits.push(
@@ -582,25 +558,13 @@ export class PlayScene {
       drawDealStats(ctx, statsRect, this.stats)
     }
     if (this.showDifficulty) {
-      const menuHits: Array<{ rect: Rect; hit: Hit }> = []
-      const rowH = 40
-      const menuGap = 6
-      FILTERS.forEach((item, index) => {
-        const fromBottom = FILTERS.length - index
-        const rect = {
-          x: difficulty.x + 8,
-          y: difficulty.y - fromBottom * (rowH + menuGap),
-          w: difficulty.w - 16,
-          h: rowH,
-        }
-        withButtonScale(ctx, rect, this.pressScale(`filter-${item.filter}`, t), () => {
-          menuButton(ctx, rect, item.label, item.filter === this.filter ? 'blush' : 'ghost')
-        })
-        menuHits.push({ rect, hit: { kind: 'set-filter', filter: item.filter } })
-      })
-      this.hits = [...menuHits, ...this.hits]
+      this.hits = [
+        ...drawDifficultyMenu(ctx, difficulty, this.filter, this.includeUnsolvable, true, (key) =>
+          this.press.scale(key, t),
+        ),
+        ...this.hits,
+      ]
     }
-    this.drawUnsolvableToggle(ctx, difficulty, t)
 
     if (this.dialogOpen()) {
       this.drawDialog(ctx, width, height, t, slots, fontSize)
@@ -610,28 +574,35 @@ export class PlayScene {
     }
   }
 
+  private look(id: number, slot: number, slots: Rect[], t: number) {
+    const last = this.state.cards[0]
+    return cardLook({
+      id,
+      slot,
+      slots,
+      t,
+      motion: this.motion,
+      selectedId: this.selectedId,
+      selectAt: this.selectAt,
+      settle: {
+        result: this.result,
+        dialogOpen: this.dialogOpen(),
+        cardCount: this.state.cards.length,
+        last: last ? { id: last.id, slot: last.slot } : undefined,
+      },
+    })
+  }
+
   private drawBoard(ctx: CanvasRenderingContext2D, slots: Rect[], fontSize: number, t: number) {
     const motion = this.motion
-    if (motion.kind === 'dealing' && motion.fadeFrom) {
-      const p = clamp01((t - motion.at) / FADE_OUT_MS)
-      if (p < 1) {
-        motion.fadeFrom.forEach((face) => {
-          drawPlayCard(ctx, {
-            rect: slots[face.slot],
-            label: formatFraction(face.value),
-            fontSize,
-            scale: 1 - 0.06 * p,
-          })
-        })
-      }
-    }
+    drawDealFade(ctx, slots, fontSize, t, motion)
 
     this.state.cards.forEach((card) => {
       if (this.dialogOpen()) {
         return
       }
       const rect = slots[card.slot]
-      const look = this.cardLook(card.id, card.slot, slots, t)
+      const look = this.look(card.id, card.slot, slots, t)
       if (this.canInputNext()) {
         this.hits.push({ rect, hit: { kind: 'card', id: card.id } })
       }
@@ -646,29 +617,10 @@ export class PlayScene {
       })
     })
 
-    if (motion.kind === 'merging') {
-      const elapsed = t - motion.at
-      if (elapsed < FLY_MS) {
-        const src = slots[motion.source.slot]
-        const dst = slots[motion.dest.slot]
-        const p = easeOut(elapsed / FLY_MS)
-        drawPlayCard(ctx, {
-          rect: src,
-          label: formatFraction(motion.source.value),
-          fontSize,
-          dx: (dst.x + dst.w / 2 - (src.x + src.w / 2)) * p,
-          dy: (dst.y + dst.h / 2 - (src.y + src.h / 2)) * p,
-        })
-        drawPlayCard(ctx, {
-          rect: dst,
-          label: formatFraction(motion.dest.value),
-          fontSize,
-        })
-      }
-    }
+    drawMergeFlight(ctx, slots, fontSize, t, motion)
 
     if (motion.kind === 'settling' && motion.end === 'success') {
-      const look = this.cardLook(this.state.cards[0]?.id ?? 0, motion.slot, slots, t)
+      const look = this.look(this.state.cards[0]?.id ?? 0, motion.slot, slots, t)
       const rect = slots[motion.slot]
       drawSuccessBurst(
         ctx,
@@ -680,89 +632,16 @@ export class PlayScene {
     }
   }
 
-  private cardLook(
-    id: number,
-    slot: number,
-    slots: Rect[],
-    t: number,
-  ): {
-    scale?: number
-    alpha?: number
-    dx?: number
-    dy?: number
-    selected?: boolean
-    glow?: number
-    numberScale?: number
-  } | null {
-    const motion = this.motion
-    if (motion.kind === 'dealing') {
-      const local = (t - motion.at - (motion.fadeFrom ? FADE_OUT_MS : 0)) / DEAL_CARD_MS
-      if (local < 0) {
-        return null
-      }
-      const expand = dealExpand(local)
-      return { scale: expand.scale }
-    }
-    if (motion.kind === 'merging') {
-      const elapsed = t - motion.at
-      if (id === motion.resultId) {
-        if (elapsed < FLY_MS) {
-          return null
-        }
-        const selected = id === this.selectedId
-        const cardEnd = selected ? 1.04 : 1
-        const p = (elapsed - FLY_MS) / RESULT_POP_MS
-        return {
-          scale: popScale(p, cardEnd),
-          numberScale: 0.8 + 0.2 * easeOut(p),
-          selected,
-        }
-      }
-    }
-    const last = this.state.cards[0]
-    const showLastCentered =
-      Boolean(this.result) && last && last.slot === slot && last.id === id && this.state.cards.length === 1
-    if (showLastCentered && (motion.kind === 'settling' || this.dialogOpen())) {
-      const delta = centerDelta(slots, slot)
-      const p = motion.kind === 'settling' ? easeOut((t - motion.at) / SETTLE_MOVE_MS) : 1
-      const success = this.result === 'success'
-      return {
-        dx: delta.dx * p,
-        dy: delta.dy * p,
-        selected: success,
-        glow: success ? 0.45 : 0,
-      }
-    }
-    if (id === this.selectedId) {
-      const p = easeOut((t - this.selectAt) / SELECT_MS)
-      return { scale: 1 + 0.04 * p, selected: true, numberScale: 1 }
-    }
-    return {}
-  }
-
   private drawOp(ctx: CanvasRenderingContext2D, rect: Rect, op: Op, t: number) {
-    let dx = 0
-    let scale = 1
-    if (this.opShake && this.opShake.op === op) {
-      const p = clamp01((t - this.opShake.at) / OP_SHAKE_MS)
-      dx = Math.sin(p * Math.PI * 4) * 3 * (1 - p)
-      if (p >= 1) {
-        this.opShake = null
-      }
+    const shaking = this.opShake?.op === op
+    const drawn = drawOp(ctx, rect, op, t, {
+      selected: this.selectedOp === op,
+      shakeAt: shaking && this.opShake ? this.opShake.at : null,
+      pulseAt: this.opPulseAt,
+    })
+    if (shaking && drawn.shakeDone) {
+      this.opShake = null
     }
-    if (this.selectedOp === op) {
-      const p = easeOut((t - this.opPulseAt) / OP_PULSE_MS)
-      scale = 0.98 + 0.02 * p
-    }
-    const kind = this.selectedOp === op ? 'blush' : 'ghost'
-    ctx.save()
-    ctx.translate(dx, 0)
-    ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2)
-    ctx.scale(scale, scale)
-    ctx.translate(-(rect.x + rect.w / 2), -(rect.y + rect.h / 2))
-    paintMenuChrome(ctx, rect, kind, 10)
-    text(ctx, op, rect.x + rect.w / 2, rect.y + rect.h / 2, 24, menuInk(kind), 'center', '700')
-    ctx.restore()
   }
 
   private drawDialog(
@@ -780,7 +659,7 @@ export class PlayScene {
     let anchorBottom = slots[2].y + slots[2].h
     if (keepBoard) {
       this.state.cards.forEach((card) => {
-        const look = this.cardLook(card.id, card.slot, slots, t)
+        const look = this.look(card.id, card.slot, slots, t)
         if (!look) {
           return
         }
@@ -794,7 +673,7 @@ export class PlayScene {
       })
     } else {
       const last = this.state.cards[0]
-      const look = last ? this.cardLook(last.id, last.slot, slots, t) : null
+      const look = last ? this.look(last.id, last.slot, slots, t) : null
       if (last && look) {
         drawPlayCard(ctx, {
           rect: slots[last.slot],
@@ -858,7 +737,7 @@ export class PlayScene {
     const buttonShift = longFail ? 24 : 0
     if (fail) {
       const restart = { x: dialog.x + 24, y: dialog.y + 128 + buttonShift, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, restart, this.pressScale('dialog-restart', t), () => {
+      withButtonScale(ctx, restart, this.press.scale('dialog-restart', t), () => {
         menuButton(ctx, restart, '重开本局', 'ghost')
       })
       this.hits.push({ rect: restart, hit: { kind: 'dialog-restart' } })
@@ -869,46 +748,11 @@ export class PlayScene {
       w: dialog.w - 48,
       h: 50,
     }
-    withButtonScale(ctx, next, this.pressScale('dialog-next', t), () => {
+    withButtonScale(ctx, next, this.press.scale('dialog-next', t), () => {
       menuButton(ctx, next, '下一局', 'ghost')
     })
     this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
     ctx.restore()
-  }
-
-  private drawUnsolvableToggle(ctx: CanvasRenderingContext2D, difficulty: Rect, t: number) {
-    if (!this.showDifficulty) {
-      return
-    }
-    const rowH = 40
-    const menuGap = 6
-    const rect = {
-      x: difficulty.x + 8,
-      y: difficulty.y - (FILTERS.length + 1) * (rowH + menuGap),
-      w: difficulty.w - 16,
-      h: rowH,
-    }
-    withButtonScale(ctx, rect, this.pressScale('toggle-unsolvable', t), () => {
-      paintMenuChrome(ctx, rect, 'ghost')
-      const label = '含无解题'
-      const fontSize = rect.w < 100 ? 13 : 15
-      const midY = rect.y + rect.h / 2
-      const cx = rect.x + rect.w / 2
-      ctx.save()
-      ctx.font = `600 ${fontSize}px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
-      const textW = ctx.measureText(label).width
-      ctx.restore()
-      if (this.includeUnsolvable) {
-        const mark = 12
-        const gap = 6
-        const start = cx - (mark + gap + textW) / 2
-        drawGreenCheck(ctx, start + mark / 2, midY)
-        text(ctx, label, start + mark + gap, midY, fontSize, menuInk('ghost'), 'left', '600')
-      } else {
-        text(ctx, label, cx, midY, fontSize, menuInk('ghost'), 'center', '600')
-      }
-    })
-    this.hits.unshift({ rect, hit: { kind: 'toggle-unsolvable' } })
   }
 
   private drawUnsolvableNotice(
@@ -947,26 +791,12 @@ export class PlayScene {
       text(ctx, line, cx, dialog.y + 96 + index * 26, 14, Color.muted)
     })
     const close = { x: dialog.x + 24, y: dialog.y + dialog.h - 74, w: dialog.w - 48, h: 50 }
-    withButtonScale(ctx, close, this.pressScale('notice-close', t), () => {
+    withButtonScale(ctx, close, this.press.scale('notice-close', t), () => {
       menuButton(ctx, close, '关闭', 'ghost')
     })
     this.hits.push({ rect: close, hit: { kind: 'notice-close' } })
     ctx.restore()
   }
-}
-
-function drawGreenCheck(ctx: CanvasRenderingContext2D, x: number, y: number) {
-  ctx.save()
-  ctx.strokeStyle = Color.lime
-  ctx.lineWidth = 2.5
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ctx.beginPath()
-  ctx.moveTo(x - 5, y)
-  ctx.lineTo(x - 1, y + 4)
-  ctx.lineTo(x + 6, y - 4)
-  ctx.stroke()
-  ctx.restore()
 }
 
 function pressKey(action: Hit) {
@@ -1039,185 +869,6 @@ function drawDealStats(ctx: CanvasRenderingContext2D, rect: Rect, stats: GameSta
   })
 }
 
-function drawCopyCard(ctx: CanvasRenderingContext2D, rect: Rect, expression: string, steps: string[]) {
-  const card = panelCard(rect)
-  const cx = card ? card.x + card.w / 2 : rect.x + rect.w / 2
-  const block = steps.length === 0 ? 0 : 28 + 22 * (steps.length - 1)
-  const expressionY = card ? card.y + card.h / 2 - block / 2 : rect.y + rect.h / 2
-  if (card) {
-    fillRound(ctx, card, Menu.paper, 16, true)
-  }
-  text(ctx, expression, cx, expressionY, 22, Color.coral, 'center', '700')
-  steps.forEach((step, index) => {
-    text(ctx, step, cx, expressionY + 28 + index * 22, 15, Color.muted, 'center', '500')
-  })
-}
-
-function panelCard(rect: Rect): Rect | null {
-  if (rect.h < 72 || rect.w < 140) {
-    return null
-  }
-  if (rect.h < 130) {
-    return rect
-  }
-  const cardH = Math.min(160, rect.h)
-  const cardW = Math.min(rect.w, 420)
-  return {
-    x: rect.x + (rect.w - cardW) / 2,
-    y: rect.y + (rect.h - cardH) / 2,
-    w: cardW,
-    h: cardH,
-  }
-}
-
-function playFrame(width: number): {
-  play: { x: number; w: number }
-  side: { x: number; w: number } | null
-} {
-  const playW = 400
-  const sideMin = 280
-  const edge = 20
-  const colGap = 28
-  if (width < edge + playW + colGap + sideMin + edge) {
-    return { play: { x: 0, w: width }, side: null }
-  }
-  const play = { x: edge, w: playW }
-  const sideX = play.x + play.w + colGap
-  return { play, side: { x: sideX, w: width - sideX - edge } }
-}
-
-function slotRects(
-  originX: number,
-  columnW: number,
-  topY: number,
-  cardW: number,
-  cardH: number,
-  gap: number,
-): Rect[] {
-  const startX = originX + (columnW - (2 * cardW + gap)) / 2
-  return [0, 1, 2, 3].map((slot) => ({
-    x: startX + (slot % 2) * (cardW + gap),
-    y: topY + Math.floor(slot / 2) * (cardH + gap),
-    w: cardW,
-    h: cardH,
-  }))
-}
-
-function dealDuration(fadeFrom?: Face[]) {
-  return (fadeFrom ? FADE_OUT_MS : 0) + DEAL_CARD_MS
-}
-
 function now() {
   return Date.now()
-}
-
-function clamp01(value: number) {
-  if (value <= 0) {
-    return 0
-  }
-  if (value >= 1) {
-    return 1
-  }
-  return value
-}
-
-function easeOut(value: number) {
-  const t = clamp01(value)
-  return 1 - (1 - t) * (1 - t) * (1 - t)
-}
-
-function easeInOut(value: number) {
-  const t = clamp01(value)
-  return 0.5 - 0.5 * Math.cos(Math.PI * t)
-}
-
-function centerDelta(slots: Rect[], slot: number): { dx: number; dy: number } {
-  const rect = slots[slot]
-  const left = slots[0].x
-  const top = slots[0].y
-  const right = slots[1].x + slots[1].w
-  const bottom = slots[2].y + slots[2].h
-  return {
-    dx: (left + right) / 2 - (rect.x + rect.w / 2),
-    dy: (top + bottom) / 2 - (rect.y + rect.h / 2),
-  }
-}
-
-function dealExpand(progress: number): { scale: number } {
-  return { scale: 0.96 + 0.04 * easeOut(progress) }
-}
-
-function popScale(progress: number, end = 1) {
-  return 0.94 + (end - 0.94) * easeInOut(progress)
-}
-
-function drawPlayCard(
-  ctx: CanvasRenderingContext2D,
-  look: {
-    rect: Rect
-    label: string
-    fontSize: number
-    scale?: number
-    alpha?: number
-    dx?: number
-    dy?: number
-    selected?: boolean
-    glow?: number
-    numberScale?: number
-  },
-) {
-  const alpha = look.alpha ?? 1
-  if (alpha <= 0.02) {
-    return
-  }
-  const scale = look.scale ?? 1
-  const rect = look.rect
-  const cx = rect.x + rect.w / 2 + (look.dx ?? 0)
-  const cy = rect.y + rect.h / 2 + (look.dy ?? 0)
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(cx, cy)
-  ctx.scale(scale, scale)
-  const local = { x: -rect.w / 2, y: -rect.h / 2, w: rect.w, h: rect.h }
-  fillRound(ctx, local, Color.paper, 14, true)
-  const glow = look.glow ?? 0
-  if (look.selected || glow > 0) {
-    strokeRound(ctx, local, Color.gold, 14, 4 + glow * 4)
-  }
-  ctx.restore()
-  ctx.save()
-  ctx.globalAlpha = alpha
-  const numberScale = look.numberScale ?? 1 + (scale - 1) * 3
-  text(ctx, look.label, cx, cy, look.fontSize * numberScale, Color.coral)
-  ctx.restore()
-}
-
-function drawSuccessBurst(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  rect: Rect,
-  progress: number,
-) {
-  const p = clamp01(progress)
-  const fade = p < 0.22 ? p / 0.22 : 1 - (p - 0.22) / 0.78
-  const reach = Math.max(rect.w, rect.h) * 0.78
-  ctx.save()
-  ctx.globalAlpha = 0.5 * clamp01(fade)
-  ctx.strokeStyle = Color.gold
-  ctx.lineWidth = 3
-  ctx.beginPath()
-  ctx.arc(cx, cy, reach * (0.28 + 0.72 * easeOut(p)), 0, Math.PI * 2)
-  ctx.stroke()
-  for (let i = 0; i < 6; i++) {
-    const angle = -Math.PI / 2 + (i * Math.PI) / 3
-    const dist = reach * easeOut(p)
-    const r = 5.5 * (1 - p * 0.35)
-    ctx.globalAlpha = 0.9 * clamp01(fade)
-    ctx.fillStyle = Color.gold
-    ctx.beginPath()
-    ctx.arc(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, r, 0, Math.PI * 2)
-    ctx.fill()
-  }
-  ctx.restore()
 }
