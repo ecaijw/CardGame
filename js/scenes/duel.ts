@@ -67,8 +67,10 @@ import {
   bottomBarPad,
   capsuleBottom,
   drawDialogTitle,
+  drawHouseButton,
   drawMenuBackground,
   drawSegmentBar,
+  houseButtonRect,
   fillRound,
   hit,
   iconLabelButton,
@@ -731,29 +733,8 @@ export class DuelScene {
 
     const showHome = this.match.phase === 'thinking' && !this.dialogOpen()
     if (showHome) {
-      const homeSize = 40
-      const homeRect = { x: 16, y: Math.max(16, capsuleBottom() + 8), w: homeSize, h: homeSize }
-      withButtonScale(ctx, homeRect, this.press.scale('home', t), () => {
-        paintMenuChrome(ctx, homeRect, 'ghost', 12)
-        const size = 20
-        const cx = homeRect.x + homeRect.w / 2
-        const cy = homeRect.y + homeRect.h / 2
-        ctx.save()
-        ctx.strokeStyle = menuInk('ghost')
-        ctx.fillStyle = menuInk('ghost')
-        ctx.lineWidth = 2
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.beginPath()
-        ctx.moveTo(cx, cy - size * 0.35)
-        ctx.lineTo(cx - size * 0.4, cy)
-        ctx.lineTo(cx - size * 0.4, cy + size * 0.4)
-        ctx.lineTo(cx + size * 0.4, cy + size * 0.4)
-        ctx.lineTo(cx + size * 0.4, cy)
-        ctx.lineTo(cx, cy - size * 0.35)
-        ctx.stroke()
-        ctx.restore()
-      })
+      const homeRect = houseButtonRect()
+      drawHouseButton(ctx, homeRect, this.press.scale('home', t))
       this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
     }
 

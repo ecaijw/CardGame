@@ -362,6 +362,36 @@ export function iconLabelButton(
   text(ctx, label, start + iconSize + gap, cy, fontSize, ink, 'left', '600')
 }
 
+export function houseButtonRect(): Rect {
+  const size = 40
+  const inset = 16
+  return { x: inset, y: inset, w: size, h: size }
+}
+
+export function drawHouseButton(ctx: CanvasRenderingContext2D, rect: Rect, scale: number) {
+  withButtonScale(ctx, rect, scale, () => {
+    paintMenuChrome(ctx, rect, 'ghost', 12)
+    const size = 20
+    const cx = rect.x + rect.w / 2
+    const cy = rect.y + rect.h / 2
+    ctx.save()
+    ctx.strokeStyle = menuInk('ghost')
+    ctx.fillStyle = menuInk('ghost')
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - size * 0.35)
+    ctx.lineTo(cx - size * 0.4, cy)
+    ctx.lineTo(cx - size * 0.4, cy + size * 0.4)
+    ctx.lineTo(cx + size * 0.4, cy + size * 0.4)
+    ctx.lineTo(cx + size * 0.4, cy)
+    ctx.lineTo(cx, cy - size * 0.35)
+    ctx.stroke()
+    ctx.restore()
+  })
+}
+
 export function withButtonScale(
   ctx: CanvasRenderingContext2D,
   rect: Rect,

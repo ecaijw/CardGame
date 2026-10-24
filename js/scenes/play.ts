@@ -53,6 +53,8 @@ import {
   fillRound,
   hit,
   drawSegmentBar,
+  drawHouseButton,
+  houseButtonRect,
   iconLabelButton,
   menuButton,
   withButtonScale,
@@ -79,6 +81,7 @@ type Hit =
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
   | { kind: 'settings' }
+  | { kind: 'home' }
 
 export class PlayScene {
   puzzle: Puzzle
@@ -105,6 +108,7 @@ export class PlayScene {
   private hint = ''
   private hintAt = 0
   onSettings?: () => void
+  onHome?: () => void
 
   constructor(puzzle: Puzzle, filter: DealFilter = 'easy', includeUnsolvable = false) {
     this.puzzle = puzzle
@@ -244,6 +248,12 @@ export class PlayScene {
         playSfx('next')
         this.nextPuzzle()
       }
+      return
+    }
+    if (action.kind === 'home') {
+      playSfx('tap')
+      this.clearStreakIfUnsettled()
+      this.onHome?.()
       return
     }
     if (this.busy()) {
@@ -571,6 +581,12 @@ export class PlayScene {
     }
     if (this.unsolvableNotice) {
       this.drawUnsolvableNotice(ctx, width, height, t)
+    }
+
+    const homeRect = houseButtonRect()
+    drawHouseButton(ctx, homeRect, this.press.scale('home', t))
+    if (!this.dialogOpen() && !this.unsolvableNotice) {
+      this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
     }
   }
 

@@ -150,6 +150,9 @@ class App {
       return
     }
     this.play.onSettings = () => this.openSettings('play')
+    this.play.onHome = () => {
+      this.scene = 'home'
+    }
   }
 
   private bindDuelCallbacks() {
