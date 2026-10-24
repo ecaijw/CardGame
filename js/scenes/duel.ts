@@ -34,6 +34,7 @@ import {
   tickHandoff,
   timeout,
   type DuelMatch,
+  type DuelPlayer,
   type DuelStatsEvent,
   DUEL_TARGET,
   applyDuelStats,
@@ -126,6 +127,7 @@ export class DuelScene {
   private hint = ''
   private hintAt = 0
   private roundEndReason: '' | 'success' | 'fail' = ''
+  private buzzSide: DuelPlayer | null = null
   private stats: DuelStats = loadDuelStats()
   private heartbeatAt = 0
   onHome?: () => void
@@ -201,6 +203,38 @@ export class DuelScene {
     )
   }
 
+  private rememberBuzzSide(match: DuelMatch) {
+    if (match.answering) {
+      this.buzzSide = match.answering
+    }
+  }
+
+  private pageChrome(): 'thinking' | 'answering' {
+    if (
+      this.match.phase === 'answering' ||
+      this.match.phase === 'handoff' ||
+      this.match.phase === 'roundEnd' ||
+      this.match.phase === 'matchEnd'
+    ) {
+      return 'answering'
+    }
+    return 'thinking'
+  }
+
+  private shownBuzzPlayer(): DuelPlayer | null {
+    if (this.match.phase === 'answering') {
+      return this.match.answering
+    }
+    if (
+      this.match.phase === 'handoff' ||
+      this.match.phase === 'roundEnd' ||
+      this.match.phase === 'matchEnd'
+    ) {
+      return this.buzzSide
+    }
+    return null
+  }
+
   pressDown(x: number, y: number) {
     const found = this.hits.find((item) => hit(item.rect, x, y))
     if (!found || found.hit.kind === 'op' || found.hit.kind === 'card') {
@@ -234,6 +268,7 @@ export class DuelScene {
         const next = startSecond(this.match, t)
         if (next) {
           this.match = next
+          this.rememberBuzzSide(next)
           this.resetPuzzle()
           this.dialogAt = 0
         }
@@ -272,6 +307,7 @@ export class DuelScene {
         const next = buzz(this.match, 'red', t)
         if (next) {
           this.match = next
+          this.rememberBuzzSide(next)
           this.heartbeatAt = t
         }
         return
@@ -281,6 +317,7 @@ export class DuelScene {
         const next = buzz(this.match, 'blue', t)
         if (next) {
           this.match = next
+          this.rememberBuzzSide(next)
           this.heartbeatAt = t
         }
         return
@@ -537,6 +574,7 @@ export class DuelScene {
     this.resetPuzzle()
     this.dialogAt = 0
     this.roundEndReason = ''
+    this.buzzSide = null
   }
 
   private rematchPuzzle() {
@@ -545,6 +583,7 @@ export class DuelScene {
     this.resetPuzzle()
     this.dialogAt = 0
     this.roundEndReason = ''
+    this.buzzSide = null
   }
 
   private refreshAnswerSeconds() {
@@ -576,6 +615,7 @@ export class DuelScene {
       const next = tickHandoff(this.match, t)
       if (next) {
         this.match = next
+        this.rememberBuzzSide(next)
         this.resetPuzzle()
         this.dialogAt = 0
         this.heartbeatAt = t
@@ -679,48 +719,47 @@ export class DuelScene {
       const rect = { x: action.x, y: actionY, w: cellW, h: actionH }
       const show =
         action.kind === 'restart'
-          ? this.match.phase === 'answering' && !this.busy()
-          : (this.match.phase === 'thinking' || this.keepsPage()) && !this.busy()
+          ? this.pageChrome() === 'answering'
+          : this.pageChrome() === 'thinking'
       if (show) {
         withButtonScale(ctx, rect, this.press.scale(action.kind, t), () => {
           iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
         })
-        if (!this.dialogOpen()) {
+        const canHit =
+          !this.busy() &&
+          !this.dialogOpen() &&
+          ((action.kind === 'restart' && this.match.phase === 'answering') ||
+            (action.kind === 'next' && this.match.phase === 'thinking'))
+        if (canHit) {
           this.hits.push({ rect, hit: { kind: action.kind } as Hit })
         }
       }
     })
-    if (this.includeUnsolvable && this.match.phase === 'answering') {
+    if (this.includeUnsolvable && this.pageChrome() === 'answering') {
       const noSolution = { x: difficulty.x, y: actionY, w: cellW, h: actionH }
       withButtonScale(ctx, noSolution, this.press.scale('declare-unsolvable', t), () => {
         menuButton(ctx, noSolution, '本题无解', 'ghost')
       })
-      if (!this.busy() && !this.dialogOpen()) {
+      if (this.match.phase === 'answering' && !this.busy() && !this.dialogOpen()) {
         this.hits.push({ rect: noSolution, hit: { kind: 'declare-unsolvable' } })
       }
     }
 
-    const showAnswer = this.match.phase === 'thinking'
-    const showDifficulty = this.match.phase === 'thinking'
-    drawSegmentBar(ctx, bar, [
-      { label: '显示答案', icon: 'answer', active: false, scale: this.press.scale('answer', t) },
-      {
-        label: current ? current.label : '难度',
-        icon: 'difficulty',
-        active: showDifficulty && this.showDifficulty,
-        scale: this.press.scale('difficulty', t),
-      },
-      { label: '设置', icon: 'settings', scale: this.press.scale('settings', t) },
-    ])
-    if (!this.busy() && !this.dialogOpen()) {
-      if (showAnswer) {
+    if (this.pageChrome() === 'thinking') {
+      const showBarActions = this.match.phase === 'thinking' && !this.busy() && !this.dialogOpen()
+      drawSegmentBar(ctx, bar, [
+        { label: '显示答案', icon: 'answer', active: false, scale: this.press.scale('answer', t) },
+        {
+          label: current ? current.label : '难度',
+          icon: 'difficulty',
+          active: showBarActions && this.showDifficulty,
+          scale: this.press.scale('difficulty', t),
+        },
+        { label: '设置', icon: 'settings', scale: this.press.scale('settings', t) },
+      ])
+      if (showBarActions) {
         this.hits.push({ rect: answer, hit: { kind: 'answer' } })
-      }
-      if (showDifficulty) {
         this.hits.push({ rect: difficulty, hit: { kind: 'difficulty' } })
-      }
-      const showSettings = this.match.phase === 'thinking'
-      if (showSettings) {
         this.hits.push({ rect: settings, hit: { kind: 'settings' } })
       }
     }
@@ -742,11 +781,11 @@ export class DuelScene {
       ]
     }
 
-    const showHome = this.match.phase === 'thinking' || this.keepsPage()
+    const showHome = this.pageChrome() === 'thinking'
     if (showHome) {
       const homeRect = houseButtonRect()
       drawHouseButton(ctx, homeRect, this.press.scale('home', t))
-      if (!this.dialogOpen()) {
+      if (this.match.phase === 'thinking' && !this.busy()) {
         this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
       }
     }
@@ -842,10 +881,12 @@ export class DuelScene {
     const scoreRect = { x: play.x + 16 + sideW + gap, y, w: sideW, h }
     const tipY = y + h + 4
 
-    const showRedBuzz = this.match.phase === 'thinking' || this.keepsPage()
-    const showBlueBuzz = this.match.phase === 'thinking' || this.keepsPage()
-    const showRedCountdown = this.match.phase === 'answering' && this.match.answering === 'red'
-    const showBlueCountdown = this.match.phase === 'answering' && this.match.answering === 'blue'
+    const only = this.shownBuzzPlayer()
+    const showRedBuzz = only === null || only === 'red'
+    const showBlueBuzz = only === null || only === 'blue'
+    const showRedCountdown = this.match.phase === 'answering' && only === 'red'
+    const showBlueCountdown = this.match.phase === 'answering' && only === 'blue'
+    const canBuzz = this.match.phase === 'thinking' && !this.busy()
 
     if (showRedBuzz || showRedCountdown) {
       if (showRedCountdown) {
@@ -866,7 +907,7 @@ export class DuelScene {
           ctx.fillRect(redRect.x + 4, redRect.y + 4, redRect.w - 8, redRect.h - 8)
           text(ctx, '红方抢答', redRect.x + redRect.w / 2, redRect.y + redRect.h / 2, 15, '#FFFFFF', 'center', '600')
         })
-        if (!this.dialogOpen()) {
+        if (canBuzz) {
           this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
         }
       }
@@ -891,7 +932,7 @@ export class DuelScene {
           ctx.fillRect(blueRect.x + 4, blueRect.y + 4, blueRect.w - 8, blueRect.h - 8)
           text(ctx, '蓝方抢答', blueRect.x + blueRect.w / 2, blueRect.y + blueRect.h / 2, 15, '#FFFFFF', 'center', '600')
         })
-        if (!this.dialogOpen()) {
+        if (canBuzz) {
           this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
         }
       }
@@ -1017,7 +1058,7 @@ export class DuelScene {
       )
       text(ctx, '太棒了，本场获胜！', dialogCx, dialog.y + 84, 14, Color.muted)
       const winnerText = winner === 'red' ? '红方' : '蓝方'
-      text(ctx, `${winnerText}先到${DUEL_TARGET}分`, dialogCx, dialog.y + 106, 14, Color.muted)
+      text(ctx, `${winnerText}拿到了${DUEL_TARGET}分！`, dialogCx, dialog.y + 106, 14, Color.muted)
       const rematch = { x: dialog.x + 24, y: dialog.y + 180, w: dialog.w - 48, h: 50 }
       withButtonScale(ctx, rematch, this.press.scale('dialog-rematch', t), () => {
         menuButton(ctx, rematch, '再来一场', 'ghost')
