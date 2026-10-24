@@ -952,7 +952,7 @@ export class DuelScene {
       ctx.scale(scale, scale)
       ctx.translate(-dialogCx, -dialogCy)
       fillRound(ctx, dialog, Color.paper, 20, true)
-      text(ctx, '很遗憾,本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
+      text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
       const remaining = remainingHandoffSeconds(this.match, t)
       const line2 = remaining > 0 ? `${remaining}秒后由对手继续答题。` : '由对手继续答题。'
       text(ctx, line2, dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
@@ -980,7 +980,7 @@ export class DuelScene {
       ctx.scale(scale, scale)
       ctx.translate(-dialogCx, -dialogCy)
       fillRound(ctx, dialog, Color.paper, 20, true)
-      text(ctx, '很遗憾,本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
+      text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
       text(ctx, '本局结束。', dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
       const next = { x: dialog.x + 24, y: dialog.y + 136, w: dialog.w - 48, h: 50 }
       withButtonScale(ctx, next, this.press.scale('dialog-next', t), () => {
