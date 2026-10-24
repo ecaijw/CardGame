@@ -83,6 +83,14 @@ export function stepAnswerSeconds(current: number, delta: number): number {
   return clampAnswerSeconds(clampAnswerSeconds(current) + delta)
 }
 
+export function setAnswerSeconds(match: DuelMatch, answerSeconds: number): DuelMatch {
+  const answerMs = clampAnswerSeconds(answerSeconds) * 1000
+  if (answerMs === match.answerMs) {
+    return match
+  }
+  return { ...match, answerMs }
+}
+
 export function createMatch(answerSeconds: number): DuelMatch {
   return {
     phase: 'thinking',

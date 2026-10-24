@@ -19,6 +19,7 @@ import {
   remainingAnswerSeconds,
   resign,
   revealAnswer,
+  setAnswerSeconds,
   startSecond,
   stepAnswerSeconds,
   succeed,
@@ -417,6 +418,15 @@ function testDuelFlow() {
   assert(!!auto && auto.phase === 'answering' && auto.answering === 'blue', 'handoff auto start')
   assert(DUEL_HANDOFF_MS === 3000, 'handoff is 3s')
   assert(remainingAnswerSeconds(auto!, auto!.answerDeadline! - 500) === 1, 'ceil remaining seconds')
+
+  match = createMatch(20)
+  match = setAnswerSeconds(match, 40)
+  assert(match.answerMs === 40000, 'saved seconds replace the match duration')
+  match = buzz(match, 'red', 0)!
+  assert(match.answerDeadline === 40000, 'new buzz uses the updated seconds')
+  const deadline = match.answerDeadline
+  match = setAnswerSeconds(match, 15)
+  assert(match.answerDeadline === deadline, 'updating seconds keeps the running deadline')
 
   match = nextRound(createMatch(20))
   assert(match.phase === 'thinking' && match.scoreRed === 0, 'nextRound resets attempt')

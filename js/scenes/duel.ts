@@ -28,6 +28,7 @@ import {
   remainingHandoffSeconds,
   resign,
   revealAnswer,
+  setAnswerSeconds,
   startSecond,
   succeed,
   tickHandoff,
@@ -544,7 +545,15 @@ export class DuelScene {
     this.roundEndReason = ''
   }
 
+  private refreshAnswerSeconds() {
+    if (this.match.phase === 'answering') {
+      return
+    }
+    this.match = setAnswerSeconds(this.match, loadDuelAnswerSeconds())
+  }
+
   private checkTimeout(t: number) {
+    this.refreshAnswerSeconds()
     if (this.match.phase === 'answering') {
       const waitingForQueuedClick =
         this.queuedMerge !== null &&
