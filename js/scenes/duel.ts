@@ -102,7 +102,7 @@ const BUZZ_GAP = 16
 const BUZZ_TIP_H = 24
 const BUZZ_BLOCK_H = SCORE_H + BUZZ_GAP + BUZZ_H + BUZZ_TIP_H
 const FINGER_PERIOD_MS = 3000
-const FINGER_SHOW_MS = 760
+const FINGER_SHOW_MS = 1200
 
 type Hit =
   | { kind: 'card'; id: number }
