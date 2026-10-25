@@ -11,11 +11,17 @@ import {
   applyDuelStats,
   buzz,
   createMatch,
+  duelDialog,
+  duelPageChrome,
+  duelSettlesSuccess,
+  duelShownBuzzPlayer,
   DUEL_ANSWER_DEFAULT_SEC,
   DUEL_HANDOFF_MS,
   DUEL_TARGET,
   failAttempt,
+  judgeUnsolvable,
   nextRound,
+  rematch,
   remainingAnswerSeconds,
   resign,
   revealAnswer,
@@ -382,12 +388,15 @@ function testDuelFlow() {
   match = second!
   const miss = failAttempt(match, 2100)
   assert(miss.phase === 'roundEnd', 'second fail ends round')
+  assert(miss.roundResult === 'fail', 'second fail records a failed round')
   assert(miss.scoreRed === 0 && miss.scoreBlue === 0, 'no score on both fail')
+  assert(resigned.roundResult === null, 'first fail is not a round result')
 
   match = createMatch(20)
   match = buzz(match, 'red', 0)!
   const win = succeed(match)
-  assert(!!win && win.match.scoreRed === 1, 'round score +1')
+  assert(!!win && win.match.scoreRed === 1 && win.match.roundResult === 'success', 'round score +1')
+  assert(win!.match.phase === 'roundEnd', 'round win stays in roundEnd')
   assert(win!.events.some((e) => e.kind === 'round' && e.player === 'red'), 'round win event')
   let stats = applyDuelStats(
     { redRoundWins: 0, blueRoundWins: 0, redMatchWins: 0, blueMatchWins: 0 },
@@ -399,7 +408,7 @@ function testDuelFlow() {
   match = { ...match, scoreRed: DUEL_TARGET - 1 }
   match = buzz(match, 'red', 0)!
   const matchWin = succeed(match)
-  assert(!!matchWin && matchWin.match.phase === 'matchEnd', 'fifth point ends match')
+  assert(!!matchWin && matchWin.match.phase === 'matchEnd' && matchWin.match.roundResult === 'success', 'fifth point ends match')
   assert(matchWin!.events.length === 2, 'round and match events')
 
   match = createMatch(20)
@@ -430,12 +439,89 @@ function testDuelFlow() {
   match = setAnswerSeconds(match, 15)
   assert(match.answerDeadline === deadline, 'updating seconds keeps the running deadline')
 
-  match = nextRound(createMatch(20))
-  assert(match.phase === 'thinking' && match.scoreRed === 0, 'nextRound resets attempt')
+  match = nextRound({ ...createMatch(20), roundResult: 'success', scoreRed: 1 })
+  assert(match.phase === 'thinking' && match.scoreRed === 1 && match.roundResult === null, 'nextRound clears the round result')
+  assert(rematch({ ...match, roundResult: 'fail', scoreRed: 4 }).roundResult === null, 'rematch clears the round result')
   assert(stepAnswerSeconds(20, 5) === 25, '+5 seconds')
   assert(stepAnswerSeconds(12, -5) === 10, 'clamp to min')
   assert(stepAnswerSeconds(58, 5) === 60, 'clamp to max')
   assert(DUEL_ANSWER_DEFAULT_SEC === 20, 'default 20')
+}
+
+function answering(player: 'red' | 'blue', scoreRed = 0, scoreBlue = 0) {
+  const match = buzz({ ...createMatch(20), scoreRed, scoreBlue }, player, 0)
+  assert(!!match, `${player} can buzz`)
+  return match!
+}
+
+function testDuelRoundViews() {
+  const timingOut = answering('red')
+  const firstFails = [
+    resign(answering('red'), 10),
+    timeout(timingOut, timingOut.answerDeadline!),
+    failAttempt(answering('red'), 10),
+    judgeUnsolvable(answering('red'), false, 10),
+  ]
+  for (const failed of firstFails) {
+    const match = failed && 'match' in failed && failed.match.phase ? failed.match : failed
+    assert(match !== null && !('kind' in match), 'first fail returns a match')
+    const next = match as ReturnType<typeof answering>
+    assert(next.phase === 'handoff' && next.roundResult === null, 'first fail hands off without a round result')
+    assert(next.scoreRed === 0 && next.scoreBlue === 0, 'first fail keeps the score')
+    assert(duelDialog(next) === 'handoff', 'first fail shows the handoff dialog')
+    assert(duelPageChrome(next.phase) === 'answering', 'handoff keeps answering buttons')
+    assert(duelShownBuzzPlayer(next, 'red') === 'red', 'handoff keeps the red button')
+    assert(!duelSettlesSuccess(next), 'handoff does not play the success settle')
+  }
+
+  const handed = startSecond(resign(answering('red'), 10)!, 100)!
+  assert(duelDialog(handed) === null && duelShownBuzzPlayer(handed, 'blue') === 'blue', 'second player answers with no dialog')
+  const secondFails = [
+    resign(handed, handed.answerDeadline! - 1),
+    timeout(handed, handed.answerDeadline!),
+    failAttempt(handed, 200),
+    judgeUnsolvable(handed, false, 200),
+  ]
+  for (const failed of secondFails) {
+    const next = failed && 'kind' in failed ? failed.match : failed!
+    assert(next.phase === 'roundEnd' && next.roundResult === 'fail', 'second fail ends the round')
+    assert(next.scoreRed === 0 && next.scoreBlue === 0, 'second fail does not score')
+    assert(duelDialog(next) === 'round-fail', 'second fail shows the round-end dialog')
+    assert(duelPageChrome(next.phase) === 'answering', 'round fail keeps answering buttons')
+    assert(duelShownBuzzPlayer(next, 'blue') === 'blue', 'round fail keeps the blue button')
+    const following = nextRound(next)
+    assert(
+      following.phase === 'thinking' && following.scoreRed === 0 && following.roundResult === null,
+      'next round after a fail returns to buzz',
+    )
+    assert(duelDialog(following) === null && duelPageChrome(following.phase) === 'thinking', 'next round shows both buzz buttons')
+  }
+
+  const won = succeed(answering('red'))!
+  assert(won.match.scoreRed === 1 && won.match.roundResult === 'success', 'round win scores and records success')
+  assert(duelDialog(won.match) === 'round-success', 'round win shows the success dialog')
+  assert(duelSettlesSuccess(won.match), 'round win settles the last card')
+  assert(duelPageChrome(won.match.phase) === 'answering', 'round win keeps answering buttons')
+  const afterWin = nextRound(won.match)
+  assert(afterWin.scoreRed === 1 && afterWin.roundResult === null && duelDialog(afterWin) === null, 'next round keeps the score')
+
+  const solved = judgeUnsolvable(answering('blue', 1, 2), true, 10)
+  assert(solved?.kind === 'success' && solved.result.match.scoreBlue === 3, 'correct unsolvable scores like a win')
+  assert(duelDialog(solved!.result.match) === 'round-success', 'correct unsolvable shows the success dialog')
+
+  const matchWin = succeed(answering('blue', 0, DUEL_TARGET - 1))!
+  assert(matchWin.match.phase === 'matchEnd' && matchWin.match.scoreBlue === DUEL_TARGET, 'fifth point ends the match')
+  assert(duelDialog(matchWin.match) === 'match-end', 'match win shows the match dialog')
+  assert(duelSettlesSuccess(matchWin.match), 'match win still settles the last card')
+  const again = rematch(matchWin.match)
+  assert(
+    again.phase === 'thinking' && again.scoreRed === 0 && again.scoreBlue === 0 && again.roundResult === null,
+    'rematch starts from 0:0',
+  )
+  assert(duelDialog(again) === null && duelShownBuzzPlayer(again, null) === null, 'rematch shows both buzz buttons')
+
+  const revealed = revealAnswer(createMatch(20))!
+  assert(duelDialog(revealed) === 'answer' && duelPageChrome(revealed.phase) === 'thinking', 'answer dialog keeps the waiting page')
 }
 
 function testDuelSettingsStorage() {
@@ -477,5 +563,6 @@ testStreakAfterFail()
 testDealSettings()
 testSessionSelect()
 testDuelFlow()
+testDuelRoundViews()
 testDuelSettingsStorage()
 console.log('game tests passed')

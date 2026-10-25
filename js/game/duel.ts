@@ -22,6 +22,8 @@ export type DuelStats = {
   blueMatchWins: number
 }
 
+export type RoundResult = 'success' | 'fail'
+
 export type DuelMatch = {
   phase: DuelPhase
   scoreRed: number
@@ -32,6 +34,7 @@ export type DuelMatch = {
   handoffDeadline: number | null
   answerMs: number
   winner: DuelPlayer | null
+  roundResult: RoundResult | null
 }
 
 export type DuelStatsEvent =
@@ -102,6 +105,7 @@ export function createMatch(answerSeconds: number): DuelMatch {
     handoffDeadline: null,
     answerMs: clampAnswerSeconds(answerSeconds) * 1000,
     winner: null,
+    roundResult: null,
   }
 }
 
@@ -118,6 +122,7 @@ export function nextRound(match: DuelMatch): DuelMatch {
     answerDeadline: null,
     handoffDeadline: null,
     winner: null,
+    roundResult: null,
   }
 }
 
@@ -167,6 +172,7 @@ export function failAttempt(match: DuelMatch, now: number): DuelMatch {
       answering: null,
       answerDeadline: null,
       handoffDeadline: now + DUEL_HANDOFF_MS,
+      roundResult: null,
     }
   }
   return {
@@ -175,6 +181,7 @@ export function failAttempt(match: DuelMatch, now: number): DuelMatch {
     answering: null,
     answerDeadline: null,
     handoffDeadline: null,
+    roundResult: 'fail',
   }
 }
 
@@ -229,6 +236,7 @@ export function succeed(match: DuelMatch): SucceedResult | null {
       answerDeadline: null,
       handoffDeadline: null,
       winner: reached ? player : null,
+      roundResult: 'success',
     },
     events,
   }
@@ -271,4 +279,58 @@ export function remainingHandoffSeconds(match: DuelMatch, now: number): number {
 
 export function otherPlayer(player: DuelPlayer): DuelPlayer {
   return player === 'red' ? 'blue' : 'red'
+}
+
+export type DuelDialogKind = 'handoff' | 'round-fail' | 'match-end' | 'answer' | 'round-success'
+
+export function duelDialog(match: DuelMatch): DuelDialogKind | null {
+  if (match.phase === 'handoff') {
+    return 'handoff'
+  }
+  if (match.phase === 'roundEnd' && match.roundResult !== 'success') {
+    return 'round-fail'
+  }
+  if (match.phase === 'matchEnd') {
+    return 'match-end'
+  }
+  if (match.phase === 'revealed') {
+    return 'answer'
+  }
+  if (match.phase === 'roundEnd' && match.roundResult === 'success') {
+    return 'round-success'
+  }
+  return null
+}
+
+export function duelPageChrome(phase: DuelPhase): 'thinking' | 'answering' {
+  if (phase === 'answering' || phase === 'handoff' || phase === 'roundEnd' || phase === 'matchEnd') {
+    return 'answering'
+  }
+  return 'thinking'
+}
+
+export function duelShownBuzzPlayer(match: DuelMatch, remembered: DuelPlayer | null): DuelPlayer | null {
+  if (match.phase === 'answering') {
+    return match.answering
+  }
+  if (match.phase === 'handoff' || match.phase === 'roundEnd' || match.phase === 'matchEnd') {
+    return remembered
+  }
+  return null
+}
+
+export function duelSettlesSuccess(match: DuelMatch): boolean {
+  return match.roundResult === 'success'
+}
+
+export function judgeUnsolvable(
+  match: DuelMatch,
+  unsolvable: boolean,
+  now: number,
+): { kind: 'success'; result: SucceedResult } | { kind: 'fail'; match: DuelMatch } | null {
+  if (unsolvable) {
+    const result = succeed(match)
+    return result ? { kind: 'success', result } : null
+  }
+  return { kind: 'fail', match: failAttempt(match, now) }
 }

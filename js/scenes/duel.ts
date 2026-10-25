@@ -20,7 +20,12 @@ import {
 import {
   buzz,
   createMatch,
+  duelDialog,
+  duelPageChrome,
+  duelSettlesSuccess,
+  duelShownBuzzPlayer,
   failAttempt,
+  judgeUnsolvable,
   nextRound,
   rematch,
   remainingAnswerSeconds,
@@ -133,7 +138,6 @@ export class DuelScene {
   private queuedMerge: { op: Op; destId: number; actedAt: number } | null = null
   private hint = ''
   private hintAt = 0
-  private roundEndReason: '' | 'success' | 'fail' = ''
   private buzzSide: DuelPlayer | null = null
   private stats: DuelStats = loadDuelStats()
   private heartbeatAt = 0
@@ -217,29 +221,11 @@ export class DuelScene {
   }
 
   private pageChrome(): 'thinking' | 'answering' {
-    if (
-      this.match.phase === 'answering' ||
-      this.match.phase === 'handoff' ||
-      this.match.phase === 'roundEnd' ||
-      this.match.phase === 'matchEnd'
-    ) {
-      return 'answering'
-    }
-    return 'thinking'
+    return duelPageChrome(this.match.phase)
   }
 
   private shownBuzzPlayer(): DuelPlayer | null {
-    if (this.match.phase === 'answering') {
-      return this.match.answering
-    }
-    if (
-      this.match.phase === 'handoff' ||
-      this.match.phase === 'roundEnd' ||
-      this.match.phase === 'matchEnd'
-    ) {
-      return this.buzzSide
-    }
-    return null
+    return duelShownBuzzPlayer(this.match, this.buzzSide)
   }
 
   pressDown(x: number, y: number) {
@@ -408,7 +394,6 @@ export class DuelScene {
         const next = resign(this.match, t)
         if (next) {
           this.match = next
-          this.roundEndReason = next.phase === 'roundEnd' ? 'fail' : ''
           this.queuedMerge = null
           this.selectedId = 0
           this.selectedOp = ''
@@ -448,7 +433,6 @@ export class DuelScene {
       const result = succeed(this.match)
       if (result) {
         this.match = result.match
-        this.roundEndReason = 'success'
         this.applyEvents(result.events)
         playSfx('success')
         this.selectAt = t
@@ -472,7 +456,6 @@ export class DuelScene {
     if (effect.end === 'fail') {
       const next = failAttempt(this.match, t)
       this.match = next
-      this.roundEndReason = next.phase === 'roundEnd' ? 'fail' : ''
       this.queuedMerge = null
       this.selectedId = 0
       this.selectedOp = ''
@@ -524,31 +507,28 @@ export class DuelScene {
   }
 
   private declareUnsolvable(t: number) {
-    const correct = this.puzzle.difficulty === 'unsolvable'
-    if (correct) {
-      const result = succeed(this.match)
-      if (result) {
-        this.match = result.match
-        this.roundEndReason = 'success'
-        this.applyEvents(result.events)
-        this.selectedId = 0
-        this.selectedOp = ''
-        this.queuedMerge = null
-        this.motion = { kind: 'idle' }
-        this.dialogAt = t
-        playSfx('success')
-      }
-    } else {
-      const next = failAttempt(this.match, t)
-      this.match = next
-      this.roundEndReason = next.phase === 'roundEnd' ? 'fail' : ''
-      this.queuedMerge = null
+    const judged = judgeUnsolvable(this.match, this.puzzle.difficulty === 'unsolvable', t)
+    if (!judged) {
+      return
+    }
+    if (judged.kind === 'success') {
+      this.match = judged.result.match
+      this.applyEvents(judged.result.events)
       this.selectedId = 0
       this.selectedOp = ''
+      this.queuedMerge = null
       this.motion = { kind: 'idle' }
       this.dialogAt = t
-      playSfx('invalid')
+      playSfx('success')
+      return
     }
+    this.match = judged.match
+    this.queuedMerge = null
+    this.selectedId = 0
+    this.selectedOp = ''
+    this.motion = { kind: 'idle' }
+    this.dialogAt = t
+    playSfx('invalid')
   }
 
   private showHint(message: string) {
@@ -580,7 +560,6 @@ export class DuelScene {
     this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
     this.resetPuzzle()
     this.dialogAt = 0
-    this.roundEndReason = ''
     this.buzzSide = null
   }
 
@@ -589,7 +568,6 @@ export class DuelScene {
     this.puzzle = dealPuzzle(this.puzzle.id, this.filter, this.includeUnsolvable)
     this.resetPuzzle()
     this.dialogAt = 0
-    this.roundEndReason = ''
     this.buzzSide = null
   }
 
@@ -610,7 +588,6 @@ export class DuelScene {
       const next = waitingForQueuedClick ? null : timeout(this.match, t)
       if (next) {
         this.match = next
-        this.roundEndReason = next.phase === 'roundEnd' ? 'fail' : ''
         this.queuedMerge = null
         this.selectedId = 0
         this.selectedOp = ''
@@ -637,7 +614,7 @@ export class DuelScene {
       return
     }
     if (motion.kind === 'merging' && t - motion.at >= MERGE_MS) {
-      if (this.roundEndReason === 'success') {
+      if (duelSettlesSuccess(this.match)) {
         this.queuedMerge = null
         const last = this.state.cards[0]
         this.motion = {
@@ -814,7 +791,7 @@ export class DuelScene {
       selectedId: this.selectedId,
       selectAt: this.selectAt,
       settle:
-        this.roundEndReason === 'success'
+        duelSettlesSuccess(this.match)
           ? {
               result: 'success',
               dialogOpen: this.dialogOpen(),
@@ -1131,8 +1108,9 @@ export class DuelScene {
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
     const scale = 0.97 + 0.03 * p
     const dialogW = Math.min(400, width - 48)
+    const dialogKind = duelDialog(this.match)
 
-    if (this.match.phase === 'handoff') {
+    if (dialogKind === 'handoff') {
       const dialogH = 240
       const dialog = {
         x: (width - dialogW) / 2,
@@ -1160,7 +1138,7 @@ export class DuelScene {
       return
     }
 
-    if (this.match.phase === 'roundEnd' && this.roundEndReason !== 'success') {
+    if (dialogKind === 'round-fail') {
       const dialogH = 240
       const dialog = {
         x: (width - dialogW) / 2,
@@ -1186,7 +1164,7 @@ export class DuelScene {
       return
     }
 
-    if (this.match.phase === 'matchEnd') {
+    if (dialogKind === 'match-end') {
       const dialogH = 280
       const dialog = {
         x: (width - dialogW) / 2,
@@ -1223,7 +1201,7 @@ export class DuelScene {
       return
     }
 
-    if (this.match.phase === 'revealed') {
+    if (dialogKind === 'answer') {
       const isUnsolvable = this.puzzle.difficulty === 'unsolvable'
       const dialogH = isUnsolvable ? 240 : 280
       const dialog = {
@@ -1258,7 +1236,7 @@ export class DuelScene {
       return
     }
 
-    if (this.match.phase === 'roundEnd' && this.roundEndReason === 'success') {
+    if (dialogKind === 'round-success') {
       const dialogH = 240
       const dialog = {
         x: (width - dialogW) / 2,
@@ -1298,7 +1276,7 @@ export class DuelScene {
     fontSize: number,
     t: number,
   ): number | null {
-    if (this.roundEndReason !== 'success' || this.state.cards.length !== 1) {
+    if (!duelSettlesSuccess(this.match) || this.state.cards.length !== 1) {
       return null
     }
     const last = this.state.cards[0]

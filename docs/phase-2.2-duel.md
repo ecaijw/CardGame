@@ -311,7 +311,7 @@
 
 1. 新增 [js/game/session.ts](../js/game/session.ts)。把 [js/scenes/play.ts](../js/scenes/play.ts) 里的选牌收成 `selectCard`、`selectOp`、`restart`。合牌仍调用现有 `merge` 和 `outcome`。单人改走这一层，动画、音效和单人统计仍留在场景，单人表现不变。
 2. 新增 [js/game/duel.ts](../js/game/duel.ts)。阶段为 `thinking`、`answering`、`handoff`、`revealed`、`roundEnd`、`matchEnd`。
-3. 状态记下第一位、当前答题方、红蓝本场分数、答题截止时间、交接截止时间，以及是否已打开答案。
+3. 状态记下第一位、当前答题方、红蓝本场分数、答题截止时间、交接截止时间、本局结果，以及是否已打开答案。本局结果由 `succeed` 写成成功，由第二位失败的 `failAttempt` 写成失败；第一位失败只进入交接，不写本局结果。`nextRound` 和 `rematch` 清掉。场景只读它来决定结算动画和弹窗。
 4. 命令都接收调用方传入的 `now`，模块内部不读 `Date.now()`。命令包括 `buzz`、`timeout`、`resign`、`succeed`、`startSecond`、`retry`、`revealAnswer`、`nextRound`、`rematch`、`setFilter`、`setIncludeUnsolvable`。
 5. 目标分固定为 `DUEL_TARGET = 5`。时长由参数传入；设置页步进为 5 秒。
 6. `retry` 只重置牌面和选牌，不改截止时间。
