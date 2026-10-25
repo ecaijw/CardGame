@@ -6,6 +6,7 @@ import {
   dialogRect,
 } from '../js/scenes/dialog'
 import { tableLayout } from '../js/scenes/board'
+import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
   applyOp,
   formatFraction,
@@ -620,6 +621,38 @@ function testTableLayout() {
   assert(wideDuel.opY === wideDuel.slots[2].y + wideDuel.slots[2].h + 28, 'duel operators still sit 28 below the cards')
 }
 
+function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
+
+function testSettingsLayout() {
+  const phone = settingsLayout(390, 844, 72)
+  assert(!phone.wide && phone.audio !== null, 'phone settings stay in one column')
+  assert(phone.solo.y < phone.duel.y && phone.duel.y < phone.duration.y, 'phone cards keep their order')
+  assert(phone.audio !== null && phone.duration.y < phone.audio.y, 'phone audio card follows the timer')
+  assert(phone.back.y === (phone.audio ? phone.audio.y + phone.audio.h + 16 : 0), 'phone back button follows the audio card')
+  assert(phone.back.w === 390 - 80, 'phone back button keeps its width')
+
+  const wide = settingsLayout(940, 665, 72)
+  assert(wide.wide && wide.top !== null && wide.bottom !== null, 'wide settings use two cards')
+  assert(wide.solo.y === wide.duel.y && wide.duel.x > wide.solo.x + wide.solo.w, 'solo and duel sit side by side')
+  assert(wide.duration.y === wide.sound.y && wide.sound.y === wide.music.y, 'timer, sound, and music share one row')
+  assert(wide.duration.x < wide.sound.x && wide.sound.x < wide.music.x, 'the settings row reads left to right')
+  assert(wide.back.y >= (wide.bottom ? wide.bottom.y + wide.bottom.h : 0), 'back button sits under both cards')
+  assert(wide.back.y + wide.back.h <= 665 - 24, 'back button stays on screen')
+  assert(wide.back.w < (wide.top ? wide.top.w : 0) && wide.back.x === (940 - wide.back.w) / 2, 'back button is centered and narrower than the cards')
+  assert(!overlaps(wide.back, wide.sound) && !overlaps(wide.back, wide.music), 'back button does not cover sound or music')
+  assert(inside(wide.soundToggle, wide.sound) && inside(wide.minus, wide.duration), 'controls stay inside their columns')
+  const cards = [wide.top, wide.bottom].filter((rect): rect is NonNullable<SettingsLayout['top']> => rect !== null)
+  for (const card of cards) {
+    assert(!overlaps(wide.back, card), 'back button does not cover a settings card')
+  }
+}
+
+function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
+  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -637,4 +670,5 @@ testDuelRoundViews()
 testDuelSettingsStorage()
 testDialogShell()
 testTableLayout()
+testSettingsLayout()
 console.log('game tests passed')
