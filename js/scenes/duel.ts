@@ -6,7 +6,6 @@ import {
   SETTLE_MS,
   cardLook,
   dealDuration,
-  drawCopyCard,
   drawDealFade,
   drawMergeFlight,
   drawOp,
@@ -75,10 +74,11 @@ import {
   houseButtonRect,
   fillRound,
   hit,
+  paintMenuChrome,
   iconLabelButton,
   menuButton,
-  menuInk,
-  paintMenuChrome,
+  paintHomePill,
+  roundRect,
   text,
   withButtonScale,
   type Rect,
@@ -89,6 +89,13 @@ const OPS: Op[] = ['+', '−', '×', '÷']
 const DIALOG_IN_MS = 220
 const HINT_MS = 1800
 const HEARTBEAT_MS = 150
+const SCORE_H = 36
+const BUZZ_H = 36
+const BUZZ_GAP = 22
+const BUZZ_TIP_H = 24
+const BUZZ_BLOCK_H = SCORE_H + BUZZ_GAP + BUZZ_H + BUZZ_TIP_H
+const FINGER_PERIOD_MS = 3000
+const FINGER_SHOW_MS = 700
 
 type Hit =
   | { kind: 'card'; id: number }
@@ -670,9 +677,7 @@ export class DuelScene {
     const cardH = cardW * (88 / 63)
     const fontSize = cardW > 90 ? 32 : 26
     const opH = 56
-    const buzzH = 48
-    const tipH = 24
-    const buzzTotalH = buzzH + tipH
+    const buzzTotalH = BUZZ_BLOCK_H
     const belowCards = 28
     const stackH = cardH * 2 + gap + belowCards + opH + buzzTotalH
     const floorTop = height - bottomBarPad() - stackH
@@ -691,12 +696,18 @@ export class DuelScene {
       }
     })
 
-    const buzzY = opY + opH + 8
-    this.drawBuzzRow(ctx, frame.play, buzzY, buzzH, t)
-
     const current = DIFFICULTY_FILTERS.find((item) => item.filter === this.filter)
     const barH = 52
-    const barY = frame.side ? buzzY + buzzTotalH + 8 : height - bottomBarPad() - barH
+    const actionH = 44
+    const phoneBarY = height - bottomBarPad() - barH
+    const phoneActionY = phoneBarY - 12 - actionH
+    const opBottom = opY + opH
+    const regionBottom = frame.side ? opBottom + buzzTotalH + 16 : phoneActionY
+    const visibleH = SCORE_H + BUZZ_GAP + BUZZ_H
+    const buzzY = opBottom + Math.max(8, (regionBottom - opBottom - visibleH) / 2)
+    this.drawBuzzRow(ctx, frame.play, buzzY, t)
+
+    const barY = frame.side ? buzzY + buzzTotalH + 8 : phoneBarY
     const bar = frame.side
       ? { x: frame.side.x, y: barY, w: frame.side.w, h: barH }
       : { x: 20, y: barY, w: width - 40, h: barH }
@@ -704,7 +715,6 @@ export class DuelScene {
     const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
     const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
     const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
-    const actionH = 44
     const actionY = barY - 12 - actionH
     const dealActions: Array<{
       label: string
@@ -765,11 +775,9 @@ export class DuelScene {
     }
 
     const hintOn = Boolean(this.hint) && t - this.hintAt < HINT_MS
-    const statsRect = frame.side
-      ? { x: frame.side.x, y: topY + 8, w: frame.side.w, h: actionY - topY - 16 }
-      : { x: 24, y: opY + opH + buzzTotalH + 20, w: width - 48, h: actionY - (opY + opH + buzzTotalH + 28) }
     if (hintOn) {
-      drawCopyCard(ctx, statsRect, this.hint, [])
+      paintMenuChrome(ctx, bar, 'ghost')
+      text(ctx, this.hint, bar.x + bar.w / 2, bar.y + bar.h / 2, 16, Color.coral, 'center', '600')
     }
 
     if (this.showDifficulty && this.match.phase === 'thinking') {
@@ -869,17 +877,23 @@ export class DuelScene {
     ctx: CanvasRenderingContext2D,
     play: { x: number; w: number },
     y: number,
-    h: number,
     t: number,
   ) {
-    const redColor = '#E23B32'
-    const blueColor = '#2F6FED'
-    const gap = 12
-    const sideW = (play.w - 32 - gap * 2) / 3
-    const redRect = { x: play.x + 16, y, w: sideW, h }
-    const blueRect = { x: play.x + 16 + sideW * 2 + gap * 2, y, w: sideW, h }
-    const scoreRect = { x: play.x + 16 + sideW + gap, y, w: sideW, h }
-    const tipY = y + h + 4
+    const scoreH = SCORE_H
+    const buzzBtnH = BUZZ_H
+    const buzzGap = BUZZ_GAP
+    const gap = 16
+    const inset = 16
+    const rowW = play.w - inset * 2
+    const rowX = play.x + inset
+    const sideW = (rowW - gap) / 2
+    const buttonY = y + scoreH + buzzGap
+    const redRect = { x: rowX, y: buttonY, w: sideW, h: buzzBtnH }
+    const blueRect = { x: rowX + sideW + gap, y: buttonY, w: sideW, h: buzzBtnH }
+    const scoreRect = { x: rowX, y, w: rowW, h: scoreH }
+    const tipY = buttonY + buzzBtnH + 16
+    const redPaint = { fill: ['#FF8E7D', '#FF7464'] as const, stroke: '#E85A4F' }
+    const bluePaint = { fill: ['#8CAEF0', '#769FED'] as const, stroke: '#5F85D8' }
 
     const only = this.shownBuzzPlayer()
     const showRedBuzz = only === null || only === 'red'
@@ -888,25 +902,53 @@ export class DuelScene {
     const showBlueCountdown = this.match.phase === 'answering' && only === 'blue'
     const canBuzz = this.match.phase === 'thinking' && !this.busy()
 
+    const finger = canBuzz ? this.fingerPress(t) : null
+    const paintBuzz = (
+      rect: Rect,
+      scale: number,
+      paint: { fill: readonly [string, string]; stroke: string },
+      label: string,
+      fontSize: number,
+      cue: number | null,
+      fingerSide: 'left' | 'right',
+    ) => {
+      withButtonScale(ctx, rect, scale, () => {
+        paintHomePill(ctx, rect, paint.fill, paint.stroke)
+        const cy = rect.y + rect.h / 2
+        const cx = rect.x + rect.w / 2
+        text(ctx, label, cx, cy, fontSize, '#FFFFFF', 'center', '600')
+        if (cue === null) {
+          return
+        }
+        const icon = 22
+        const iconGap = 8
+        ctx.save()
+        ctx.font = `600 ${fontSize}px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
+        const textW = ctx.measureText(label).width
+        ctx.restore()
+        const fingerX = fingerSide === 'left'
+          ? cx - textW / 2 - iconGap - icon / 2
+          : cx + textW / 2 + iconGap + icon / 2
+        this.drawPressFinger(ctx, fingerX, cy, icon, cue)
+      })
+    }
+
     if (showRedBuzz || showRedCountdown) {
       if (showRedCountdown) {
         const remaining = remainingAnswerSeconds(this.match, t)
-        const buzzScale = this.getBuzzHeartbeatScale(t)
-        withButtonScale(ctx, redRect, this.press.scale('buzz-red', t) * buzzScale, () => {
-          paintMenuChrome(ctx, redRect, 'ghost', 10)
-          ctx.fillStyle = redColor
-          ctx.fillRect(redRect.x + 4, redRect.y + 4, redRect.w - 8, redRect.h - 8)
-          text(ctx, String(remaining), redRect.x + redRect.w / 2, redRect.y + redRect.h / 2, 24, '#FFFFFF', 'center', '700')
-        })
-        text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY + 12, 13, Color.muted, 'center', '500')
+        paintBuzz(
+          redRect,
+          this.press.scale('buzz-red', t) * this.getBuzzHeartbeatScale(t),
+          redPaint,
+          String(remaining),
+          17,
+          null,
+          'left',
+        )
+        text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY, 13, Color.muted, 'center', '500')
         this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
       } else {
-        withButtonScale(ctx, redRect, this.press.scale('buzz-red', t), () => {
-          paintMenuChrome(ctx, redRect, 'ghost', 10)
-          ctx.fillStyle = redColor
-          ctx.fillRect(redRect.x + 4, redRect.y + 4, redRect.w - 8, redRect.h - 8)
-          text(ctx, '红方抢答', redRect.x + redRect.w / 2, redRect.y + redRect.h / 2, 15, '#FFFFFF', 'center', '600')
-        })
+        paintBuzz(redRect, this.press.scale('buzz-red', t), redPaint, '抢答', 16, finger, 'left')
         if (canBuzz) {
           this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
         }
@@ -916,31 +958,83 @@ export class DuelScene {
     if (showBlueBuzz || showBlueCountdown) {
       if (showBlueCountdown) {
         const remaining = remainingAnswerSeconds(this.match, t)
-        const buzzScale = this.getBuzzHeartbeatScale(t)
-        withButtonScale(ctx, blueRect, this.press.scale('buzz-blue', t) * buzzScale, () => {
-          paintMenuChrome(ctx, blueRect, 'ghost', 10)
-          ctx.fillStyle = blueColor
-          ctx.fillRect(blueRect.x + 4, blueRect.y + 4, blueRect.w - 8, blueRect.h - 8)
-          text(ctx, String(remaining), blueRect.x + blueRect.w / 2, blueRect.y + blueRect.h / 2, 24, '#FFFFFF', 'center', '700')
-        })
-        text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY + 12, 13, Color.muted, 'center', '500')
+        paintBuzz(
+          blueRect,
+          this.press.scale('buzz-blue', t) * this.getBuzzHeartbeatScale(t),
+          bluePaint,
+          String(remaining),
+          17,
+          null,
+          'right',
+        )
+        text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY, 13, Color.muted, 'center', '500')
         this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
       } else {
-        withButtonScale(ctx, blueRect, this.press.scale('buzz-blue', t), () => {
-          paintMenuChrome(ctx, blueRect, 'ghost', 10)
-          ctx.fillStyle = blueColor
-          ctx.fillRect(blueRect.x + 4, blueRect.y + 4, blueRect.w - 8, blueRect.h - 8)
-          text(ctx, '蓝方抢答', blueRect.x + blueRect.w / 2, blueRect.y + blueRect.h / 2, 15, '#FFFFFF', 'center', '600')
-        })
+        paintBuzz(blueRect, this.press.scale('buzz-blue', t), bluePaint, '抢答', 16, finger, 'right')
         if (canBuzz) {
           this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
         }
       }
     }
 
-    paintMenuChrome(ctx, scoreRect, 'ghost', 10)
-    const scoreText = `${this.match.scoreRed} : ${this.match.scoreBlue}`
-    text(ctx, scoreText, scoreRect.x + scoreRect.w / 2, scoreRect.y + scoreRect.h / 2, 20, Color.ink, 'center', '700')
+    paintHomePill(ctx, scoreRect, '#FFFEFB', '#D7EEE4')
+    this.drawScore(ctx, scoreRect, redRect, blueRect)
+  }
+
+  private fingerPress(t: number) {
+    const phase = t % FINGER_PERIOD_MS
+    if (phase >= FINGER_SHOW_MS) {
+      return null
+    }
+    return phase / FINGER_SHOW_MS
+  }
+
+  private drawPressFinger(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number,
+    progress: number,
+  ) {
+    const fade = progress < 0.16 ? progress / 0.16 : progress > 0.72 ? Math.max(0, (1 - progress) / 0.28) : 1
+    const tap = Math.sin(Math.min(1, Math.max(0, (progress - 0.16) / 0.56)) * Math.PI)
+    const unit = size / 24
+    ctx.save()
+    ctx.globalAlpha = fade
+    ctx.translate(x, y + unit * 1.6 + tap * unit * 1.4)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    roundRect(ctx, -2.4 * unit, -8.2 * unit, 4.8 * unit, 11.2 * unit, 2.4 * unit)
+    ctx.fill()
+    roundRect(ctx, 1.1 * unit, -3.4 * unit, 5.4 * unit, 5.6 * unit, 2.2 * unit)
+    ctx.fill()
+    roundRect(ctx, -7.4 * unit, -0.6 * unit, 14.6 * unit, 9.4 * unit, 4.2 * unit)
+    ctx.fill()
+    ctx.save()
+    ctx.translate(-6.2 * unit, 2.2 * unit)
+    ctx.rotate(-0.72)
+    roundRect(ctx, -2 * unit, -4.6 * unit, 4 * unit, 8.2 * unit, 2 * unit)
+    ctx.fill()
+    ctx.restore()
+    ctx.save()
+    ctx.translate(0, -10.6 * unit)
+    ctx.scale(1 + tap * 0.28, 1 + tap * 0.28)
+    ctx.lineWidth = Math.max(1.25, 1.45 * unit)
+    ctx.beginPath()
+    ctx.arc(0, 0, 2.05 * unit, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+    ctx.restore()
+  }
+
+  private drawScore(ctx: CanvasRenderingContext2D, rect: Rect, redRect: Rect, blueRect: Rect) {
+    const fontSize = 21
+    const cy = rect.y + rect.h / 2
+    text(ctx, String(this.match.scoreRed), redRect.x + redRect.w / 2, cy, fontSize, '#FF7464', 'center', '700')
+    text(ctx, ':', rect.x + rect.w / 2, cy, fontSize, '#24352F', 'center', '700')
+    text(ctx, String(this.match.scoreBlue), blueRect.x + blueRect.w / 2, cy, fontSize, '#5F85D8', 'center', '700')
   }
 
   private getBuzzHeartbeatScale(t: number): number {

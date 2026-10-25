@@ -362,6 +362,32 @@ export function iconLabelButton(
   text(ctx, label, start + iconSize + gap, cy, fontSize, ink, 'left', '600')
 }
 
+export function paintHomePill(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  fill: string | readonly string[],
+  stroke: string,
+) {
+  const radius = rect.h / 2
+  ctx.save()
+  ctx.shadowColor = 'rgba(47,107,79,0.12)'
+  ctx.shadowBlur = 12
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 5
+  roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+  if (Array.isArray(fill)) {
+    const gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y)
+    gradient.addColorStop(0, fill[0] ?? stroke)
+    gradient.addColorStop(1, fill[1] ?? fill[0] ?? stroke)
+    ctx.fillStyle = gradient
+  } else {
+    ctx.fillStyle = fill
+  }
+  ctx.fill()
+  ctx.restore()
+  strokeRound(ctx, rect, stroke, radius, 2)
+}
+
 export function drawHomeMenuButton(
   ctx: CanvasRenderingContext2D,
   rect: Rect,
@@ -374,24 +400,7 @@ export function drawHomeMenuButton(
     iconInk: string | readonly string[]
   },
 ) {
-  const radius = rect.h / 2
-  ctx.save()
-  ctx.shadowColor = 'rgba(47,107,79,0.12)'
-  ctx.shadowBlur = 12
-  ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 5
-  roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
-  if (Array.isArray(paint.fill)) {
-    const gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y)
-    gradient.addColorStop(0, paint.fill[0] ?? paint.ink)
-    gradient.addColorStop(1, paint.fill[1] ?? paint.fill[0] ?? paint.ink)
-    ctx.fillStyle = gradient
-  } else {
-    ctx.fillStyle = paint.fill
-  }
-  ctx.fill()
-  ctx.restore()
-  strokeRound(ctx, rect, paint.stroke, radius, 2)
+  paintHomePill(ctx, rect, paint.fill, paint.stroke)
   const fontSize = 18
   const iconSize = 24
   const gap = 12
