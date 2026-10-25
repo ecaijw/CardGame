@@ -1,10 +1,12 @@
 import { easeOut } from './board'
 
-const PRESS_MS = 90
-const PRESS_SCALE = 0.85
-
 export class PressFeedback {
   private press: { key: string; down: boolean; at: number } | null = null
+
+  constructor(
+    private readonly pressMs = 90,
+    private readonly pressScale = 0.85,
+  ) {}
 
   down(key: string, at: number) {
     this.press = { key, down: true, at }
@@ -20,10 +22,10 @@ export class PressFeedback {
     if (!this.press || this.press.key !== key) {
       return 1
     }
-    const progress = easeOut((at - this.press.at) / PRESS_MS)
+    const progress = easeOut((at - this.press.at) / this.pressMs)
     if (this.press.down) {
-      return 1 - (1 - PRESS_SCALE) * progress
+      return 1 - (1 - this.pressScale) * progress
     }
-    return PRESS_SCALE + (1 - PRESS_SCALE) * progress
+    return this.pressScale + (1 - this.pressScale) * progress
   }
 }

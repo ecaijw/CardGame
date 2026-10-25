@@ -2,19 +2,21 @@ import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-man
 import { preloadIcons } from './art'
 import { DuelScene } from './scenes/duel'
 import { PlayScene } from './scenes/play'
+import { PressFeedback } from './scenes/press'
 import { SettingsScene } from './scenes/settings'
 import {
   Color,
   Menu,
   bottomBarPad,
+  drawHomeMenuButton,
   drawMenuBackground,
   drawMenuFan,
   fillRound,
   hit,
-  iconLabelButton,
   menuButton,
   menuTitle,
   text,
+  withButtonScale,
   type Rect,
 } from './ui'
 
@@ -33,6 +35,7 @@ class App {
   private settings = new SettingsScene()
   private settingsBack: 'home' | 'play' | 'duel' = 'home'
   private hits: Hit[] = []
+  private homePress = new PressFeedback(100, 0.97)
 
   constructor() {
     this.canvas = wx.createCanvas()
@@ -58,6 +61,9 @@ class App {
       if (this.scene === 'duel' && this.duel) {
         this.duel.pressDown(touch.clientX, touch.clientY)
       }
+      if (this.scene === 'home') {
+        this.pressHome(touch.clientX, touch.clientY)
+      }
     })
     wx.onTouchEnd((event) => {
       const touch = event.changedTouches[0]
@@ -70,11 +76,15 @@ class App {
       if (this.scene === 'duel' && this.duel) {
         this.duel.pressUp()
       }
+      if (this.scene === 'home') {
+        this.homePress.up(Date.now())
+      }
       this.onTap(touch.clientX, touch.clientY)
     })
     wx.onTouchCancel(() => {
       this.play?.pressUp()
       this.duel?.pressUp()
+      this.homePress.up(Date.now())
     })
     const raf =
       typeof this.canvas.requestAnimationFrame === 'function'
@@ -206,6 +216,13 @@ class App {
     return 48
   }
 
+  private pressHome(x: number, y: number) {
+    const found = this.hits.find((item) => hit(item.rect, x, y))
+    if (found) {
+      this.homePress.down(found.action, Date.now())
+    }
+  }
+
   private drawHome() {
     const { ctx, width, height } = this
     const top = this.capsuleBottom() + 28
@@ -215,24 +232,60 @@ class App {
     menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
     text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 56, 15, Menu.subtitle, 'center', '400')
     text(ctx, '来挑战一下', width / 2, titleY + 82, 15, Menu.subtitle, 'center', '400')
-    const btnW = Math.min(220, width - 72)
+    const btnW = Math.min(280, width - 48)
     const btnX = (width - btnW) / 2
-    const gap = 12
-    const btnH = 52
-    const settingsH = 52
-    const settingsY = height - bottomBarPad() - settingsH
-    const howtoY = settingsY - gap - btnH
-    const startY = Math.min(height * 0.52, howtoY - gap * 2 - btnH * 2)
-    const duelY = startY + btnH + gap
-    const start = { x: btnX, y: startY, w: btnW, h: btnH }
-    const duel = { x: btnX, y: duelY, w: btnW, h: btnH }
-    const howto = { x: btnX, y: howtoY, w: btnW, h: btnH }
-    const settings = { x: btnX, y: settingsY, w: btnW, h: settingsH }
-    menuButton(ctx, start, '单人游戏', 'primary')
-    fillRound(ctx, duel, '#2F6FED', duel.h / 2, true)
-    text(ctx, '双人对战', duel.x + duel.w / 2, duel.y + duel.h / 2, 18, Color.paper, 'center', '600')
-    menuButton(ctx, howto, '游戏说明', 'ghost')
-    iconLabelButton(ctx, settings, '设置', 'ghost', 'settings', 16)
+    const primaryH = 64
+    const secondaryH = 56
+    const gapGame = 28
+    const gapUtility = 20
+    const settingsY = height - bottomBarPad() - secondaryH
+    const howtoY = settingsY - gapUtility - secondaryH
+    const subtitleBottom = titleY + 94
+    let split = 90
+    let duelY = howtoY - split - primaryH
+    let startY = duelY - gapGame - primaryH
+    if (startY < subtitleBottom) {
+      split = Math.max(0, split - (subtitleBottom - startY))
+      duelY = howtoY - split - primaryH
+      startY = duelY - gapGame - primaryH
+    }
+    const start = { x: btnX, y: startY, w: btnW, h: primaryH }
+    const duel = { x: btnX, y: duelY, w: btnW, h: primaryH }
+    const howto = { x: btnX, y: howtoY, w: btnW, h: secondaryH }
+    const settings = { x: btnX, y: settingsY, w: btnW, h: secondaryH }
+    const now = Date.now()
+    withButtonScale(ctx, start, this.homePress.scale('start', now), () => {
+      drawHomeMenuButton(ctx, start, '单人游戏', 'solo', {
+        fill: ['#FF8E7D', '#FF7464'],
+        stroke: '#E85A4F',
+        ink: '#FFFFFF',
+        iconInk: '#FFFFFF',
+      })
+    })
+    withButtonScale(ctx, duel, this.homePress.scale('duel', now), () => {
+      drawHomeMenuButton(ctx, duel, '双人对战', 'duo', {
+        fill: ['#FF7464', '#769FED'],
+        stroke: '#5F85D8',
+        ink: '#FFFFFF',
+        iconInk: ['#F25542', '#4F83E8'],
+      })
+    })
+    withButtonScale(ctx, howto, this.homePress.scale('howto', now), () => {
+      drawHomeMenuButton(ctx, howto, '游戏说明', 'book', {
+        fill: '#FFFEFB',
+        stroke: '#68B58D',
+        ink: '#24352F',
+        iconInk: '#2F6B4F',
+      })
+    })
+    withButtonScale(ctx, settings, this.homePress.scale('settings', now), () => {
+      drawHomeMenuButton(ctx, settings, '设置', 'settings', {
+        fill: '#FFFEFB',
+        stroke: '#68B58D',
+        ink: '#24352F',
+        iconInk: '#2F6B4F',
+      })
+    })
     this.hits.push(
       { rect: start, action: 'start' },
       { rect: duel, action: 'duel' },

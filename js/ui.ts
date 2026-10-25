@@ -322,7 +322,7 @@ export function menuButton(
   )
 }
 
-export type ActionIcon = 'restart' | 'next' | 'answer' | 'difficulty' | 'settings'
+export type ActionIcon = 'restart' | 'next' | 'answer' | 'difficulty' | 'settings' | 'solo' | 'duo' | 'book'
 
 export function iconButton(
   ctx: CanvasRenderingContext2D,
@@ -360,6 +360,52 @@ export function iconLabelButton(
   const start = rect.x + (rect.w - total) / 2
   drawActionIcon(ctx, start + iconSize / 2, cy, iconSize, icon, ink, kind)
   text(ctx, label, start + iconSize + gap, cy, fontSize, ink, 'left', '600')
+}
+
+export function drawHomeMenuButton(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  label: string,
+  icon: 'solo' | 'duo' | 'book' | 'settings',
+  paint: {
+    fill: string | readonly string[]
+    stroke: string
+    ink: string
+    iconInk: string | readonly string[]
+  },
+) {
+  const radius = rect.h / 2
+  ctx.save()
+  ctx.shadowColor = 'rgba(47,107,79,0.12)'
+  ctx.shadowBlur = 12
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 5
+  roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+  if (Array.isArray(paint.fill)) {
+    const gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y)
+    gradient.addColorStop(0, paint.fill[0] ?? paint.ink)
+    gradient.addColorStop(1, paint.fill[1] ?? paint.fill[0] ?? paint.ink)
+    ctx.fillStyle = gradient
+  } else {
+    ctx.fillStyle = paint.fill
+  }
+  ctx.fill()
+  ctx.restore()
+  strokeRound(ctx, rect, paint.stroke, radius, 2)
+  const fontSize = 18
+  const iconSize = 24
+  const gap = 12
+  ctx.save()
+  ctx.font = `600 ${fontSize}px ${MENU_FONT}`
+  const textW = ctx.measureText(label).width
+  ctx.restore()
+  const total = iconSize + gap + textW
+  const start = rect.x + (rect.w - total) / 2
+  const cy = rect.y + rect.h / 2
+  const leftInk = Array.isArray(paint.iconInk) ? (paint.iconInk[0] ?? paint.ink) : paint.iconInk
+  const rightInk = Array.isArray(paint.iconInk) ? (paint.iconInk[1] ?? leftInk) : undefined
+  drawActionIcon(ctx, start + iconSize / 2, cy, iconSize, icon, leftInk, 'ghost', rightInk)
+  text(ctx, label, start + iconSize + gap, cy, fontSize, paint.ink, 'left', '600')
 }
 
 export function houseButtonRect(): Rect {
@@ -452,6 +498,7 @@ export function drawActionIcon(
   icon: ActionIcon,
   color: string,
   kind: MenuKind = 'ghost',
+  duoRight?: string,
 ) {
   ctx.save()
   ctx.strokeStyle = color
@@ -505,6 +552,43 @@ export function drawActionIcon(
       roundRect(ctx, x, y, barW, size * h, 2)
       ctx.fill()
     })
+  } else if (icon === 'solo' || icon === 'duo') {
+    const drawPerson = (px: number, py: number, person: number) => {
+      ctx.beginPath()
+      ctx.arc(px, py - person * 0.22, person * 0.16, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(px - person * 0.28, py + person * 0.34)
+      ctx.quadraticCurveTo(px, py + person * 0.02, px + person * 0.28, py + person * 0.34)
+      ctx.stroke()
+    }
+    if (icon === 'solo') {
+      drawPerson(cx, cy, size)
+    } else {
+      drawPerson(cx - size * 0.22, cy, size * 0.72)
+      if (duoRight) {
+        ctx.strokeStyle = duoRight
+        ctx.fillStyle = duoRight
+      }
+      drawPerson(cx + size * 0.22, cy, size * 0.72)
+    }
+  } else if (icon === 'book') {
+    const pageW = size * 0.42
+    const pageH = size * 0.34
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - pageH * 0.05)
+    ctx.quadraticCurveTo(cx - pageW * 0.45, cy - pageH * 0.85, cx - pageW, cy - pageH * 0.15)
+    ctx.lineTo(cx - pageW, cy + pageH * 0.55)
+    ctx.quadraticCurveTo(cx - pageW * 0.4, cy + pageH * 0.15, cx, cy + pageH * 0.7)
+    ctx.moveTo(cx, cy - pageH * 0.05)
+    ctx.quadraticCurveTo(cx + pageW * 0.45, cy - pageH * 0.85, cx + pageW, cy - pageH * 0.15)
+    ctx.lineTo(cx + pageW, cy + pageH * 0.55)
+    ctx.quadraticCurveTo(cx + pageW * 0.4, cy + pageH * 0.15, cx, cy + pageH * 0.7)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - pageH * 0.05)
+    ctx.lineTo(cx, cy + pageH * 0.7)
+    ctx.stroke()
   } else {
     drawGear(ctx, cx, cy, size * 0.42, color, kind === 'primary' ? '#F25542' : menuSurface(kind))
   }
