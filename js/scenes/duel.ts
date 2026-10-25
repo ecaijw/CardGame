@@ -102,6 +102,7 @@ const BUZZ_GAP = 16
 const BUZZ_TIP_H = 24
 const BUZZ_BLOCK_H = SCORE_H + BUZZ_GAP + BUZZ_H + BUZZ_TIP_H
 const FINGER_PERIOD_MS = 3000
+const RESIGN_TIP_MS = 3000
 const FINGER_SHOW_MS = 1200
 
 type Hit =
@@ -143,6 +144,7 @@ export class DuelScene {
   private buzzSide: DuelPlayer | null = null
   private stats: DuelStats = loadDuelStats()
   private heartbeatAt = 0
+  private resignTipAt = 0
   onHome?: () => void
   onSettings?: () => void
 
@@ -266,6 +268,7 @@ export class DuelScene {
           this.rememberBuzzSide(next)
           this.resetPuzzle()
           this.dialogAt = 0
+          this.resignTipAt = t
         }
       }
       if (action.kind === 'dialog-next') {
@@ -304,6 +307,7 @@ export class DuelScene {
           this.match = next
           this.rememberBuzzSide(next)
           this.heartbeatAt = t
+          this.resignTipAt = t
         }
         return
       }
@@ -314,6 +318,7 @@ export class DuelScene {
           this.match = next
           this.rememberBuzzSide(next)
           this.heartbeatAt = t
+          this.resignTipAt = t
         }
         return
       }
@@ -605,6 +610,7 @@ export class DuelScene {
         this.resetPuzzle()
         this.dialogAt = 0
         this.heartbeatAt = t
+        this.resignTipAt = t
       }
     }
   }
@@ -681,7 +687,7 @@ export class DuelScene {
     const phoneBarY = height - bottomBarPad() - barH
     const phoneActionY = phoneBarY - 12 - actionH
     const opBottom = opY + opH
-    const regionBottom = frame.side ? opBottom + buzzTotalH + 16 : phoneActionY
+    const regionBottom = frame.side ? opBottom + buzzTotalH + 16 : phoneActionY - BUZZ_TIP_H
     const visibleH = SCORE_H + BUZZ_GAP + BUZZ_H
     const buzzY = opBottom + Math.max(8, (regionBottom - opBottom - visibleH) / 2)
     this.drawBuzzRow(ctx, frame.play, buzzY, t)
@@ -871,6 +877,7 @@ export class DuelScene {
     const blueRect = { x: rowX + sideW + gap, y: buttonY, w: sideW, h: buzzBtnH }
     const scoreRect = { x: rowX, y, w: rowW, h: scoreH }
     const tipY = buttonY + buzzBtnH + 16
+    const showResignTip = t - this.resignTipAt < RESIGN_TIP_MS
     const redPaint = { fill: ['#FF8E7D', '#FF7464'] as const, stroke: '#E85A4F' }
     const bluePaint = { fill: ['#8CAEF0', '#769FED'] as const, stroke: '#5F85D8' }
 
@@ -923,7 +930,9 @@ export class DuelScene {
           22,
           null,
         )
-        text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY, 13, Color.muted, 'center', '500')
+        if (showResignTip) {
+          text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY, 13, Color.muted, 'center', '500')
+        }
         this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
       } else {
         paintBuzz(redRect, this.press.scale('buzz-red', t), redPaint, '抢答', 20, finger, 'left')
@@ -944,7 +953,9 @@ export class DuelScene {
           22,
           null,
         )
-        text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY, 13, Color.muted, 'center', '500')
+        if (showResignTip) {
+          text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY, 13, Color.muted, 'center', '500')
+        }
         this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
       } else {
         paintBuzz(blueRect, this.press.scale('buzz-blue', t), bluePaint, '抢答', 20, finger, 'right')
