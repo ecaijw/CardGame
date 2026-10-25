@@ -57,6 +57,7 @@ import {
   houseButtonRect,
   iconLabelButton,
   menuButton,
+  paintDialogMask,
   withButtonScale,
   text,
   type Rect,
@@ -65,6 +66,7 @@ import {
 const OPS: Op[] = ['+', '−', '×', '÷']
 
 const DIALOG_IN_MS = 220
+const MASK_IN_MS = 360
 const HINT_MS = 1800
 
 type Hit =
@@ -669,8 +671,7 @@ export class PlayScene {
     fontSize: number,
   ) {
     this.hits = []
-    ctx.fillStyle = Color.mask
-    ctx.fillRect(0, 0, width, height)
+    paintDialogMask(ctx, width, height, easeOut((t - this.dialogAt) / MASK_IN_MS))
     const keepBoard = this.state.cards.length > 1
     let anchorBottom = slots[2].y + slots[2].h
     if (keepBoard) {
@@ -778,8 +779,7 @@ export class PlayScene {
     t: number,
   ) {
     this.hits = []
-    ctx.fillStyle = Color.mask
-    ctx.fillRect(0, 0, width, height)
+    paintDialogMask(ctx, width, height, easeOut((t - this.noticeAt) / MASK_IN_MS))
     const dialogW = Math.min(400, width - 48)
     const dialogH = 268
     const dialog = {

@@ -10,7 +10,20 @@ export const Color = {
   gold: '#F5C542',
   lime: '#8FCB6D',
   shadow: 'rgba(30, 50, 48, 0.16)',
-  mask: 'rgba(30, 40, 38, 0.45)',
+  mask: 'rgba(30, 40, 38, 0.28)',
+}
+
+export function paintDialogMask(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  progress: number,
+) {
+  ctx.save()
+  ctx.globalAlpha = progress
+  ctx.fillStyle = Color.mask
+  ctx.fillRect(0, 0, width, height)
+  ctx.restore()
 }
 
 export function hit(rect: Rect, x: number, y: number): boolean {

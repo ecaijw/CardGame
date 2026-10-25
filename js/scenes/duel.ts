@@ -82,6 +82,7 @@ import {
   paintMenuChrome,
   iconLabelButton,
   menuButton,
+  paintDialogMask,
   paintHomePill,
   roundRect,
   text,
@@ -92,6 +93,7 @@ import {
 const OPS: Op[] = ['+', '−', '×', '÷']
 
 const DIALOG_IN_MS = 220
+const MASK_IN_MS = 360
 const HINT_MS = 1800
 const HEARTBEAT_MS = 150
 const SCORE_H = 58
@@ -766,17 +768,17 @@ export class DuelScene {
       ]
     }
 
+    if (this.dialogOpen()) {
+      this.drawDialog(ctx, width, height, t, slots, fontSize)
+    }
+
     const showHome = this.pageChrome() === 'thinking'
     if (showHome) {
       const homeRect = houseButtonRect()
       drawHouseButton(ctx, homeRect, this.press.scale('home', t))
-      if (this.match.phase === 'thinking' && !this.busy()) {
+      if (this.match.phase === 'thinking' && !this.busy() && !this.dialogOpen()) {
         this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
       }
-    }
-
-    if (this.dialogOpen()) {
-      this.drawDialog(ctx, width, height, t, slots, fontSize)
     }
   }
 
@@ -1103,6 +1105,19 @@ export class DuelScene {
     fontSize: number,
   ) {
     this.hits = []
+    paintDialogMask(ctx, width, height, easeOut((t - this.dialogAt) / MASK_IN_MS))
+    this.state.cards.forEach((card) => {
+      const look = this.look(card.id, card.slot, slots, t)
+      if (!look) {
+        return
+      }
+      drawPlayCard(ctx, {
+        rect: slots[card.slot],
+        label: formatFraction(card.value),
+        fontSize,
+        ...look,
+      })
+    })
     const cardAnchor = this.paintSuccessCard(ctx, slots, fontSize, t)
 
     const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
