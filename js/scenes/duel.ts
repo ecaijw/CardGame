@@ -45,6 +45,13 @@ import {
 } from '../game/duel'
 import type { GameState } from '../game/merge'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
+import {
+  dialogMotion,
+  dialogRect,
+  openDialog,
+  paintDialogButton,
+  type DialogTight,
+} from './dialog'
 import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
 import { PressFeedback } from './press'
 import {
@@ -77,7 +84,6 @@ import {
   drawMenuBackground,
   drawSegmentBar,
   houseButtonRect,
-  fillRound,
   hit,
   paintMenuChrome,
   iconLabelButton,
@@ -92,8 +98,6 @@ import {
 
 const OPS: Op[] = ['+', '−', '×', '÷']
 
-const DIALOG_IN_MS = 220
-const MASK_IN_MS = 360
 const HINT_MS = 1800
 const HEARTBEAT_MS = 150
 const SCORE_H = 58
@@ -1116,7 +1120,8 @@ export class DuelScene {
     fontSize: number,
   ) {
     this.hits = []
-    paintDialogMask(ctx, width, height, easeOut((t - this.dialogAt) / MASK_IN_MS))
+    const motion = dialogMotion(t - this.dialogAt)
+    paintDialogMask(ctx, width, height, motion.mask)
     this.state.cards.forEach((card) => {
       const look = this.look(card.id, card.slot, slots, t)
       if (!look) {
@@ -1130,169 +1135,103 @@ export class DuelScene {
       })
     })
     const cardAnchor = this.paintSuccessCard(ctx, slots, fontSize, t)
-
-    const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
-    const scale = 0.97 + 0.03 * p
-    const dialogW = Math.min(400, width - 48)
     const dialogKind = duelDialog(this.match)
+    const shell = (
+      dialogH: number,
+      anchor: number | null,
+      whenTight: DialogTight,
+      draw: (dialog: Rect) => void,
+    ) => {
+      openDialog(ctx, dialogRect(width, height, dialogH, anchor, whenTight), motion.scale, draw)
+    }
 
     if (dialogKind === 'handoff') {
-      const dialogH = 240
-      const dialog = {
-        x: (width - dialogW) / 2,
-        y: Math.max(24, (height - dialogH) / 2),
-        w: dialogW,
-        h: dialogH,
-      }
-      const dialogCx = dialog.x + dialog.w / 2
-      const dialogCy = dialog.y + dialog.h / 2
-      ctx.save()
-      ctx.translate(dialogCx, dialogCy)
-      ctx.scale(scale, scale)
-      ctx.translate(-dialogCx, -dialogCy)
-      fillRound(ctx, dialog, Color.paper, 20, true)
-      text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
-      const remaining = remainingHandoffSeconds(this.match, t)
-      const line2 = remaining > 0 ? `${remaining}秒后由对手继续答题。` : '由对手继续答题。'
-      text(ctx, line2, dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
-      const start = { x: dialog.x + 24, y: dialog.y + 136, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, start, this.press.scale('dialog-start-second', t), () => {
-        menuButton(ctx, start, '开始答题', 'ghost')
+      shell(240, null, 'center', (dialog) => {
+        const dialogCx = dialog.x + dialog.w / 2
+        text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
+        const remaining = remainingHandoffSeconds(this.match, t)
+        const line2 = remaining > 0 ? `${remaining}秒后由对手继续答题。` : '由对手继续答题。'
+        text(ctx, line2, dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
+        const start = paintDialogButton(ctx, dialog, 136, '开始答题', this.press.scale('dialog-start-second', t))
+        this.hits.push({ rect: start, hit: { kind: 'dialog-start-second' } })
       })
-      this.hits.push({ rect: start, hit: { kind: 'dialog-start-second' } })
-      ctx.restore()
       return
     }
 
     if (dialogKind === 'round-fail') {
-      const dialogH = 240
-      const dialog = {
-        x: (width - dialogW) / 2,
-        y: Math.max(24, (height - dialogH) / 2),
-        w: dialogW,
-        h: dialogH,
-      }
-      const dialogCx = dialog.x + dialog.w / 2
-      const dialogCy = dialog.y + dialog.h / 2
-      ctx.save()
-      ctx.translate(dialogCx, dialogCy)
-      ctx.scale(scale, scale)
-      ctx.translate(-dialogCx, -dialogCy)
-      fillRound(ctx, dialog, Color.paper, 20, true)
-      text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
-      text(ctx, '本局结束。', dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
-      const next = { x: dialog.x + 24, y: dialog.y + 136, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, next, this.press.scale('dialog-next', t), () => {
-        menuButton(ctx, next, '下一局', 'ghost')
+      shell(240, null, 'center', (dialog) => {
+        const dialogCx = dialog.x + dialog.w / 2
+        text(ctx, '很遗憾，本次作答没有成功。', dialogCx, dialog.y + 64, 15, Color.muted, 'center', '500')
+        text(ctx, '本局结束。', dialogCx, dialog.y + 92, 15, Color.muted, 'center', '500')
+        const next = paintDialogButton(ctx, dialog, 136, '下一局', this.press.scale('dialog-next', t))
+        this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
       })
-      this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
-      ctx.restore()
       return
     }
 
     if (dialogKind === 'match-end') {
-      const dialogH = 280
-      const dialog = {
-        x: (width - dialogW) / 2,
-        y: this.dialogY(height, dialogH, cardAnchor),
-        w: dialogW,
-        h: dialogH,
-      }
-      const dialogCx = dialog.x + dialog.w / 2
-      const dialogCy = dialog.y + dialog.h / 2
-      ctx.save()
-      ctx.translate(dialogCx, dialogCy)
-      ctx.scale(scale, scale)
-      ctx.translate(-dialogCx, -dialogCy)
-      fillRound(ctx, dialog, Color.paper, 20, true)
-      const winner = this.match.winner
-      drawDialogTitle(
-        ctx,
-        '成功',
-        dialogCx,
-        dialog.y + 48,
-        26,
-        Color.pine,
-        getIcon('crown'),
-      )
-      text(ctx, '太棒了，本场获胜！', dialogCx, dialog.y + 84, 14, Color.muted)
-      const winnerText = winner === 'red' ? '红方' : '蓝方'
-      text(ctx, `${winnerText}拿到了${DUEL_TARGET}分！`, dialogCx, dialog.y + 106, 14, Color.muted)
-      const rematch = { x: dialog.x + 24, y: dialog.y + 180, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, rematch, this.press.scale('dialog-rematch', t), () => {
-        menuButton(ctx, rematch, '再来一场', 'ghost')
+      shell(280, cardAnchor, 'clamp-below', (dialog) => {
+        const dialogCx = dialog.x + dialog.w / 2
+        const winner = this.match.winner
+        drawDialogTitle(
+          ctx,
+          '成功',
+          dialogCx,
+          dialog.y + 48,
+          26,
+          Color.pine,
+          getIcon('crown'),
+        )
+        text(ctx, '太棒了，本场获胜！', dialogCx, dialog.y + 84, 14, Color.muted)
+        const winnerText = winner === 'red' ? '红方' : '蓝方'
+        text(ctx, `${winnerText}拿到了${DUEL_TARGET}分！`, dialogCx, dialog.y + 106, 14, Color.muted)
+        const rematch = paintDialogButton(ctx, dialog, 180, '再来一场', this.press.scale('dialog-rematch', t))
+        this.hits.push({ rect: rematch, hit: { kind: 'dialog-rematch' } })
       })
-      this.hits.push({ rect: rematch, hit: { kind: 'dialog-rematch' } })
-      ctx.restore()
       return
     }
 
     if (dialogKind === 'answer') {
       const isUnsolvable = this.puzzle.difficulty === 'unsolvable'
-      const dialogH = isUnsolvable ? 240 : 280
-      const dialog = {
-        x: (width - dialogW) / 2,
-        y: Math.max(24, (height - dialogH) / 2),
-        w: dialogW,
-        h: dialogH,
-      }
-      const dialogCx = dialog.x + dialog.w / 2
-      const dialogCy = dialog.y + dialog.h / 2
-      ctx.save()
-      ctx.translate(dialogCx, dialogCy)
-      ctx.scale(scale, scale)
-      ctx.translate(-dialogCx, -dialogCy)
-      fillRound(ctx, dialog, Color.paper, 20, true)
-      text(ctx, '答案', dialogCx, dialog.y + 48, 26, Color.coral, 'center', '700')
-      if (isUnsolvable) {
-        text(ctx, '本题无解，无法算出24', dialogCx, dialog.y + 96, 16, Color.ink, 'center', '600')
-      } else {
-        text(ctx, this.puzzle.expression, dialogCx, dialog.y + 92, 18, Color.coral, 'center', '700')
-        this.puzzle.steps.forEach((step, index) => {
-          text(ctx, step, dialogCx, dialog.y + 122 + index * 22, 14, Color.muted, 'center', '500')
-        })
-      }
-      const closeY = isUnsolvable ? 136 : 206
-      const close = { x: dialog.x + 24, y: dialog.y + closeY, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, close, this.press.scale('dialog-close-answer', t), () => {
-        menuButton(ctx, close, '下一局', 'ghost')
+      shell(isUnsolvable ? 240 : 280, null, 'center', (dialog) => {
+        const dialogCx = dialog.x + dialog.w / 2
+        text(ctx, '答案', dialogCx, dialog.y + 48, 26, Color.coral, 'center', '700')
+        if (isUnsolvable) {
+          text(ctx, '本题无解，无法算出24', dialogCx, dialog.y + 96, 16, Color.ink, 'center', '600')
+        } else {
+          text(ctx, this.puzzle.expression, dialogCx, dialog.y + 92, 18, Color.coral, 'center', '700')
+          this.puzzle.steps.forEach((step, index) => {
+            text(ctx, step, dialogCx, dialog.y + 122 + index * 22, 14, Color.muted, 'center', '500')
+          })
+        }
+        const close = paintDialogButton(
+          ctx,
+          dialog,
+          isUnsolvable ? 136 : 206,
+          '下一局',
+          this.press.scale('dialog-close-answer', t),
+        )
+        this.hits.push({ rect: close, hit: { kind: 'dialog-close-answer' } })
       })
-      this.hits.push({ rect: close, hit: { kind: 'dialog-close-answer' } })
-      ctx.restore()
       return
     }
 
     if (dialogKind === 'round-success') {
-      const dialogH = 240
-      const dialog = {
-        x: (width - dialogW) / 2,
-        y: this.dialogY(height, dialogH, cardAnchor),
-        w: dialogW,
-        h: dialogH,
-      }
-      const dialogCx = dialog.x + dialog.w / 2
-      const dialogCy = dialog.y + dialog.h / 2
-      ctx.save()
-      ctx.translate(dialogCx, dialogCy)
-      ctx.scale(scale, scale)
-      ctx.translate(-dialogCx, -dialogCy)
-      fillRound(ctx, dialog, Color.paper, 20, true)
-      drawDialogTitle(
-        ctx,
-        '成功',
-        dialogCx,
-        dialog.y + 48,
-        26,
-        Color.pine,
-        getIcon('crown'),
-      )
-      text(ctx, '太棒了，本局获胜！', dialogCx, dialog.y + 84, 14, Color.muted)
-      const next = { x: dialog.x + 24, y: dialog.y + 136, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, next, this.press.scale('dialog-next', t), () => {
-        menuButton(ctx, next, '下一局', 'ghost')
+      shell(240, cardAnchor, 'clamp-below', (dialog) => {
+        const dialogCx = dialog.x + dialog.w / 2
+        drawDialogTitle(
+          ctx,
+          '成功',
+          dialogCx,
+          dialog.y + 48,
+          26,
+          Color.pine,
+          getIcon('crown'),
+        )
+        text(ctx, '太棒了，本局获胜！', dialogCx, dialog.y + 84, 14, Color.muted)
+        const next = paintDialogButton(ctx, dialog, 136, '下一局', this.press.scale('dialog-next', t))
+        this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
       })
-      this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
-      ctx.restore()
     }
   }
 
@@ -1317,14 +1256,6 @@ export class DuelScene {
       ...look,
     })
     return slots[last.slot].y + slots[last.slot].h + (look.dy ?? 0)
-  }
-
-  private dialogY(height: number, dialogH: number, cardAnchor: number | null) {
-    if (cardAnchor === null) {
-      return Math.max(24, (height - dialogH) / 2)
-    }
-    const maxY = Math.max(24, height - 24 - dialogH)
-    return Math.min(Math.max(cardAnchor + 24, 24), maxY)
   }
 
 }

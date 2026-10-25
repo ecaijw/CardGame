@@ -13,7 +13,6 @@ import {
   drawOp,
   drawPlayCard,
   drawSuccessBurst,
-  easeOut,
   panelCard,
   playFrame,
   slotRects,
@@ -29,6 +28,12 @@ import {
   type SessionState,
 } from '../game/session'
 import { pickPuzzle, type DealFilter, type Puzzle } from '../game/puzzles'
+import {
+  dialogMotion,
+  dialogRect,
+  openDialog,
+  paintDialogButton,
+} from './dialog'
 import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
 import { PressFeedback } from './press'
 import { addPlayedId, loadPlayedIds } from '../played'
@@ -65,8 +70,6 @@ import {
 
 const OPS: Op[] = ['+', '−', '×', '÷']
 
-const DIALOG_IN_MS = 220
-const MASK_IN_MS = 360
 const HINT_MS = 1800
 
 type Hit =
@@ -671,7 +674,8 @@ export class PlayScene {
     fontSize: number,
   ) {
     this.hits = []
-    paintDialogMask(ctx, width, height, easeOut((t - this.dialogAt) / MASK_IN_MS))
+    const motion = dialogMotion(t - this.dialogAt)
+    paintDialogMask(ctx, width, height, motion.mask)
     const keepBoard = this.state.cards.length > 1
     let anchorBottom = slots[2].y + slots[2].h
     if (keepBoard) {
@@ -701,75 +705,55 @@ export class PlayScene {
         anchorBottom = slots[last.slot].y + slots[last.slot].h + (look.dy ?? 0)
       }
     }
-    const p = easeOut((t - this.dialogAt) / DIALOG_IN_MS)
-    const scale = 0.97 + 0.03 * p
     const fail = this.result === 'fail'
     const longFail = fail && !this.wrongUnsolvableCall && this.includeUnsolvable
     const dialogH = fail ? (longFail ? 304 : 280) : 240
-    const dialogW = Math.min(400, width - 48)
-    const minY = 24
-    const maxY = Math.max(minY, height - 24 - dialogH)
-    const belowCard = anchorBottom + 24
-    let dialogY = belowCard + dialogH <= height - 24 ? belowCard : (height - dialogH) / 2
-    if (keepBoard && belowCard + dialogH > height - 24) {
-      dialogY = maxY
-    }
-    dialogY = Math.min(Math.max(dialogY, minY), maxY)
-    const dialog = {
-      x: (width - dialogW) / 2,
-      y: dialogY,
-      w: dialogW,
-      h: dialogH,
-    }
-    const dialogCx = dialog.x + dialog.w / 2
-    const dialogCy = dialog.y + dialog.h / 2
-    ctx.save()
-    ctx.translate(dialogCx, dialogCy)
-    ctx.scale(scale, scale)
-    ctx.translate(-dialogCx, -dialogCy)
-    fillRound(ctx, dialog, Color.paper, 20, true)
-    drawDialogTitle(
-      ctx,
-      this.result === 'success' ? '成功' : '失败',
-      dialogCx,
-      dialog.y + 48,
-      26,
-      this.result === 'success' ? Color.pine : Color.coral,
-      getIcon(this.result === 'success' ? 'crown' : 'fist'),
-    )
-    if (this.result === 'success') {
-      text(ctx, '太棒了，继续挑战吧！', dialogCx, dialog.y + 84, 14, Color.muted)
-    } else if (this.wrongUnsolvableCall) {
-      text(ctx, '太遗憾了，这个题目可以算出24。', dialogCx, dialog.y + 80, 14, Color.muted)
-      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
-    } else if (longFail) {
-      const copySize = dialog.w < 360 ? 13 : 14
-      text(ctx, '成功条件：如果有解，最后结果需要算出24。', dialogCx, dialog.y + 76, copySize, Color.muted)
-      text(ctx, '如果无解，点击「本题无解」按钮。', dialogCx, dialog.y + 98, copySize, Color.muted)
-      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 120, copySize, Color.muted)
-    } else {
-      text(ctx, '成功条件：最后结果是24。', dialogCx, dialog.y + 80, 14, Color.muted)
-      text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
-    }
-    const buttonShift = longFail ? 24 : 0
-    if (fail) {
-      const restart = { x: dialog.x + 24, y: dialog.y + 128 + buttonShift, w: dialog.w - 48, h: 50 }
-      withButtonScale(ctx, restart, this.press.scale('dialog-restart', t), () => {
-        menuButton(ctx, restart, '重开本局', 'ghost')
-      })
-      this.hits.push({ rect: restart, hit: { kind: 'dialog-restart' } })
-    }
-    const next = {
-      x: dialog.x + 24,
-      y: dialog.y + (fail ? 206 + buttonShift : 136),
-      w: dialog.w - 48,
-      h: 50,
-    }
-    withButtonScale(ctx, next, this.press.scale('dialog-next', t), () => {
-      menuButton(ctx, next, '下一局', 'ghost')
+    const frame = dialogRect(width, height, dialogH, anchorBottom, keepBoard ? 'bottom' : 'center')
+    openDialog(ctx, frame, motion.scale, (dialog) => {
+      const dialogCx = dialog.x + dialog.w / 2
+      drawDialogTitle(
+        ctx,
+        this.result === 'success' ? '成功' : '失败',
+        dialogCx,
+        dialog.y + 48,
+        26,
+        this.result === 'success' ? Color.pine : Color.coral,
+        getIcon(this.result === 'success' ? 'crown' : 'fist'),
+      )
+      if (this.result === 'success') {
+        text(ctx, '太棒了，继续挑战吧！', dialogCx, dialog.y + 84, 14, Color.muted)
+      } else if (this.wrongUnsolvableCall) {
+        text(ctx, '太遗憾了，这个题目可以算出24。', dialogCx, dialog.y + 80, 14, Color.muted)
+        text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
+      } else if (longFail) {
+        const copySize = dialog.w < 360 ? 13 : 14
+        text(ctx, '成功条件：如果有解，最后结果需要算出24。', dialogCx, dialog.y + 76, copySize, Color.muted)
+        text(ctx, '如果无解，点击「本题无解」按钮。', dialogCx, dialog.y + 98, copySize, Color.muted)
+        text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 120, copySize, Color.muted)
+      } else {
+        text(ctx, '成功条件：最后结果是24。', dialogCx, dialog.y + 80, 14, Color.muted)
+        text(ctx, '加油再试一试吧！', dialogCx, dialog.y + 102, 14, Color.muted)
+      }
+      const buttonShift = longFail ? 24 : 0
+      if (fail) {
+        const restart = paintDialogButton(
+          ctx,
+          dialog,
+          128 + buttonShift,
+          '重开本局',
+          this.press.scale('dialog-restart', t),
+        )
+        this.hits.push({ rect: restart, hit: { kind: 'dialog-restart' } })
+      }
+      const next = paintDialogButton(
+        ctx,
+        dialog,
+        fail ? 206 + buttonShift : 136,
+        '下一局',
+        this.press.scale('dialog-next', t),
+      )
+      this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
     })
-    this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
-    ctx.restore()
   }
 
   private drawUnsolvableNotice(
@@ -779,39 +763,29 @@ export class PlayScene {
     t: number,
   ) {
     this.hits = []
-    paintDialogMask(ctx, width, height, easeOut((t - this.noticeAt) / MASK_IN_MS))
-    const dialogW = Math.min(400, width - 48)
-    const dialogH = 268
-    const dialog = {
-      x: (width - dialogW) / 2,
-      y: Math.max(24, (height - dialogH) / 2),
-      w: dialogW,
-      h: dialogH,
-    }
-    const p = easeOut((t - this.noticeAt) / DIALOG_IN_MS)
-    const scale = 0.97 + 0.03 * p
-    const cx = dialog.x + dialog.w / 2
-    const cy = dialog.y + dialog.h / 2
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.scale(scale, scale)
-    ctx.translate(-cx, -cy)
-    fillRound(ctx, dialog, Color.paper, 20, true)
-    text(ctx, '已开启「含无解题」模式', cx, dialog.y + 48, dialogW < 340 ? 16 : 20, Color.ink, 'center', '600')
-    const lines = [
-      '接下来的题目中会随机出现无解题。',
-      '如果你判断无法算出 24，',
-      '请点击「本题无解」。',
-    ]
-    lines.forEach((line, index) => {
-      text(ctx, line, cx, dialog.y + 96 + index * 26, 14, Color.muted)
+    const motion = dialogMotion(t - this.noticeAt)
+    paintDialogMask(ctx, width, height, motion.mask)
+    const frame = dialogRect(width, height, 268)
+    openDialog(ctx, frame, motion.scale, (dialog) => {
+      const cx = dialog.x + dialog.w / 2
+      text(ctx, '已开启「含无解题」模式', cx, dialog.y + 48, dialog.w < 340 ? 16 : 20, Color.ink, 'center', '600')
+      const lines = [
+        '接下来的题目中会随机出现无解题。',
+        '如果你判断无法算出 24，',
+        '请点击「本题无解」。',
+      ]
+      lines.forEach((line, index) => {
+        text(ctx, line, cx, dialog.y + 96 + index * 26, 14, Color.muted)
+      })
+      const close = paintDialogButton(
+        ctx,
+        dialog,
+        dialog.h - 74,
+        '关闭',
+        this.press.scale('notice-close', t),
+      )
+      this.hits.push({ rect: close, hit: { kind: 'notice-close' } })
     })
-    const close = { x: dialog.x + 24, y: dialog.y + dialog.h - 74, w: dialog.w - 48, h: 50 }
-    withButtonScale(ctx, close, this.press.scale('notice-close', t), () => {
-      menuButton(ctx, close, '关闭', 'ghost')
-    })
-    this.hits.push({ rect: close, hit: { kind: 'notice-close' } })
-    ctx.restore()
   }
 }
 

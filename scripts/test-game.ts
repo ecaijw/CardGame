@@ -1,4 +1,11 @@
 import {
+  DIALOG_IN_MS,
+  MASK_IN_MS,
+  dialogButtonRect,
+  dialogMotion,
+  dialogRect,
+} from '../js/scenes/dialog'
+import {
   applyOp,
   formatFraction,
   frac,
@@ -550,6 +557,44 @@ function testDuelSettingsStorage() {
   }
 }
 
+function testDialogShell() {
+  const start = dialogMotion(0)
+  const mid = dialogMotion(DIALOG_IN_MS / 2)
+  const popped = dialogMotion(DIALOG_IN_MS)
+  const settled = dialogMotion(DIALOG_IN_MS + 400)
+  assert(start.scale === 0.97 && start.mask === 0, 'dialog starts slightly small with a clear mask')
+  assert(mid.scale > 0.97 && mid.scale < 1, 'dialog scale is still moving at halfway')
+  assert(popped.scale === 1, 'dialog reaches full size at 220ms')
+  assert(settled.scale === 1, 'dialog stays full size after the pop')
+  const maskMid = dialogMotion(MASK_IN_MS / 2)
+  const maskDone = dialogMotion(MASK_IN_MS)
+  assert(maskMid.mask > 0 && maskMid.mask < 1, 'mask is still fading at halfway')
+  assert(maskDone.mask === 1 && dialogMotion(MASK_IN_MS + 200).mask === 1, 'mask finishes at 360ms')
+
+  const onScreen = (width: number, height: number, dialogH: number, anchor?: number, tight?: 'center' | 'bottom' | 'clamp-below') => {
+    const rect = dialogRect(width, height, dialogH, anchor, tight)
+    assert(rect.x >= 24 && rect.y >= 24, 'dialog stays inside the top and left margin')
+    assert(rect.x + rect.w <= width - 24 && rect.y + rect.h <= height - 24, 'dialog stays inside the bottom and right margin')
+    return rect
+  }
+
+  const success = onScreen(390, 844, 240, 520, 'center')
+  assert(success.y === 544, 'solo success dialog sits under the last card')
+  const crowded = onScreen(390, 700, 304, 500, 'bottom')
+  assert(crowded.y === 700 - 24 - 304, 'several remaining cards pin the dialog to the bottom')
+  const singleTight = onScreen(390, 700, 304, 500, 'center')
+  assert(singleTight.y === (700 - 304) / 2, 'one card that does not fit centers the dialog')
+  const duelWin = onScreen(390, 600, 280, 400, 'clamp-below')
+  assert(duelWin.y === 600 - 24 - 280, 'duel success dialog clamps under the settled card')
+  const centered = onScreen(390, 800, 240)
+  assert(centered.y === (800 - 240) / 2, 'handoff and fail dialogs stay centered')
+
+  const button = dialogButtonRect(success, 136)
+  assert(button.x === success.x + 24 && button.y === success.y + 136, 'dialog button keeps the shared inset')
+  assert(button.w === success.w - 48 && button.h === 50, 'dialog button keeps the shared size')
+  assert(button.y + button.h < success.y + success.h, 'dialog button stays inside the card')
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -565,4 +610,5 @@ testSessionSelect()
 testDuelFlow()
 testDuelRoundViews()
 testDuelSettingsStorage()
+testDialogShell()
 console.log('game tests passed')
