@@ -116,7 +116,7 @@ export function solve(nums: number[]): SolveResult | null {
     solutions: unique.length,
     best: {
       steps: best.steps,
-      expression: stripOuterParens(best.expression),
+      expression: formatSolution(best.expression),
     },
     hasPositiveInt: positiveSigs.size > 0,
     allNeedFraction: found.every((solution) => solution.fractional),
@@ -240,11 +240,52 @@ function uniqueByExpression(solutions: TrackedSolution[]): TrackedSolution[] {
   return unique
 }
 
-function stripOuterParens(expression: string): string {
-  if (expression.startsWith('(') && expression.endsWith(')')) {
-    return expression.slice(1, -1)
+type ExprNode =
+  | { type: 'n'; value: string }
+  | { type: 'op'; op: Op; left: ExprNode; right: ExprNode }
+
+const PREC: Record<Op, number> = { '+': 1, '−': 1, '×': 2, '÷': 2 }
+
+function formatSolution(expression: string): string {
+  return printExpr(parseFull(expression))
+}
+
+function parseFull(expression: string): ExprNode {
+  let index = 0
+  const parse = (): ExprNode => {
+    if (expression[index] === '(') {
+      index += 1
+      const left = parse()
+      const op = expression[index] as Op
+      index += 1
+      const right = parse()
+      index += 1
+      return { type: 'op', op, left, right }
+    }
+    const start = index
+    while (index < expression.length && expression[index] >= '0' && expression[index] <= '9') {
+      index += 1
+    }
+    return { type: 'n', value: expression.slice(start, index) }
   }
-  return expression
+  return parse()
+}
+
+function printExpr(node: ExprNode): string {
+  if (node.type === 'n') {
+    return node.value
+  }
+  return `${printSide(node.left, node.op, 'left')}${node.op}${printSide(node.right, node.op, 'right')}`
+}
+
+function printSide(node: ExprNode, parent: Op, side: 'left' | 'right'): string {
+  if (node.type === 'n') {
+    return node.value
+  }
+  const tighter = PREC[node.op] > PREC[parent]
+  const sameOnLeft = PREC[node.op] === PREC[parent] && side === 'left'
+  const text = printExpr(node)
+  return tighter || sameOnLeft ? text : `(${text})`
 }
 
 function isNonInteger(value: Fraction): boolean {

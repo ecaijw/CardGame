@@ -175,7 +175,9 @@ function testSolver() {
   }
   const eight = solve([1, 1, 1, 8])
   assert(!!eight, '1,1,1,8 should be solvable')
-  assert(eight!.best.expression === '8×(1+(1+1))', 'strip outermost parens')
+  assert(eight!.best.expression === '8×(1+(1+1))', 'keep parens that change order')
+  const twelve = solve([4, 12, 12, 12])
+  assert(twelve?.best.expression === '4×12−12−12', 'drop redundant parens')
   assert(classifyDifficulty(solve([1, 1, 1, 8])) === 'easy', '1,1,1,8 easy')
   assert(classifyDifficulty(solve([1, 1, 6, 8])) === 'medium', '1,1,6,8 needs integer divide')
   assert(classifyDifficulty(solve([1, 3, 7, 9])) === 'medium', '1,3,7,9 direct divide stays medium')
