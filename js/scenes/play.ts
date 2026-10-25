@@ -14,8 +14,7 @@ import {
   drawPlayCard,
   drawSuccessBurst,
   panelCard,
-  playFrame,
-  slotRects,
+  tableLayout,
   type Face,
   type Motion,
 } from './board'
@@ -475,25 +474,13 @@ export class PlayScene {
     this.hits = []
     drawMenuBackground(ctx, width, height)
 
-    const frame = playFrame(width)
     const minTop = Math.max(72, capsuleBottom() + 16)
-    const gap = 16
-    const cardW = Math.min(120, (frame.play.w - 48 - gap) / 2)
-    const cardH = cardW * (88 / 63)
-    const fontSize = cardW > 90 ? 32 : 26
-    const opH = 56
-    const belowCards = 28
-    const stackH = cardH * 2 + gap + belowCards + opH
-    const floorTop = height - bottomBarPad() - stackH
-    const topY = frame.side ? minTop + Math.max(0, floorTop - minTop) * 0.42 : minTop
-    const slots = slotRects(frame.play.x, frame.play.w, topY, cardW, cardH, gap)
+    const table = tableLayout(width, height, minTop, bottomBarPad())
+    const { frame, fontSize, slots, opY, opH } = table
     this.drawBoard(ctx, slots, fontSize, t)
 
-    const opGap = 12
-    const opW = (frame.play.w - 32 - opGap * 3) / 4
-    const opY = slots[2].y + slots[2].h + belowCards
-    OPS.forEach((op, index) => {
-      const rect = { x: frame.play.x + 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
+    table.ops.forEach((rect, index) => {
+      const op = OPS[index]
       this.drawOp(ctx, rect, op, t)
       if (this.canInputNext()) {
         this.hits.push({ rect, hit: { kind: 'op', op } })
@@ -559,7 +546,7 @@ export class PlayScene {
     }
     const hintOn = Boolean(this.hint) && t - this.hintAt < HINT_MS
     const statsRect = frame.side
-      ? { x: frame.side.x, y: topY + 8, w: frame.side.w, h: actionY - topY - 16 }
+      ? { x: frame.side.x, y: slots[0].y + 8, w: frame.side.w, h: actionY - slots[0].y - 16 }
       : { x: 24, y: opY + opH + 12, w: width - 48, h: actionY - (opY + opH + 20) }
     if (hintOn) {
       drawCopyCard(ctx, statsRect, this.hint, [])

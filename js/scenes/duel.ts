@@ -12,8 +12,7 @@ import {
   drawPlayCard,
   drawSuccessBurst,
   easeOut,
-  playFrame,
-  slotRects,
+  tableLayout,
   type Face,
   type Motion,
 } from './board'
@@ -659,26 +658,13 @@ export class DuelScene {
     this.hits = []
     drawMenuBackground(ctx, width, height)
 
-    const frame = playFrame(width)
     const minTop = Math.max(72, capsuleBottom() + 16)
-    const gap = 16
-    const cardW = Math.min(120, (frame.play.w - 48 - gap) / 2)
-    const cardH = cardW * (88 / 63)
-    const fontSize = cardW > 90 ? 32 : 26
-    const opH = 56
-    const buzzTotalH = BUZZ_BLOCK_H
-    const belowCards = 28
-    const stackH = cardH * 2 + gap + belowCards + opH + buzzTotalH
-    const floorTop = height - bottomBarPad() - stackH
-    const topY = frame.side ? minTop + Math.max(0, floorTop - minTop) * 0.42 : minTop
-    const slots = slotRects(frame.play.x, frame.play.w, topY, cardW, cardH, gap)
+    const table = tableLayout(width, height, minTop, bottomBarPad(), BUZZ_BLOCK_H)
+    const { frame, fontSize, slots, opY, opH } = table
     this.drawBoard(ctx, slots, fontSize, t)
 
-    const opGap = 12
-    const opW = (frame.play.w - 32 - opGap * 3) / 4
-    const opY = slots[2].y + slots[2].h + belowCards
-    OPS.forEach((op, index) => {
-      const rect = { x: frame.play.x + 16 + index * (opW + opGap), y: opY, w: opW, h: opH }
+    table.ops.forEach((rect, index) => {
+      const op = OPS[index]
       this.drawOp(ctx, rect, op, t)
       if (this.canInputNext()) {
         this.hits.push({ rect, hit: { kind: 'op', op } })
@@ -691,12 +677,12 @@ export class DuelScene {
     const phoneBarY = height - bottomBarPad() - barH
     const phoneActionY = phoneBarY - 12 - actionH
     const opBottom = opY + opH
-    const regionBottom = frame.side ? opBottom + buzzTotalH + 16 : phoneActionY - BUZZ_TIP_H
+    const regionBottom = frame.side ? opBottom + BUZZ_BLOCK_H + 16 : phoneActionY - BUZZ_TIP_H
     const visibleH = SCORE_H + BUZZ_GAP + BUZZ_H
     const buzzY = opBottom + Math.max(8, (regionBottom - opBottom - visibleH) / 2)
     this.drawBuzzRow(ctx, frame.play, buzzY, t)
 
-    const barY = frame.side ? buzzY + buzzTotalH + 8 : phoneBarY
+    const barY = frame.side ? buzzY + BUZZ_BLOCK_H + 8 : phoneBarY
     const bar = frame.side
       ? { x: frame.side.x, y: barY, w: frame.side.w, h: barH }
       : { x: 20, y: barY, w: width - 40, h: barH }

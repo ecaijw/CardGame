@@ -69,6 +69,36 @@ export function playFrame(width: number): {
   return { play, side: { x: sideX, w: width - sideX - edge } }
 }
 
+export function tableLayout(
+  width: number,
+  height: number,
+  minTop: number,
+  bottomPad: number,
+  extraBelow = 0,
+) {
+  const frame = playFrame(width)
+  const gap = 16
+  const cardW = Math.min(120, (frame.play.w - 48 - gap) / 2)
+  const cardH = cardW * (88 / 63)
+  const fontSize = cardW > 90 ? 32 : 26
+  const opH = 56
+  const belowCards = 28
+  const stackH = cardH * 2 + gap + belowCards + opH + extraBelow
+  const floorTop = height - bottomPad - stackH
+  const topY = frame.side ? minTop + Math.max(0, floorTop - minTop) * 0.42 : minTop
+  const slots = slotRects(frame.play.x, frame.play.w, topY, cardW, cardH, gap)
+  const opGap = 12
+  const opW = (frame.play.w - 32 - opGap * 3) / 4
+  const opY = slots[2].y + slots[2].h + belowCards
+  const ops = [0, 1, 2, 3].map((index) => ({
+    x: frame.play.x + 16 + index * (opW + opGap),
+    y: opY,
+    w: opW,
+    h: opH,
+  }))
+  return { frame, cardW, cardH, fontSize, slots, ops, opY, opH }
+}
+
 export function slotRects(
   originX: number,
   columnW: number,

@@ -5,6 +5,7 @@ import {
   dialogMotion,
   dialogRect,
 } from '../js/scenes/dialog'
+import { tableLayout } from '../js/scenes/board'
 import {
   applyOp,
   formatFraction,
@@ -595,6 +596,30 @@ function testDialogShell() {
   assert(button.y + button.h < success.y + success.h, 'dialog button stays inside the card')
 }
 
+function testTableLayout() {
+  const phone = tableLayout(390, 844, 72, 34)
+  assert(phone.frame.side === null, 'phone keeps a single column')
+  assert(phone.cardW === 120 && phone.fontSize === 32, 'phone cards use the full card size')
+  assert(phone.slots.length === 4, 'cards stay in a 2x2 grid')
+  assert(phone.slots[0].y === 72, 'phone cards start at the top clearance')
+  assert(phone.slots[2].y === phone.slots[0].y + phone.cardH + 16, 'the second card row sits under the first')
+  assert(phone.slots[1].x > phone.slots[0].x && phone.slots[3].y === phone.slots[2].y, 'the right column lines up')
+  assert(phone.ops.length === 4 && phone.ops.every((op) => op.h === 56 && op.y === phone.opY), 'four operators share one row')
+  assert(phone.opY === phone.slots[2].y + phone.slots[2].h + 28, 'operators sit 28 below the cards')
+
+  const narrow = tableLayout(200, 700, 72, 34)
+  assert(narrow.cardW < 90 && narrow.fontSize === 26, 'narrow screens shrink the cards and the number')
+
+  const phoneDuel = tableLayout(390, 844, 72, 34, 150)
+  assert(phoneDuel.slots[0].y === phone.slots[0].y && phoneDuel.opY === phone.opY, 'phone duel keeps the same card and operator rows')
+
+  const wide = tableLayout(900, 900, 80, 34)
+  const wideDuel = tableLayout(900, 900, 80, 34, 150)
+  assert(wide.frame.side !== null && wide.cardW === 120, 'wide screens keep the phone card size in the left column')
+  assert(wideDuel.slots[0].y < wide.slots[0].y && wideDuel.opY < wide.opY, 'wide duel lifts the cards to leave room for the buzz row')
+  assert(wideDuel.opY === wideDuel.slots[2].y + wideDuel.slots[2].h + 28, 'duel operators still sit 28 below the cards')
+}
+
 testFractions()
 testRulesExample()
 testKnownGames()
@@ -611,4 +636,5 @@ testDuelFlow()
 testDuelRoundViews()
 testDuelSettingsStorage()
 testDialogShell()
+testTableLayout()
 console.log('game tests passed')
