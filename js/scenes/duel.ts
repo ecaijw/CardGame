@@ -1045,12 +1045,18 @@ export class DuelScene {
       fontSize: number,
       cue: number | null,
       cueSide: 'left' | 'right' = 'left',
+      labelScale = 1,
     ) => {
       withButtonScale(ctx, rect, scale, () => {
         paintHomePill(ctx, rect, paint.fill, paint.stroke, placed ? 16 : undefined)
         const cy = rect.y + rect.h / 2
         const cx = rect.x + rect.w / 2
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.scale(labelScale, labelScale)
+        ctx.translate(-cx, -cy)
         text(ctx, label, cx, cy, fontSize, '#FFFFFF', 'center', '600')
+        ctx.restore()
         if (cue === null) {
           return
         }
@@ -1072,11 +1078,13 @@ export class DuelScene {
         const remaining = remainingAnswerSeconds(this.match, t)
         paintBuzz(
           redRect,
-          this.press.scale('buzz-red', t) * this.getBuzzHeartbeatScale(t),
+          this.press.scale('buzz-red', t),
           redPaint,
           String(remaining),
           countSize,
           null,
+          'left',
+          this.getBuzzHeartbeatScale(t),
         )
         if (showResignTip) {
           text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY, 13, Color.muted, 'center', '500')
@@ -1095,11 +1103,13 @@ export class DuelScene {
         const remaining = remainingAnswerSeconds(this.match, t)
         paintBuzz(
           blueRect,
-          this.press.scale('buzz-blue', t) * this.getBuzzHeartbeatScale(t),
+          this.press.scale('buzz-blue', t),
           bluePaint,
           String(remaining),
           countSize,
           null,
+          'right',
+          this.getBuzzHeartbeatScale(t),
         )
         if (showResignTip) {
           text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY, 13, Color.muted, 'center', '500')
