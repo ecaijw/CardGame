@@ -89,13 +89,13 @@ const OPS: Op[] = ['+', '−', '×', '÷']
 const DIALOG_IN_MS = 220
 const HINT_MS = 1800
 const HEARTBEAT_MS = 150
-const SCORE_H = 36
-const BUZZ_H = 36
-const BUZZ_GAP = 22
+const SCORE_H = 58
+const BUZZ_H = 52
+const BUZZ_GAP = 16
 const BUZZ_TIP_H = 24
 const BUZZ_BLOCK_H = SCORE_H + BUZZ_GAP + BUZZ_H + BUZZ_TIP_H
 const FINGER_PERIOD_MS = 3000
-const FINGER_SHOW_MS = 700
+const FINGER_SHOW_MS = 760
 
 type Hit =
   | { kind: 'card'; id: number }
@@ -910,7 +910,7 @@ export class DuelScene {
       label: string,
       fontSize: number,
       cue: number | null,
-      fingerSide: 'left' | 'right',
+      cueSide: 'left' | 'right' = 'left',
     ) => {
       withButtonScale(ctx, rect, scale, () => {
         paintHomePill(ctx, rect, paint.fill, paint.stroke)
@@ -920,13 +920,13 @@ export class DuelScene {
         if (cue === null) {
           return
         }
-        const icon = 22
-        const iconGap = 8
+        const icon = 23
+        const iconGap = 9
         ctx.save()
         ctx.font = `600 ${fontSize}px "PingFang SC","PingFangSC-Semibold","Hiragino Sans GB","Heiti SC",sans-serif`
         const textW = ctx.measureText(label).width
         ctx.restore()
-        const fingerX = fingerSide === 'left'
+        const fingerX = cueSide === 'left'
           ? cx - textW / 2 - iconGap - icon / 2
           : cx + textW / 2 + iconGap + icon / 2
         this.drawPressFinger(ctx, fingerX, cy, icon, cue)
@@ -941,14 +941,13 @@ export class DuelScene {
           this.press.scale('buzz-red', t) * this.getBuzzHeartbeatScale(t),
           redPaint,
           String(remaining),
-          17,
+          22,
           null,
-          'left',
         )
         text(ctx, '点击认输', redRect.x + redRect.w / 2, tipY, 13, Color.muted, 'center', '500')
         this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
       } else {
-        paintBuzz(redRect, this.press.scale('buzz-red', t), redPaint, '抢答', 16, finger, 'left')
+        paintBuzz(redRect, this.press.scale('buzz-red', t), redPaint, '抢答', 20, finger, 'left')
         if (canBuzz) {
           this.hits.push({ rect: redRect, hit: { kind: 'buzz-red' } })
         }
@@ -963,21 +962,19 @@ export class DuelScene {
           this.press.scale('buzz-blue', t) * this.getBuzzHeartbeatScale(t),
           bluePaint,
           String(remaining),
-          17,
+          22,
           null,
-          'right',
         )
         text(ctx, '点击认输', blueRect.x + blueRect.w / 2, tipY, 13, Color.muted, 'center', '500')
         this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
       } else {
-        paintBuzz(blueRect, this.press.scale('buzz-blue', t), bluePaint, '抢答', 16, finger, 'right')
+        paintBuzz(blueRect, this.press.scale('buzz-blue', t), bluePaint, '抢答', 20, finger, 'right')
         if (canBuzz) {
           this.hits.push({ rect: blueRect, hit: { kind: 'buzz-blue' } })
         }
       }
     }
 
-    paintHomePill(ctx, scoreRect, '#FFFEFB', '#D7EEE4')
     this.drawScore(ctx, scoreRect, redRect, blueRect)
   }
 
@@ -996,45 +993,109 @@ export class DuelScene {
     size: number,
     progress: number,
   ) {
-    const fade = progress < 0.16 ? progress / 0.16 : progress > 0.72 ? Math.max(0, (1 - progress) / 0.28) : 1
-    const tap = Math.sin(Math.min(1, Math.max(0, (progress - 0.16) / 0.56)) * Math.PI)
+    const fade = progress < 0.18 ? easeOut(progress / 0.18) : progress > 0.82 ? (1 - progress) / 0.18 : 1
+    const pressProgress = Math.min(1, Math.max(0, (progress - 0.24) / 0.34))
+    const releaseProgress = Math.min(1, Math.max(0, (progress - 0.58) / 0.24))
+    const press = easeOut(pressProgress) * (1 - easeOut(releaseProgress))
     const unit = size / 24
     ctx.save()
     ctx.globalAlpha = fade
-    ctx.translate(x, y + unit * 1.6 + tap * unit * 1.4)
-    ctx.fillStyle = '#FFFFFF'
+    ctx.translate(x, y + press * unit * 1.8)
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    roundRect(ctx, -2.4 * unit, -8.2 * unit, 4.8 * unit, 11.2 * unit, 2.4 * unit)
-    ctx.fill()
-    roundRect(ctx, 1.1 * unit, -3.4 * unit, 5.4 * unit, 5.6 * unit, 2.2 * unit)
-    ctx.fill()
-    roundRect(ctx, -7.4 * unit, -0.6 * unit, 14.6 * unit, 9.4 * unit, 4.2 * unit)
-    ctx.fill()
-    ctx.save()
-    ctx.translate(-6.2 * unit, 2.2 * unit)
-    ctx.rotate(-0.72)
-    roundRect(ctx, -2 * unit, -4.6 * unit, 4 * unit, 8.2 * unit, 2 * unit)
-    ctx.fill()
-    ctx.restore()
-    ctx.save()
-    ctx.translate(0, -10.6 * unit)
-    ctx.scale(1 + tap * 0.28, 1 + tap * 0.28)
-    ctx.lineWidth = Math.max(1.25, 1.45 * unit)
+    ctx.lineWidth = Math.max(1.4, 1.7 * unit)
+
+    // One continuous outline keeps the cue looking like the same icon while it moves.
     ctx.beginPath()
-    ctx.arc(0, 0, 2.05 * unit, 0, Math.PI * 2)
+    ctx.moveTo(-1.8 * unit, 9.8 * unit)
+    ctx.bezierCurveTo(-4.7 * unit, 8.8 * unit, -6.7 * unit, 6.4 * unit, -7.8 * unit, 3.5 * unit)
+    ctx.lineTo(-9.5 * unit, -0.4 * unit)
+    ctx.bezierCurveTo(-10.1 * unit, -1.8 * unit, -9.5 * unit, -3.2 * unit, -8.2 * unit, -3.7 * unit)
+    ctx.bezierCurveTo(-7.2 * unit, -4.1 * unit, -6.1 * unit, -3.7 * unit, -5.5 * unit, -2.8 * unit)
+    ctx.lineTo(-3.2 * unit, 0.6 * unit)
+    ctx.lineTo(-3.2 * unit, -7.3 * unit)
+    ctx.bezierCurveTo(-3.2 * unit, -9.1 * unit, -2.0 * unit, -10.4 * unit, -0.4 * unit, -10.4 * unit)
+    ctx.bezierCurveTo(1.2 * unit, -10.4 * unit, 2.4 * unit, -9.1 * unit, 2.4 * unit, -7.3 * unit)
+    ctx.lineTo(2.4 * unit, -1.8 * unit)
+    ctx.bezierCurveTo(2.6 * unit, -3.2 * unit, 3.6 * unit, -4.1 * unit, 4.9 * unit, -4.1 * unit)
+    ctx.bezierCurveTo(6.4 * unit, -4.1 * unit, 7.4 * unit, -3.0 * unit, 7.4 * unit, -1.5 * unit)
+    ctx.bezierCurveTo(8.0 * unit, -2.6 * unit, 9.2 * unit, -3.0 * unit, 10.3 * unit, -2.5 * unit)
+    ctx.bezierCurveTo(11.4 * unit, -2.0 * unit, 12.0 * unit, -0.9 * unit, 12.0 * unit, 0.3 * unit)
+    ctx.lineTo(12.0 * unit, 3.2 * unit)
+    ctx.bezierCurveTo(12.0 * unit, 7.2 * unit, 9.1 * unit, 10.1 * unit, 5.2 * unit, 10.1 * unit)
+    ctx.lineTo(0.8 * unit, 10.1 * unit)
+    ctx.bezierCurveTo(-0.1 * unit, 10.1 * unit, -1.0 * unit, 10.0 * unit, -1.8 * unit, 9.8 * unit)
+    ctx.closePath()
     ctx.stroke()
-    ctx.restore()
+
+    // A restrained ripple at the fingertip reads as a tap without changing the hand.
+    const rippleProgress = Math.min(1, Math.max(0, (progress - 0.34) / 0.36))
+    if (rippleProgress > 0 && rippleProgress < 1) {
+      ctx.save()
+      ctx.globalAlpha *= 1 - rippleProgress
+      ctx.lineWidth = Math.max(1, 1.25 * unit)
+      ctx.beginPath()
+      ctx.arc(-0.4 * unit, -12.6 * unit, (2.1 + rippleProgress * 3.2) * unit, Math.PI * 1.08, Math.PI * 1.92)
+      ctx.stroke()
+      ctx.restore()
+    }
     ctx.restore()
   }
 
   private drawScore(ctx: CanvasRenderingContext2D, rect: Rect, redRect: Rect, blueRect: Rect) {
-    const fontSize = 21
-    const cy = rect.y + rect.h / 2
-    text(ctx, String(this.match.scoreRed), redRect.x + redRect.w / 2, cy, fontSize, '#FF7464', 'center', '700')
-    text(ctx, ':', rect.x + rect.w / 2, cy, fontSize, '#24352F', 'center', '700')
-    text(ctx, String(this.match.scoreBlue), blueRect.x + blueRect.w / 2, cy, fontSize, '#5F85D8', 'center', '700')
+    const radius = 20
+    const centerX = rect.x + rect.w / 2
+    const centerY = rect.y + rect.h / 2
+    const redX = redRect.x + redRect.w / 2
+    const blueX = blueRect.x + blueRect.w / 2
+
+    ctx.save()
+    ctx.shadowColor = 'rgba(47, 107, 79, 0.14)'
+    ctx.shadowBlur = 10
+    ctx.shadowOffsetY = 4
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+    ctx.fillStyle = '#FFFEFB'
+    ctx.fill()
+    ctx.restore()
+
+    ctx.save()
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+    ctx.clip()
+    const redFill = ctx.createLinearGradient(rect.x, rect.y, centerX, rect.y)
+    redFill.addColorStop(0, '#FFE9E4')
+    redFill.addColorStop(1, '#FFF8F5')
+    ctx.fillStyle = redFill
+    ctx.fillRect(rect.x, rect.y, rect.w / 2, rect.h)
+    const blueFill = ctx.createLinearGradient(centerX, rect.y, rect.x + rect.w, rect.y)
+    blueFill.addColorStop(0, '#F8FAFF')
+    blueFill.addColorStop(1, '#E8F0FF')
+    ctx.fillStyle = blueFill
+    ctx.fillRect(centerX, rect.y, rect.w / 2, rect.h)
+    ctx.restore()
+
+    ctx.save()
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, radius)
+    ctx.strokeStyle = '#B9DEC9'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    ctx.restore()
+
+    text(ctx, '红方', redX, rect.y + 14, 11, '#C85C51', 'center', '600')
+    text(ctx, '蓝方', blueX, rect.y + 14, 11, '#5474BC', 'center', '600')
+    text(ctx, String(this.match.scoreRed), redX, rect.y + 39, 29, '#F25A4B', 'center', '700')
+    text(ctx, String(this.match.scoreBlue), blueX, rect.y + 39, 29, '#507ADB', 'center', '700')
+
+    ctx.save()
+    ctx.shadowColor = 'rgba(36, 53, 47, 0.18)'
+    ctx.shadowBlur = 6
+    ctx.shadowOffsetY = 2
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, 18, 0, Math.PI * 2)
+    ctx.fillStyle = '#2F6B57'
+    ctx.fill()
+    ctx.restore()
+    text(ctx, 'VS', centerX, centerY, 12, '#FFFFFF', 'center', '700')
   }
 
   private getBuzzHeartbeatScale(t: number): number {
