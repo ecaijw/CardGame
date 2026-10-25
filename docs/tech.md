@@ -129,8 +129,8 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 第 0 期：Canvas 长方形 + 数字，比例接近扑克（约 63:88）
 - 动画：第 2 期已接入对局场景时间轴（发牌 / 合并 / 结算），规则仍走 `merge.ts`，见 [animation.md](animation.md)
 - 音频：第 2 期已接入；BGM 首次点「单人游戏」或「双人对战」后循环，音效跟对局操作走，见 [audio.md](audio.md)
-- 同机双人：独立 `DuelScene` + `js/game/duel.ts`，方案见 [phase-2.2-duel.md](phase-2.2-duel.md)
-- 宽屏只看宽度，不看高度。`playFrame` 在宽度达到 748（左栏 400、栏间距 28、右栏至少 280、两侧各 20）时分出左右栏。单人对局和设置页用这一档。双人三栏还要求左边按钮至少宽 84、右边统计卡至少宽 140，合起来是宽度达到 928；748 到 927 仍用左栏牌桌、右栏操作。三栏方案见 [ux/issue-46-wide-duel-layout.md](ux/issue-46-wide-duel-layout.md)
+- 同机双人：独立 `DuelScene` + `js/game/duel.ts`，方案见 [phase-2.2-duel.md](phase-2.2-duel.md)。第 2.2 期已完成
+- 宽屏只看宽度，不看高度。`playFrame` 在宽度达到 748（左栏 400、栏间距 28、右栏至少 280、两侧各 20）时分出左右栏。单人对局和设置页用这一档。双人三栏还要求左边按钮至少宽 84、右边统计卡至少宽 140，合起来是宽度达到 928；748 到 927 仍用左栏牌桌、右栏操作。三栏方案见 [ux/issue-46-wide-duel-layout.md](ux/issue-46-wide-duel-layout.md)。第 2.3 期才会把双人改成竖屏居中单列、横屏先试三栏，见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)
 - 后续：自绘 4 花色 × 13 点，避免版权图；显示模式可切换（数字 / 扑克）
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）

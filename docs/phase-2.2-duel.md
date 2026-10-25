@@ -1,6 +1,8 @@
 # 第 2.2 期：同机双人对战
 
-定稿日期：2026-10-20。产品与技术实现方案。先改规则与验收文档，再写代码。单人玩法、[rules.md](rules.md) 第 1–3 节、已冻结的第 0–2 期交接都不改。第 2.1 期上线交接继续开着，不冻结。
+定稿日期：2026-10-20。2026-10-25 本期结束，交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。本文描述已经落地的双人规则和宽屏分档。响应式布局改到第 2.3 期，见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)，不回写本文。
+
+单人玩法、[rules.md](rules.md) 第 1–3 节、已冻结的第 0–2 期交接都不改。第 2.1 期上线交接继续开着，不冻结。
 
 相关：[roadmap.md](roadmap.md)、[prd.md](prd.md)、[tech.md](tech.md)、[test.md](test.md)、[app-cross-platform.md](app-cross-platform.md) §5.1。
 

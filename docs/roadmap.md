@@ -1,10 +1,10 @@
 # 24 点 — 分期路线图
 
-玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
+玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，响应式布局见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.2 期进行中（2026-10-20 起）。** 目标是上线前做完同一设备双人对战。定稿见 [phase-2.2-duel.md](phase-2.2-duel.md)，交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2 期已完成，见 [phase-2-handoff.md](phase-2-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.3 期进行中（2026-10-25 起）。** 目标是首页、单人和双人的响应式布局。方案见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)，交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.2 期已完成，见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
-**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
+**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2.2 期交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。
 
 ## 第 0 期 — 可玩的单人局（MVP）· 已完成
 
@@ -46,15 +46,21 @@
 
 交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。
 
-## 第 2.2 期 — 同机双人对战 · 进行中
+## 第 2.2 期 — 同机双人对战 · 已完成
 
-上线前的一个大功能：同一台设备上两个人对战。本地完成，沿用现有题库和合牌。两台手机云对战仍留在后续计划。
+同一台设备上两个人对战。本地完成，沿用现有题库和合牌。先抢答再限时合牌，第一位失败后换对方，先到 5 分获胜。双人题库、难度、统计与单人分开。答题时长默认 20 秒，设置页每次 ±5，夹在 10～60。
 
-详细产品与技术方案见 [phase-2.2-duel.md](phase-2.2-duel.md)（2026-10-20 定稿）。实现前先对齐 [rules.md](rules.md) / [prd.md](prd.md) / [tech.md](tech.md)，再写代码。早先预研见 [app-cross-platform.md](app-cross-platform.md) §5.1。
+定稿见 [phase-2.2-duel.md](phase-2.2-duel.md)。交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。两台手机云对战仍留在后续计划。
 
-- 首页「单人游戏」「双人对战」
-- 抢答 → 限时合牌；第一位失败后换对方；先到 5 分获胜
-- 双人题库、难度、统计与单人分开；答题时长默认 20 秒，设置页每次 ±5，夹在 10～60
+## 第 2.3 期 — 响应式布局 · 进行中
+
+首页、单人和双人按屏幕尺寸排开，避免矮屏重叠。设置页不改。844×390 这种极矮横屏不纳入本期。
+
+方案见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)。交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。
+
+- 双人竖屏用居中单列，内容宽不超过 430
+- 横屏先试三栏，排不开就退回居中单列，不恢复 748–927 的旧双栏
+- 单人牌桌按剩余高度缩小；首页「来挑战一下」到「单人游戏」至少留 40px
 
 ## 第 3 期 — 广告和收入
 
