@@ -321,14 +321,16 @@ export function menuButton(
   rect: Rect,
   label: string,
   kind: MenuKind,
+  radius?: number,
+  fontSize = kind === 'primary' ? 18 : 16,
 ) {
-  paintMenuChrome(ctx, rect, kind)
+  paintMenuChrome(ctx, rect, kind, radius)
   text(
     ctx,
     label,
     rect.x + rect.w / 2,
     rect.y + rect.h / 2,
-    kind === 'primary' ? 18 : 16,
+    fontSize,
     menuInk(kind),
     'center',
     '600',
@@ -359,8 +361,9 @@ export function iconLabelButton(
   kind: MenuKind,
   icon: ActionIcon,
   fontSize = 13,
+  radius?: number,
 ) {
-  paintMenuChrome(ctx, rect, kind)
+  paintMenuChrome(ctx, rect, kind, radius)
   const ink = menuInk(kind)
   const cy = rect.y + rect.h / 2
   const iconSize = Math.round((fontSize * 16) / 13)
@@ -380,8 +383,8 @@ export function paintHomePill(
   rect: Rect,
   fill: string | readonly string[],
   stroke: string,
+  radius = rect.h / 2,
 ) {
-  const radius = rect.h / 2
   ctx.save()
   ctx.shadowColor = 'rgba(47,107,79,0.12)'
   ctx.shadowBlur = 12

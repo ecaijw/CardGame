@@ -6,6 +6,7 @@ import {
   dialogRect,
 } from '../js/scenes/dialog'
 import { tableLayout } from '../js/scenes/board'
+import { duelWideLayout } from '../js/scenes/duel-wide'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
   applyOp,
@@ -649,6 +650,82 @@ function testSettingsLayout() {
   }
 }
 
+function testDuelWideLayout() {
+  assert(duelWideLayout(390, 844, 72, 34) === null, 'phone keeps the existing duel layout')
+  const layout = duelWideLayout(940, 665, 72, 34)
+  assert(layout !== null, '940x665 uses the wide duel layout')
+  if (!layout) {
+    return
+  }
+  const cardsLeft = layout.slots[0].x
+  const cardsRight = layout.slots[1].x + layout.slots[1].w
+  assert(Math.abs((cardsLeft + cardsRight) / 2 - 470) < 0.5, 'cards are centered on the screen')
+  const { redBuzz, blueBuzz, score } = layout.battle
+  assert(redBuzz.w === blueBuzz.w && redBuzz.h === blueBuzz.h, 'buzz buttons match in size')
+  assert(Math.abs(redBuzz.y + redBuzz.h / 2 - (blueBuzz.y + blueBuzz.h / 2)) < 0.5, 'buzz buttons share a center line')
+  assert(Math.abs(redBuzz.x - (940 - (blueBuzz.x + blueBuzz.w))) < 0.5, 'buzz buttons share the side margin')
+  assert(Math.abs(score.x + score.w / 2 - 470) < 0.5, 'score is centered')
+  const buttons = layout.utility
+  const buttonSpanRight = buttons.restart.x + buttons.restart.w
+  assert(Math.abs(buttons.answer.x - (layout.ops[0].x - buttonSpanRight)) < 0.5, 'utility buttons have equal side gaps')
+  const statsRight = layout.stats.rounds.x + layout.stats.rounds.w
+  const divideRight = layout.ops[3].x + layout.ops[3].w
+  assert(Math.abs(layout.stats.rounds.x - divideRight - (940 - statsRight)) < 0.5, 'stats cards have equal side gaps')
+  const buttonCenter = (buttons.answer.x + buttonSpanRight) / 2
+  assert(Math.abs(redBuzz.x + redBuzz.w / 2 - buttonCenter) < 0.5, 'the red buzz button centers on the utility buttons')
+  assert(buttons.answer.y === buttons.restart.y, 'the first utility row lines up')
+  assert(buttons.difficulty.y === buttons.unsolvable.y && buttons.settings.y === buttons.next.y, 'utility buttons stay in three rows')
+  assert(Math.abs(buttons.answer.y - layout.stats.rounds.y) < 0.5, 'utility buttons start at the round-stats card')
+  const buttonBottom = buttons.settings.y + buttons.settings.h
+  assert(Math.abs(buttonBottom - (layout.stats.matches.y + layout.stats.matches.h)) < 0.5, 'utility buttons end at the match-stats card')
+  const cardAreaCenter = (layout.slots[0].y + layout.slots[2].y + layout.slots[2].h) / 2
+  const buttonCenterY = (buttons.answer.y + buttonBottom) / 2
+  assert(Math.abs(buttonCenterY - cardAreaCenter) < 0.5, 'utility buttons center on the four cards')
+  const rowGap = buttons.difficulty.y - (buttons.answer.y + buttons.answer.h)
+  assert(Math.abs(buttons.settings.y - (buttons.difficulty.y + buttons.difficulty.h) - rowGap) < 0.5, 'utility rows share one gap')
+  const rects = [
+    buttons.answer,
+    buttons.restart,
+    buttons.difficulty,
+    buttons.unsolvable,
+    buttons.settings,
+    buttons.next,
+    layout.stats.rounds,
+    layout.stats.matches,
+    redBuzz,
+    blueBuzz,
+    score,
+    ...layout.slots,
+    ...layout.ops,
+  ]
+  for (const rect of rects) {
+    assert(rect.x >= 0 && rect.y >= 16 && rect.x + rect.w <= 940 && rect.y + rect.h <= 665 - 34, 'wide rect stays on screen')
+  }
+  for (let i = 0; i < rects.length; i += 1) {
+    for (let j = i + 1; j < rects.length; j += 1) {
+      assert(!overlaps(rects[i], rects[j]), 'wide rects do not overlap')
+    }
+  }
+  const again = duelWideLayout(940, 665, 72, 34)
+  assert(
+    again !== null && again.utility.restart.x === buttons.restart.x && again.battle.score.x === score.x && again.battle.blueBuzz.x === blueBuzz.x,
+    'hidden buttons do not move the other slots or the score',
+  )
+  assert(
+    Math.abs(layout.stats.rounds.y + layout.stats.rounds.h / 2 - (layout.slots[0].y + layout.slots[0].h / 2)) < 0.5,
+    'round stats align with the first card row',
+  )
+  assert(
+    Math.abs(layout.stats.matches.y + layout.stats.matches.h / 2 - (layout.slots[2].y + layout.slots[2].h / 2)) < 0.5,
+    'match stats align with the second card row',
+  )
+  assert(layout.hint.x === redBuzz.x, 'hint starts at the red buzz button')
+  assert(Math.abs(layout.hint.y - (layout.ops[0].y + layout.ops[0].h / 2)) < 0.5, 'hint aligns with the operators')
+  assert(layout.ops[0].x - (buttons.restart.x + buttons.restart.w) >= 48, 'utility buttons stay clear of the plus operator')
+  const cardAreaW = layout.slots[1].x + layout.slots[1].w - layout.slots[0].x
+  assert(Math.abs(score.w - cardAreaW) < 0.5, 'the scoreboard matches the card area width')
+}
+
 function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
   return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
 }
@@ -671,4 +748,5 @@ testDuelSettingsStorage()
 testDialogShell()
 testTableLayout()
 testSettingsLayout()
+testDuelWideLayout()
 console.log('game tests passed')
