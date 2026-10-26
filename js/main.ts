@@ -1,6 +1,7 @@
 import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-manager'
 import { preloadIcons } from './art'
 import { DuelScene } from './scenes/duel'
+import { homeLayout, homeTitleAnchor } from './scenes/home-layout'
 import { PlayScene } from './scenes/play'
 import { PressFeedback } from './scenes/press'
 import { SettingsScene } from './scenes/settings'
@@ -227,32 +228,20 @@ class App {
     const { ctx, width, height } = this
     const top = this.capsuleBottom() + 28
     const fanBottom = drawMenuFan(ctx, width, top)
-    const titleSize = Math.min(52, width * 0.14)
-    const titleY = Math.max(height * 0.32, fanBottom + 36)
-    menuTitle(ctx, '数字算一算', width / 2, titleY, titleSize)
+    const anchor = homeTitleAnchor(width, height, fanBottom)
+    const layout = homeLayout({
+      width,
+      height,
+      titleY: anchor.titleY,
+      titleSize: anchor.titleSize,
+      fanBottom,
+      bottomPad: bottomBarPad(),
+    })
+    const { titleY } = layout
+    menuTitle(ctx, '数字算一算', width / 2, titleY, anchor.titleSize)
     text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 56, 15, Menu.subtitle, 'center', '400')
-    text(ctx, '来挑战一下', width / 2, titleY + 82, 15, Menu.subtitle, 'center', '400')
-    const btnW = Math.min(280, width - 48)
-    const btnX = (width - btnW) / 2
-    const primaryH = 64
-    const secondaryH = 56
-    const gapGame = 28
-    const gapUtility = 20
-    const settingsY = height - bottomBarPad() - secondaryH
-    const howtoY = settingsY - gapUtility - secondaryH
-    const subtitleBottom = titleY + 94
-    let split = 90
-    let duelY = howtoY - split - primaryH
-    let startY = duelY - gapGame - primaryH
-    if (startY < subtitleBottom) {
-      split = Math.max(0, split - (subtitleBottom - startY))
-      duelY = howtoY - split - primaryH
-      startY = duelY - gapGame - primaryH
-    }
-    const start = { x: btnX, y: startY, w: btnW, h: primaryH }
-    const duel = { x: btnX, y: duelY, w: btnW, h: primaryH }
-    const howto = { x: btnX, y: howtoY, w: btnW, h: secondaryH }
-    const settings = { x: btnX, y: settingsY, w: btnW, h: secondaryH }
+    text(ctx, '来挑战一下', width / 2, layout.challengeY, 15, Menu.subtitle, 'center', '400')
+    const { start, duel, howto, settings } = layout
     const now = Date.now()
     withButtonScale(ctx, start, this.homePress.scale('start', now), () => {
       drawHomeMenuButton(ctx, start, '单人游戏', 'solo', {

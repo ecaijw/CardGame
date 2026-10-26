@@ -12,7 +12,6 @@ import {
   drawPlayCard,
   drawSuccessBurst,
   easeOut,
-  tableLayout,
   type Face,
   type Motion,
 } from './board'
@@ -51,7 +50,8 @@ import {
   paintDialogButton,
   type DialogTight,
 } from './dialog'
-import { duelWideLayout, type DuelWideLayout } from './duel-wide'
+import { selectDuelLayout, type DuelStackedLayout } from './duel-stacked'
+import { type DuelWideLayout } from './duel-wide'
 import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
 import { PressFeedback } from './press'
 import {
@@ -102,11 +102,6 @@ const OPS: Op[] = ['+', '−', '×', '÷']
 
 const HINT_MS = 1800
 const HEARTBEAT_MS = 150
-const SCORE_H = 58
-const BUZZ_H = 52
-const BUZZ_GAP = 16
-const BUZZ_TIP_H = 24
-const BUZZ_BLOCK_H = SCORE_H + BUZZ_GAP + BUZZ_H + BUZZ_TIP_H
 const FINGER_PERIOD_MS = 3000
 const RESIGN_TIP_MS = 3000
 const FINGER_SHOW_MS = 1200
@@ -662,16 +657,25 @@ export class DuelScene {
     drawMenuBackground(ctx, width, height)
 
     const minTop = Math.max(72, capsuleBottom() + 16)
-    const wide = duelWideLayout(width, height, minTop, bottomBarPad())
-    if (wide) {
-      this.drawWide(ctx, width, height, t, wide)
+    const page = selectDuelLayout(width, height, minTop, bottomBarPad())
+    if (page.kind === 'wide') {
+      this.drawWide(ctx, width, height, t, page.wide)
       return
     }
-    const table = tableLayout(width, height, minTop, bottomBarPad(), BUZZ_BLOCK_H)
-    const { frame, fontSize, slots, opY, opH } = table
+    this.drawStacked(ctx, width, height, t, page.stacked)
+  }
+
+  private drawStacked(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    t: number,
+    layout: DuelStackedLayout,
+  ) {
+    const { fontSize, slots, ops } = layout
     this.drawBoard(ctx, slots, fontSize, t)
 
-    table.ops.forEach((rect, index) => {
+    ops.forEach((rect, index) => {
       const op = OPS[index]
       this.drawOp(ctx, rect, op, t)
       if (this.canInputNext()) {
@@ -680,43 +684,32 @@ export class DuelScene {
     })
 
     const current = DIFFICULTY_FILTERS.find((item) => item.filter === this.filter)
-    const barH = 52
-    const actionH = 44
-    const phoneBarY = height - bottomBarPad() - barH
-    const phoneActionY = phoneBarY - 12 - actionH
-    const opBottom = opY + opH
-    const regionBottom = frame.side ? opBottom + BUZZ_BLOCK_H + 16 : phoneActionY - BUZZ_TIP_H
-    const visibleH = SCORE_H + BUZZ_GAP + BUZZ_H
-    const buzzY = opBottom + Math.max(8, (regionBottom - opBottom - visibleH) / 2)
-    this.drawBuzzRow(ctx, frame.play, buzzY, t)
+    this.drawBuzzRow(ctx, t, {
+      red: layout.redBuzz,
+      blue: layout.blueBuzz,
+      score: layout.score,
+      tip: layout.concede,
+      chrome: 'stacked',
+    })
 
-    const barY = frame.side ? buzzY + BUZZ_BLOCK_H + 8 : phoneBarY
-    const bar = frame.side
-      ? { x: frame.side.x, y: barY, w: frame.side.w, h: barH }
-      : { x: 20, y: barY, w: width - 40, h: barH }
-    const cellW = bar.w / 3
-    const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
-    const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
-    const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
-    const actionY = barY - 12 - actionH
+    const { bar, answer, difficulty, settings } = layout
     const dealActions: Array<{
       label: string
       kind: Hit['kind']
       icon: 'restart' | 'next'
-      x: number
+      rect: typeof layout.restart
     }> = [
-      { label: '重试', kind: 'restart', icon: 'restart', x: answer.x },
-      { label: '下一局', kind: 'next', icon: 'next', x: settings.x },
+      { label: '重试', kind: 'restart', icon: 'restart', rect: layout.restart },
+      { label: '下一局', kind: 'next', icon: 'next', rect: layout.next },
     ]
     dealActions.forEach((action) => {
-      const rect = { x: action.x, y: actionY, w: cellW, h: actionH }
       const show =
         action.kind === 'restart'
           ? this.pageChrome() === 'answering'
           : this.pageChrome() === 'thinking'
       if (show) {
-        withButtonScale(ctx, rect, this.press.scale(action.kind, t), () => {
-          iconLabelButton(ctx, rect, action.label, 'ghost', action.icon)
+        withButtonScale(ctx, action.rect, this.press.scale(action.kind, t), () => {
+          iconLabelButton(ctx, action.rect, action.label, 'ghost', action.icon)
         })
         const canHit =
           !this.busy() &&
@@ -724,12 +717,12 @@ export class DuelScene {
           ((action.kind === 'restart' && this.match.phase === 'answering') ||
             (action.kind === 'next' && this.match.phase === 'thinking'))
         if (canHit) {
-          this.hits.push({ rect, hit: { kind: action.kind } as Hit })
+          this.hits.push({ rect: action.rect, hit: { kind: action.kind } as Hit })
         }
       }
     })
     if (this.includeUnsolvable && this.pageChrome() === 'answering') {
-      const noSolution = { x: difficulty.x, y: actionY, w: cellW, h: actionH }
+      const noSolution = layout.unsolvable
       withButtonScale(ctx, noSolution, this.press.scale('declare-unsolvable', t), () => {
         menuButton(ctx, noSolution, '本题无解', 'ghost')
       })
@@ -881,10 +874,11 @@ export class DuelScene {
       text(ctx, this.hint, hint.x, hint.y, 14, Color.coral, 'left', '500')
     }
 
-    this.drawBuzzRow(ctx, { x: 0, w: width }, 0, t, {
+    this.drawBuzzRow(ctx, t, {
       red: battle.redBuzz,
       blue: battle.blueBuzz,
       score: battle.score,
+      chrome: 'wide',
     })
 
     if (this.showDifficulty && this.match.phase === 'thinking') {
@@ -1005,26 +999,16 @@ export class DuelScene {
 
   private drawBuzzRow(
     ctx: CanvasRenderingContext2D,
-    play: { x: number; w: number },
-    y: number,
     t: number,
-    placed?: { red: Rect; blue: Rect; score: Rect },
+    placed: { red: Rect; blue: Rect; score: Rect; tip?: Rect; chrome: 'wide' | 'stacked' },
   ) {
-    const scoreH = SCORE_H
-    const buzzBtnH = BUZZ_H
-    const buzzGap = BUZZ_GAP
-    const gap = 16
-    const inset = 16
-    const rowW = play.w - inset * 2
-    const rowX = play.x + inset
-    const sideW = (rowW - gap) / 2
-    const buttonY = y + scoreH + buzzGap
-    const redRect = placed ? placed.red : { x: rowX, y: buttonY, w: sideW, h: buzzBtnH }
-    const blueRect = placed ? placed.blue : { x: rowX + sideW + gap, y: buttonY, w: sideW, h: buzzBtnH }
-    const scoreRect = placed ? placed.score : { x: rowX, y, w: rowW, h: scoreH }
-    const tipY = redRect.y + redRect.h + 16
-    const buzzLabelSize = placed ? 16 : 20
-    const countSize = placed ? 18 : 22
+    const redRect = placed.red
+    const blueRect = placed.blue
+    const scoreRect = placed.score
+    const tipY = placed.tip ? placed.tip.y + placed.tip.h / 2 : redRect.y + redRect.h + 16
+    const wideChrome = placed.chrome === 'wide'
+    const buzzLabelSize = wideChrome ? 16 : 20
+    const countSize = wideChrome ? 18 : 22
     const showResignTip = t - this.resignTipAt < RESIGN_TIP_MS
     const redPaint = { fill: ['#FF8E7D', '#FF7464'] as const, stroke: '#E85A4F' }
     const bluePaint = { fill: ['#8CAEF0', '#769FED'] as const, stroke: '#5F85D8' }
@@ -1048,7 +1032,7 @@ export class DuelScene {
       labelScale = 1,
     ) => {
       withButtonScale(ctx, rect, scale, () => {
-        paintHomePill(ctx, rect, paint.fill, paint.stroke, placed ? 16 : undefined)
+        paintHomePill(ctx, rect, paint.fill, paint.stroke, wideChrome ? 16 : undefined)
         const cy = rect.y + rect.h / 2
         const cx = rect.x + rect.w / 2
         ctx.save()

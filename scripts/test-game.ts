@@ -6,7 +6,9 @@ import {
   dialogRect,
 } from '../js/scenes/dialog'
 import { tableLayout } from '../js/scenes/board'
+import { selectDuelLayout } from '../js/scenes/duel-stacked'
 import { duelWideLayout } from '../js/scenes/duel-wide'
+import { homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
   applyOp,
@@ -612,14 +614,19 @@ function testTableLayout() {
   const narrow = tableLayout(200, 700, 72, 34)
   assert(narrow.cardW < 90 && narrow.fontSize === 26, 'narrow screens shrink the cards and the number')
 
-  const phoneDuel = tableLayout(390, 844, 72, 34, 150)
-  assert(phoneDuel.slots[0].y === phone.slots[0].y && phoneDuel.opY === phone.opY, 'phone duel keeps the same card and operator rows')
-
   const wide = tableLayout(900, 900, 80, 34)
-  const wideDuel = tableLayout(900, 900, 80, 34, 150)
   assert(wide.frame.side !== null && wide.cardW === 120, 'wide screens keep the phone card size in the left column')
-  assert(wideDuel.slots[0].y < wide.slots[0].y && wideDuel.opY < wide.opY, 'wide duel lifts the cards to leave room for the buzz row')
-  assert(wideDuel.opY === wideDuel.slots[2].y + wideDuel.slots[2].h + 28, 'duel operators still sit 28 below the cards')
+  assert(wide.slots[0].y > 80, 'wide solo cards drop below the top clearance')
+  const wideBottom = wide.opY + wide.opH
+  const wideCenter = (wide.slots[0].y + wideBottom) / 2
+  assert(Math.abs(wideCenter - (80 + (900 - 34)) / 2) < 0.5, 'wide solo block is centered in the safe band')
+  assert(wide.opY === wide.slots[2].y + wide.slots[2].h + 28, 'wide solo operators sit 28 below the cards')
+
+  const fitted = tableLayout(430, 707, 72, 34)
+  assert(fitted.frame.side === null && fitted.cardW === 120, '430x707 keeps the standard card when it fits')
+  assert(fitted.ops[0].y + fitted.ops[0].h <= fitted.actionY, '430x707 operators stay above the action row')
+  assert(fitted.actionY + fitted.actionH <= fitted.barY, '430x707 actions stay above the bar')
+  assert(fitted.barY + fitted.barH <= 707 - 34, '430x707 bar stays above the safe area')
 }
 
 function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
@@ -652,25 +659,31 @@ function testSettingsLayout() {
 
 function testDuelWideLayout() {
   assert(duelWideLayout(390, 844, 72, 34) === null, 'phone keeps the existing duel layout')
-  const layout = duelWideLayout(940, 665, 72, 34)
-  assert(layout !== null, '940x665 uses the wide duel layout')
+  assertWideDuel(940, 665)
+  assertWideDuel(1194, 834)
+}
+
+function assertWideDuel(width: number, height: number) {
+  const layout = duelWideLayout(width, height, 72, 34)
+  assert(layout !== null, `${width}x${height} uses the wide duel layout`)
   if (!layout) {
     return
   }
+  const center = width / 2
   const cardsLeft = layout.slots[0].x
   const cardsRight = layout.slots[1].x + layout.slots[1].w
-  assert(Math.abs((cardsLeft + cardsRight) / 2 - 470) < 0.5, 'cards are centered on the screen')
+  assert(Math.abs((cardsLeft + cardsRight) / 2 - center) < 0.5, 'cards are centered on the screen')
   const { redBuzz, blueBuzz, score } = layout.battle
   assert(redBuzz.w === blueBuzz.w && redBuzz.h === blueBuzz.h, 'buzz buttons match in size')
   assert(Math.abs(redBuzz.y + redBuzz.h / 2 - (blueBuzz.y + blueBuzz.h / 2)) < 0.5, 'buzz buttons share a center line')
-  assert(Math.abs(redBuzz.x - (940 - (blueBuzz.x + blueBuzz.w))) < 0.5, 'buzz buttons share the side margin')
-  assert(Math.abs(score.x + score.w / 2 - 470) < 0.5, 'score is centered')
+  assert(Math.abs(redBuzz.x - (width - (blueBuzz.x + blueBuzz.w))) < 0.5, 'buzz buttons share the side margin')
+  assert(Math.abs(score.x + score.w / 2 - center) < 0.5, 'score is centered')
   const buttons = layout.utility
   const buttonSpanRight = buttons.restart.x + buttons.restart.w
   assert(Math.abs(buttons.answer.x - (layout.ops[0].x - buttonSpanRight)) < 0.5, 'utility buttons have equal side gaps')
   const statsRight = layout.stats.rounds.x + layout.stats.rounds.w
   const divideRight = layout.ops[3].x + layout.ops[3].w
-  assert(Math.abs(layout.stats.rounds.x - divideRight - (940 - statsRight)) < 0.5, 'stats cards have equal side gaps')
+  assert(Math.abs(layout.stats.rounds.x - divideRight - (width - statsRight)) < 0.5, 'stats cards have equal side gaps')
   const buttonCenter = (buttons.answer.x + buttonSpanRight) / 2
   assert(Math.abs(redBuzz.x + redBuzz.w / 2 - buttonCenter) < 0.5, 'the red buzz button centers on the utility buttons')
   assert(buttons.answer.y === buttons.restart.y, 'the first utility row lines up')
@@ -699,14 +712,14 @@ function testDuelWideLayout() {
     ...layout.ops,
   ]
   for (const rect of rects) {
-    assert(rect.x >= 0 && rect.y >= 16 && rect.x + rect.w <= 940 && rect.y + rect.h <= 665 - 34, 'wide rect stays on screen')
+    assert(rect.x >= 0 && rect.y >= 16 && rect.x + rect.w <= width && rect.y + rect.h <= height - 34, 'wide rect stays on screen')
   }
   for (let i = 0; i < rects.length; i += 1) {
     for (let j = i + 1; j < rects.length; j += 1) {
       assert(!overlaps(rects[i], rects[j]), 'wide rects do not overlap')
     }
   }
-  const again = duelWideLayout(940, 665, 72, 34)
+  const again = duelWideLayout(width, height, 72, 34)
   assert(
     again !== null && again.utility.restart.x === buttons.restart.x && again.battle.score.x === score.x && again.battle.blueBuzz.x === blueBuzz.x,
     'hidden buttons do not move the other slots or the score',
@@ -724,6 +737,125 @@ function testDuelWideLayout() {
   assert(layout.ops[0].x - (buttons.restart.x + buttons.restart.w) >= 48, 'utility buttons stay clear of the plus operator')
   const cardAreaW = layout.slots[1].x + layout.slots[1].w - layout.slots[0].x
   assert(Math.abs(score.w - cardAreaW) < 0.5, 'the scoreboard matches the card area width')
+}
+
+function testDuelStackedLayout() {
+  const sizes = [
+    [375, 667],
+    [390, 844],
+    [430, 707],
+    [1024, 1366],
+  ] as const
+  for (const [width, height] of sizes) {
+    const page = selectDuelLayout(width, height, 72, 34)
+    assert(page.kind === 'stacked', `${width}x${height} uses the stacked duel layout`)
+    if (page.kind !== 'stacked') {
+      continue
+    }
+    const layout = page.stacked
+    assert(layout.columnW <= 430, `${width}x${height} content stays within 430`)
+    assert(Math.abs(layout.columnX - (width - layout.columnW) / 2) < 0.5, `${width}x${height} column is centered`)
+    const rects = [
+      ...layout.slots,
+      ...layout.ops,
+      layout.score,
+      layout.redBuzz,
+      layout.blueBuzz,
+      layout.concede,
+      layout.restart,
+      layout.unsolvable,
+      layout.next,
+      layout.answer,
+      layout.difficulty,
+      layout.settings,
+    ]
+    for (const rect of rects) {
+      assert(rect.y >= 72 - 0.05 && rect.y + rect.h <= height - 34 + 0.05, `${width}x${height} rect stays in the safe band`)
+      assert(rect.x >= layout.columnX - 0.05 && rect.x + rect.w <= layout.columnX + layout.columnW + 0.05, `${width}x${height} rect stays in the column`)
+    }
+    for (let i = 0; i < rects.length; i += 1) {
+      for (let j = i + 1; j < rects.length; j += 1) {
+        assert(!overlaps(rects[i], rects[j]), `${width}x${height} rects do not overlap`)
+      }
+    }
+  }
+
+  const phone = selectDuelLayout(390, 844, 72, 34)
+  assert(phone.kind === 'stacked' && phone.stacked.cardW === 120, '390x844 cards stay at 120')
+  assert(phone.kind === 'stacked' && phone.stacked.slots[0].y === 72, '390x844 cards start at minTop')
+
+  const tight = selectDuelLayout(375, 667, 72, 34)
+  assert(tight.kind === 'stacked' && tight.stacked.cardW === 92, '375x667 cards hit the floor')
+  assert(tight.kind === 'stacked' && Math.abs(tight.stacked.gapCardOp - 8) < 0.05, '375x667 card gap reaches 8')
+  assert(tight.kind === 'stacked' && Math.abs(tight.stacked.gapActionBar - 8) < 0.05, '375x667 action gap reaches 8')
+  assert(tight.kind === 'stacked' && tight.stacked.score.h === 44 && tight.stacked.redBuzz.h === 44, '375x667 controls hit 44')
+
+  const ipad = selectDuelLayout(834, 1112, 72, 34)
+  assert(ipad.kind === 'stacked' && ipad.stacked.slots[0].y === 72, '834x1112 duel cards stay at minTop')
+  if (ipad.kind === 'stacked') {
+    const board = ipad.stacked
+    const opBottom = board.ops[0].y + board.ops[0].h
+    const blockTop = board.score.y
+    const blockBottom = board.concede.y + board.concede.h
+    const regionCenter = (opBottom + board.next.y) / 2
+    const blockCenter = (blockTop + blockBottom) / 2
+    assert(Math.abs(blockCenter - regionCenter) < 0.5, '834x1112 score and buzz sit in the middle of the open band')
+    const scoreGap = board.redBuzz.y - (board.score.y + board.score.h)
+    assert(scoreGap > 16 && scoreGap <= 16 + 48 + 0.05, '834x1112 opens the score-to-buzz gap')
+    assert(board.score.y > opBottom && blockBottom <= board.next.y + 0.05, '834x1112 score block stays between the operators and the next button')
+  }
+
+  assert(selectDuelLayout(1024, 1366, 72, 34).kind === 'stacked', 'portrait iPad does not use three columns')
+  assert(duelWideLayout(1024, 1366, 72, 34) !== null, 'the wide function would fit a portrait iPad')
+  const mid = selectDuelLayout(800, 600, 72, 34)
+  assert(mid.kind === 'stacked' && mid.stacked.columnW <= 430, '748-927 landscape falls back to the centered column')
+  assert(duelWideLayout(800, 600, 72, 34) === null, '800x600 cannot hold three columns')
+}
+
+function testHomeLayout() {
+  const fanBottom = 183.5
+  const shortAnchor = homeTitleAnchor(375, 667, fanBottom)
+  const short = homeLayout({
+    width: 375,
+    height: 667,
+    titleY: shortAnchor.titleY,
+    titleSize: shortAnchor.titleSize,
+    fanBottom,
+    bottomPad: 34,
+  })
+  assert(short.start.y - (short.challengeY + 7.5) >= 40, 'short home keeps 40px under the challenge line')
+  assert(short.split >= 32 - 0.05, 'short home keeps the duel-to-howto floor')
+  assert(short.settings.y === 667 - 34 - 56, 'short home keeps settings on the bottom')
+  assert(short.primaryH === 56 && short.gapGame === 20 && short.gapUtility === 16, 'short home compresses the button sizes before the title gap')
+  assert(short.titleY <= shortAnchor.titleY, 'short home only lifts the title when the gaps are already tight')
+  assert(short.start.y + short.start.h <= short.duel.y + 0.05, 'short home keeps solo above duel')
+
+  const tallAnchor = homeTitleAnchor(390, 844, fanBottom)
+  const tall = homeLayout({
+    width: 390,
+    height: 844,
+    titleY: tallAnchor.titleY,
+    titleSize: tallAnchor.titleSize,
+    fanBottom,
+    bottomPad: 34,
+  })
+  assert(Math.abs(tall.start.y - (tall.challengeY + 7.5 + 48)) < 0.05, 'tall home keeps 48px under the challenge line')
+  assert(tall.gapGame === 28 && tall.gapUtility === 20, 'tall home keeps the standard button gaps')
+  assert(tall.split > 90, 'tall home leaves the spare gap above the help and settings buttons')
+  assert(tall.primaryH === 64 && tall.titleY === tallAnchor.titleY, 'tall home leaves the title and primary buttons alone')
+  assert(tall.settings.y === 844 - 34 - 56, 'tall home keeps settings on the bottom')
+  assert(tall.start.w === 280, 'home buttons stay 280 wide')
+
+  const narrowAnchor = homeTitleAnchor(300, 844, fanBottom)
+  const narrow = homeLayout({
+    width: 300,
+    height: 844,
+    titleY: narrowAnchor.titleY,
+    titleSize: narrowAnchor.titleSize,
+    fanBottom,
+    bottomPad: 34,
+  })
+  assert(narrow.start.w === 252, 'narrow home buttons shrink with the screen')
 }
 
 function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
@@ -749,4 +881,6 @@ testDialogShell()
 testTableLayout()
 testSettingsLayout()
 testDuelWideLayout()
+testDuelStackedLayout()
+testHomeLayout()
 console.log('game tests passed')

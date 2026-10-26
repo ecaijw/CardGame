@@ -69,34 +69,194 @@ export function playFrame(width: number): {
   return { play, side: { x: sideX, w: width - sideX - edge } }
 }
 
-export function tableLayout(
-  width: number,
-  height: number,
-  minTop: number,
-  bottomPad: number,
-  extraBelow = 0,
-) {
+export type TableFitKind = 'solo' | 'duel' | 'wide'
+
+export type TableFit = {
+  cardW: number
+  cardH: number
+  cardGap: number
+  fontSize: number
+  gapCardOp: number
+  gapAfterOp: number
+  gapActionBar: number
+  opH: number
+  barH: number
+  actionH: number
+  scoreH: number
+  buzzH: number
+  concedeH: number
+  scoreBuzzGap: number
+}
+
+type FitRaw = {
+  cardPref: number
+  cardGap: number
+  gapCardOp: number
+  gapAfterOp: number
+  gapActionBar: number
+  actionH: number
+  scoreH: number
+  buzzH: number
+  concedeH: number
+  scoreBuzzGap: number
+}
+
+const FIT_STANDARD: FitRaw = {
+  cardPref: 120,
+  cardGap: 16,
+  gapCardOp: 28,
+  gapAfterOp: 16,
+  gapActionBar: 12,
+  actionH: 44,
+  scoreH: 58,
+  buzzH: 52,
+  concedeH: 24,
+  scoreBuzzGap: 16,
+}
+
+const FIT_CARDS: FitRaw = { ...FIT_STANDARD, cardPref: 92, cardGap: 10 }
+
+const FIT_GAPS: FitRaw = { ...FIT_CARDS, gapCardOp: 10, gapAfterOp: 10, gapActionBar: 10 }
+
+// Score-to-buzz loses 2px once those controls hit the floor, so 375×667 can
+// finish at gap 8 and still clear the safe area.
+const FIT_CONTROLS: FitRaw = {
+  ...FIT_GAPS,
+  scoreH: 44,
+  buzzH: 44,
+  actionH: 44,
+  concedeH: 16,
+  scoreBuzzGap: 14,
+}
+
+const FIT_TIGHT: FitRaw = { ...FIT_CONTROLS, gapCardOp: 8, gapAfterOp: 8, gapActionBar: 8 }
+
+const FIT_STAGES: FitRaw[] = [FIT_STANDARD, FIT_CARDS, FIT_GAPS, FIT_CONTROLS, FIT_TIGHT]
+
+function lerp(start: number, end: number, t: number) {
+  return start + (end - start) * t
+}
+
+function mixFit(start: FitRaw, end: FitRaw, t: number): FitRaw {
+  return {
+    cardPref: lerp(start.cardPref, end.cardPref, t),
+    cardGap: lerp(start.cardGap, end.cardGap, t),
+    gapCardOp: lerp(start.gapCardOp, end.gapCardOp, t),
+    gapAfterOp: lerp(start.gapAfterOp, end.gapAfterOp, t),
+    gapActionBar: lerp(start.gapActionBar, end.gapActionBar, t),
+    actionH: lerp(start.actionH, end.actionH, t),
+    scoreH: lerp(start.scoreH, end.scoreH, t),
+    buzzH: lerp(start.buzzH, end.buzzH, t),
+    concedeH: lerp(start.concedeH, end.concedeH, t),
+    scoreBuzzGap: lerp(start.scoreBuzzGap, end.scoreBuzzGap, t),
+  }
+}
+
+function metricsAt(raw: FitRaw, columnW: number): TableFit {
+  const cardW = Math.max(0, Math.min(raw.cardPref, (columnW - 48 - raw.cardGap) / 2))
+  return {
+    cardW,
+    cardH: cardW * (88 / 63),
+    cardGap: raw.cardGap,
+    fontSize: cardW > 90 ? 32 : 26,
+    gapCardOp: raw.gapCardOp,
+    gapAfterOp: raw.gapAfterOp,
+    gapActionBar: raw.gapActionBar,
+    opH: 56,
+    barH: 52,
+    actionH: raw.actionH,
+    scoreH: raw.scoreH,
+    buzzH: raw.buzzH,
+    concedeH: raw.concedeH,
+    scoreBuzzGap: raw.scoreBuzzGap,
+  }
+}
+
+export function tableOccupies(fit: TableFit, kind: TableFitKind) {
+  const head = fit.cardH * 2 + fit.cardGap + fit.gapCardOp + fit.opH + fit.gapAfterOp
+  if (kind === 'wide') {
+    const pair = Math.max(fit.scoreH, fit.buzzH)
+    return head + (pair + fit.buzzH) / 2 + fit.concedeH
+  }
+  const tail = fit.actionH + fit.gapActionBar + fit.barH
+  if (kind === 'solo') {
+    return head + tail
+  }
+  return head + fit.scoreH + fit.scoreBuzzGap + fit.buzzH + fit.concedeH + tail
+}
+
+export function fitTable(
+  columnW: number,
+  available: number,
+  kind: TableFitKind,
+): { fit: TableFit; fits: boolean } {
+  const occupy = (raw: FitRaw) => tableOccupies(metricsAt(raw, columnW), kind)
+  const finish = (raw: FitRaw): { fit: TableFit; fits: boolean } => {
+    const fit = metricsAt(raw, columnW)
+    const extra = tableOccupies(fit, kind) - available
+    if (extra <= 0.5 && fit.gapAfterOp - extra >= 0) {
+      return { fit: { ...fit, gapAfterOp: fit.gapAfterOp - extra }, fits: true }
+    }
+    return { fit, fits: false }
+  }
+  if (occupy(FIT_STAGES[0]) <= available) {
+    return finish(FIT_STAGES[0])
+  }
+  for (let index = 1; index < FIT_STAGES.length; index += 1) {
+    const start = FIT_STAGES[index - 1]
+    const end = FIT_STAGES[index]
+    if (occupy(end) > available) {
+      continue
+    }
+    let lo = 0
+    let hi = 1
+    for (let step = 0; step < 24; step += 1) {
+      const mid = (lo + hi) / 2
+      if (occupy(mixFit(start, end, mid)) <= available) {
+        hi = mid
+      } else {
+        lo = mid
+      }
+    }
+    return finish(mixFit(start, end, hi))
+  }
+  return finish(FIT_STAGES[FIT_STAGES.length - 1])
+}
+
+export function tableLayout(width: number, height: number, minTop: number, bottomPad: number) {
   const frame = playFrame(width)
-  const gap = 16
-  const cardW = Math.min(120, (frame.play.w - 48 - gap) / 2)
-  const cardH = cardW * (88 / 63)
-  const fontSize = cardW > 90 ? 32 : 26
-  const opH = 56
-  const belowCards = 28
-  const stackH = cardH * 2 + gap + belowCards + opH + extraBelow
-  const floorTop = height - bottomPad - stackH
-  const topY = frame.side ? minTop + Math.max(0, floorTop - minTop) * 0.42 : minTop
-  const slots = slotRects(frame.play.x, frame.play.w, topY, cardW, cardH, gap)
+  const { fit } = fitTable(frame.play.w, height - minTop - bottomPad, 'solo')
+  const packedH = fit.cardH * 2 + fit.cardGap + fit.gapCardOp + fit.opH
+  const band = height - bottomPad - minTop
+  const topY = frame.side && band > packedH ? minTop + (band - packedH) / 2 : minTop
+  const slots = slotRects(frame.play.x, frame.play.w, topY, fit.cardW, fit.cardH, fit.cardGap)
   const opGap = 12
   const opW = (frame.play.w - 32 - opGap * 3) / 4
-  const opY = slots[2].y + slots[2].h + belowCards
+  const opY = slots[2].y + slots[2].h + fit.gapCardOp
   const ops = [0, 1, 2, 3].map((index) => ({
     x: frame.play.x + 16 + index * (opW + opGap),
     y: opY,
     w: opW,
-    h: opH,
+    h: fit.opH,
   }))
-  return { frame, cardW, cardH, fontSize, slots, ops, opY, opH }
+  const barY = frame.side ? opY : height - bottomPad - fit.barH
+  const actionY = barY - fit.gapActionBar - fit.actionH
+  return {
+    frame,
+    cardW: fit.cardW,
+    cardH: fit.cardH,
+    fontSize: fit.fontSize,
+    slots,
+    ops,
+    opY,
+    opH: fit.opH,
+    actionY,
+    actionH: fit.actionH,
+    barY,
+    barH: fit.barH,
+    gapCardOp: fit.gapCardOp,
+    gapActionBar: fit.gapActionBar,
+  }
 }
 
 export function slotRects(

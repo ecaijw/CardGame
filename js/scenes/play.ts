@@ -476,7 +476,7 @@ export class PlayScene {
 
     const minTop = Math.max(72, capsuleBottom() + 16)
     const table = tableLayout(width, height, minTop, bottomBarPad())
-    const { frame, fontSize, slots, opY, opH } = table
+    const { frame, fontSize, slots, opY, opH, actionY, actionH, barY, barH } = table
     this.drawBoard(ctx, slots, fontSize, t)
 
     table.ops.forEach((rect, index) => {
@@ -488,8 +488,6 @@ export class PlayScene {
     })
 
     const current = DIFFICULTY_FILTERS.find((item) => item.filter === this.filter)
-    const barH = 52
-    const barY = frame.side ? opY : height - bottomBarPad() - barH
     const bar = frame.side
       ? { x: frame.side.x, y: barY, w: frame.side.w, h: barH }
       : { x: 20, y: barY, w: width - 40, h: barH }
@@ -497,8 +495,6 @@ export class PlayScene {
     const answer = { x: bar.x, y: bar.y, w: cellW, h: bar.h }
     const difficulty = { x: bar.x + cellW, y: bar.y, w: cellW, h: bar.h }
     const settings = { x: bar.x + cellW * 2, y: bar.y, w: cellW, h: bar.h }
-    const actionH = 44
-    const actionY = barY - 12 - actionH
     const dealActions: Array<{
       label: string
       kind: Hit['kind']
