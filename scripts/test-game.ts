@@ -7,6 +7,7 @@ import {
 } from '../js/scenes/dialog'
 import { tableLayout } from '../js/scenes/board'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
+import { scoreCompact, scoreInk } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
 import { homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
@@ -633,6 +634,62 @@ function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: num
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 }
 
+function scoreColumns(
+  rect: { x: number; w: number },
+  compact: boolean,
+  redRect?: { x: number; w: number },
+  blueRect?: { x: number; w: number },
+) {
+  return {
+    redX: compact || !redRect ? rect.x + rect.w * 0.28 : redRect.x + redRect.w / 2,
+    blueX: compact || !blueRect ? rect.x + rect.w * 0.72 : blueRect.x + blueRect.w / 2,
+  }
+}
+
+function scoreTextInside(
+  rect: { x: number; y: number; w: number; h: number },
+  compact: boolean,
+  redRect?: { x: number; w: number },
+  blueRect?: { x: number; w: number },
+) {
+  const ink = scoreInk(rect, compact)
+  const { redX, blueX } = scoreColumns(rect, compact, redRect, blueRect)
+  const labelTop = ink.labelY - ink.labelSize / 2
+  const scoreBottom = ink.scoreY + ink.scoreSize / 2
+  const centerY = rect.y + rect.h / 2
+  const labelHalf = ink.labelSize
+  const scoreHalf = ink.scoreSize * 0.6
+  return (
+    labelTop >= rect.y - 0.05 &&
+    scoreBottom <= rect.y + rect.h + 0.05 &&
+    centerY - ink.vsRadius >= rect.y - 0.05 &&
+    centerY + ink.vsRadius <= rect.y + rect.h + 0.05 &&
+    redX - labelHalf >= rect.x - 0.05 &&
+    blueX + labelHalf <= rect.x + rect.w + 0.05 &&
+    redX - scoreHalf >= rect.x - 0.05 &&
+    blueX + scoreHalf <= rect.x + rect.w + 0.05
+  )
+}
+
+function assertFullScore(
+  rect: { x: number; y: number; w: number; h: number },
+  compact: boolean,
+  label: string,
+  redRect?: { x: number; w: number },
+  blueRect?: { x: number; w: number },
+) {
+  const ink = scoreInk(rect, compact)
+  assert(rect.h === 58, `${label} scoreboard stays at 58`)
+  if (compact) {
+    assert(ink.labelSize === 10 && ink.scoreSize === 20 && ink.vsRadius === 18, `${label} keeps the compact type`)
+    assert(ink.labelY === rect.y + 16 && ink.scoreY === rect.y + 40, `${label} keeps the compact rows`)
+  } else {
+    assert(ink.labelSize === 11 && ink.scoreSize === 29 && ink.vsRadius === 18, `${label} keeps the phone type`)
+    assert(ink.labelY === rect.y + 14 && ink.scoreY === rect.y + 39, `${label} keeps the phone rows`)
+  }
+  assert(scoreTextInside(rect, compact, redRect, blueRect), `${label} text stays inside the pill`)
+}
+
 function testSettingsLayout() {
   const phone = settingsLayout(390, 844, 72)
   assert(!phone.wide && phone.audio !== null, 'phone settings stay in one column')
@@ -812,6 +869,61 @@ function testDuelStackedLayout() {
   assert(duelWideLayout(800, 600, 72, 34) === null, '800x600 cannot hold three columns')
 }
 
+function testScoreInk() {
+  assert(!scoreCompact('stacked'), 'stacked uses the phone type')
+  assert(scoreCompact('wide'), 'wide uses the compact type')
+
+  const fold = selectDuelLayout(460, 672, 72, 34)
+  assert(fold.kind === 'stacked' && fold.stacked.score.h <= 44.05, '460x672 scoreboard is at the short height')
+  if (fold.kind === 'stacked') {
+    const compact = scoreCompact('stacked')
+    assert(
+      scoreTextInside(fold.stacked.score, compact, fold.stacked.redBuzz, fold.stacked.blueBuzz),
+      '460x672 scoreboard text stays inside the pill',
+    )
+  }
+
+  const tight = selectDuelLayout(375, 667, 72, 34)
+  assert(tight.kind === 'stacked' && tight.stacked.score.h === 44, '375x667 scoreboard is at the floor')
+  if (tight.kind === 'stacked') {
+    const compact = scoreCompact('stacked')
+    assert(
+      scoreTextInside(tight.stacked.score, compact, tight.stacked.redBuzz, tight.stacked.blueBuzz),
+      '375x667 scoreboard text stays inside the pill',
+    )
+  }
+
+  const phone = selectDuelLayout(390, 844, 72, 34)
+  assert(phone.kind === 'stacked', '390x844 uses the stacked duel layout')
+  if (phone.kind === 'stacked') {
+    assertFullScore(phone.stacked.score, scoreCompact('stacked'), '390x844', phone.stacked.redBuzz, phone.stacked.blueBuzz)
+  }
+
+  const wide = selectDuelLayout(940, 665, 72, 34)
+  assert(wide.kind === 'wide', '940x665 uses the three-column duel layout')
+  if (wide.kind === 'wide') {
+    assertFullScore(wide.wide.battle.score, scoreCompact('wide'), '940x665')
+  }
+
+  const fullScore = { x: 20, y: 400, w: 350, h: 58 }
+  assertFullScore(fullScore, false, 'a stacked 58px scoreboard')
+  assertFullScore(fullScore, true, 'a wide 58px scoreboard')
+  const shortScore = { x: 20, y: 400, w: 350, h: 44 }
+  assert(scoreTextInside(shortScore, true), 'compact type on a short scoreboard stays inside')
+  assert(scoreTextInside(shortScore, false), 'phone type on a short scoreboard stays inside too')
+
+  const board = fold.kind === 'stacked' ? fold.stacked.score : fullScore
+  const redBuzz = fold.kind === 'stacked' ? fold.stacked.redBuzz : undefined
+  const blueBuzz = fold.kind === 'stacked' ? fold.stacked.blueBuzz : undefined
+  const compact = scoreCompact('stacked')
+  const columns = scoreColumns(board, compact, redBuzz, blueBuzz)
+  for (const pair of ['0:0', '4:3'] as const) {
+    const again = scoreColumns(board, compact, redBuzz, blueBuzz)
+    assert(again.redX === columns.redX && again.blueX === columns.blueX, `${pair} keeps the same score columns`)
+    assert(scoreTextInside(board, compact, redBuzz, blueBuzz), `${pair} stays inside the scoreboard`)
+  }
+}
+
 function testHomeLayout() {
   const fanBottom = 183.5
   const shortAnchor = homeTitleAnchor(375, 667, fanBottom)
@@ -882,5 +994,6 @@ testTableLayout()
 testSettingsLayout()
 testDuelWideLayout()
 testDuelStackedLayout()
+testScoreInk()
 testHomeLayout()
 console.log('game tests passed')

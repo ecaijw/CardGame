@@ -105,6 +105,34 @@ const HEARTBEAT_MS = 150
 const FINGER_PERIOD_MS = 3000
 const RESIGN_TIP_MS = 3000
 const FINGER_SHOW_MS = 1200
+const SCORE_FULL_H = 58
+
+export type ScoreInk = {
+  labelSize: number
+  scoreSize: number
+  labelY: number
+  scoreY: number
+  vsSize: number
+  vsRadius: number
+}
+
+// Rows are designed for a 58px board. Shorter boards scale those rows so the
+// labels, scores, and VS badge stay inside the pill.
+export function scoreCompact(chrome: 'wide' | 'stacked') {
+  return chrome === 'wide'
+}
+
+export function scoreInk(rect: Rect, compact: boolean): ScoreInk {
+  const scale = rect.h >= SCORE_FULL_H ? 1 : rect.h / SCORE_FULL_H
+  return {
+    labelSize: (compact ? 10 : 11) * scale,
+    scoreSize: (compact ? 20 : 29) * scale,
+    labelY: rect.y + (compact ? 16 : 14) * scale,
+    scoreY: rect.y + (compact ? 40 : 39) * scale,
+    vsSize: (compact ? 11 : 12) * scale,
+    vsRadius: 18 * scale,
+  }
+}
 
 type Hit =
   | { kind: 'card'; id: number }
@@ -1107,7 +1135,7 @@ export class DuelScene {
       }
     }
 
-    this.drawScore(ctx, scoreRect, redRect, blueRect, Boolean(placed))
+    this.drawScore(ctx, scoreRect, redRect, blueRect, scoreCompact(placed.chrome))
   }
 
   private fingerPress(t: number) {
@@ -1187,11 +1215,8 @@ export class DuelScene {
     const centerY = rect.y + rect.h / 2
     const redX = compact ? rect.x + rect.w * 0.28 : redRect.x + redRect.w / 2
     const blueX = compact ? rect.x + rect.w * 0.72 : blueRect.x + blueRect.w / 2
-    const labelSize = compact ? 10 : 11
-    const scoreSize = compact ? 20 : 29
-    const labelY = compact ? rect.y + 16 : rect.y + 14
-    const scoreY = compact ? rect.y + 40 : rect.y + 39
-    const vsSize = compact ? 11 : 12
+    const ink = scoreInk(rect, compact)
+    const { labelSize, scoreSize, labelY, scoreY, vsSize, vsRadius } = ink
 
     ctx.save()
     ctx.shadowColor = 'rgba(47, 107, 79, 0.14)'
@@ -1234,7 +1259,7 @@ export class DuelScene {
     ctx.shadowBlur = 6
     ctx.shadowOffsetY = 2
     ctx.beginPath()
-    ctx.arc(centerX, centerY, 18, 0, Math.PI * 2)
+    ctx.arc(centerX, centerY, vsRadius, 0, Math.PI * 2)
     ctx.fillStyle = '#2F6B57'
     ctx.fill()
     ctx.restore()
