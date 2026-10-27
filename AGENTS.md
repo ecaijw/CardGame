@@ -5,10 +5,11 @@
 ## 流程
 
 1. 开新的一期（或新对话继续下一期）之前，先提醒沉淀：跑测试、对齐文档、写或更新**当期** handoff。不要直接扩功能。平时关掉问题并提交代码后，不要为了写 commit id 再改、再提交 [docs/test.md](docs/test.md) 或 handoff。只在本期完成、做沉淀时，一次性给当期已 close、且结论是「修改代码」的条目补上短提交号和 GitHub 链接。[docs/test.md](docs/test.md) 里放在结束日期下面：`日期<br>[短号](https://github.com/ecaijw/CardGame/commit/短号)`。handoff 没有这一列，写在该条末尾。不 `amend`。
-2. 未经我明确确认，不要 `git commit` 或 `git push`。写完代码、文档或交接后停在工作区，等我要求再提交。
-3. 开始做新功能时，若工作区已有未提交改动（尤其会和新功能改到同一批文件），先停下来问我：要不要先提交当前文件，避免两个功能混在一次提交里。
-4. 改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
-5. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`、`docs/phase-1-handoff.md`、`docs/phase-2-handoff.md`、`docs/phase-2.2-handoff.md`）。第 2.1 期上线仍进行中，进展写入 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)。第 2.3 期进行中，进展写入 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)，并同步 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)。结束并冻结后，再新建下一份 `docs/phase-N-handoff.md`。
+2. 开始改 [docs/test.md](docs/test.md) 里的某一条时，先把该条移到「close的问题」：状态 `close`，结论「修改代码」，结束日期写当天。不要等提交前再搬。提交号仍按第 1 条，等本期沉淀再补。若后来决定不改代码，再改结论（`won't fix` / `not a bug`）或搬回未结束表。
+3. 未经我明确确认，不要 `git commit` 或 `git push`。写完代码、文档或交接后停在工作区，等我要求再提交。
+4. 开始做新功能时，若工作区已有未提交改动（尤其会和新功能改到同一批文件），先停下来问我：要不要先提交当前文件，避免两个功能混在一次提交里。
+5. 改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
+6. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`、`docs/phase-1-handoff.md`、`docs/phase-2-handoff.md`、`docs/phase-2.2-handoff.md`）。第 2.1 期上线仍进行中，进展写入 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)。第 2.3 期进行中，进展写入 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)，并同步 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)。结束并冻结后，再新建下一份 `docs/phase-N-handoff.md`。
 
 ## 编码
 
