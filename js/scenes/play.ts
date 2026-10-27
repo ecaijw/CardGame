@@ -15,6 +15,7 @@ import {
   drawSuccessBurst,
   panelCard,
   tableLayout,
+  soloCopyMode,
   type Face,
   type Motion,
 } from './board'
@@ -82,6 +83,7 @@ type Hit =
   | { kind: 'toggle-unsolvable' }
   | { kind: 'declare-unsolvable' }
   | { kind: 'notice-close' }
+  | { kind: 'copy-dismiss' }
   | { kind: 'dialog-restart' }
   | { kind: 'dialog-next' }
   | { kind: 'settings' }
@@ -111,6 +113,7 @@ export class PlayScene {
   private queuedMerge: { op: Op; destId: number } | null = null
   private hint = ''
   private hintAt = 0
+  private copyAt = 0
   onSettings?: () => void
   onHome?: () => void
 
@@ -233,6 +236,12 @@ export class PlayScene {
       }
       return
     }
+    if (found?.hit.kind === 'copy-dismiss') {
+      playSfx('tap')
+      this.hint = ''
+      this.showAnswer = false
+      return
+    }
     if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty' && found.hit.kind !== 'toggle-unsolvable'))) {
       this.showDifficulty = false
       if (!found) {
@@ -295,6 +304,9 @@ export class PlayScene {
         this.clearStreakIfUnsettled()
       }
       this.showAnswer = !this.showAnswer
+      if (this.showAnswer) {
+        this.copyAt = now()
+      }
       return
     }
     if (action.kind === 'difficulty') {
@@ -476,7 +488,7 @@ export class PlayScene {
 
     const minTop = Math.max(72, capsuleBottom() + 16)
     const table = tableLayout(width, height, minTop, bottomBarPad())
-    const { frame, fontSize, slots, opY, opH, actionY, actionH, barY, barH } = table
+    const { frame, fontSize, slots, actionY, actionH, barY, barH, copy } = table
     this.drawBoard(ctx, slots, fontSize, t)
 
     table.ops.forEach((rect, index) => {
@@ -541,19 +553,19 @@ export class PlayScene {
       )
     }
     const hintOn = Boolean(this.hint) && t - this.hintAt < HINT_MS
-    const statsRect = frame.side
-      ? { x: frame.side.x, y: slots[0].y + 8, w: frame.side.w, h: actionY - slots[0].y - 16 }
-      : { x: 24, y: opY + opH + 12, w: width - 48, h: actionY - (opY + opH + 20) }
-    if (hintOn) {
-      drawCopyCard(ctx, statsRect, this.hint, [])
-    } else if (this.showAnswer) {
+    const copySteps =
+      hintOn || this.puzzle.difficulty === 'unsolvable' || !this.puzzle.steps ? 0 : this.puzzle.steps.length
+    const copyMode = soloCopyMode(copy.h, hintOn, this.showAnswer, copySteps)
+    if (copyMode === 'page' && hintOn) {
+      drawCopyCard(ctx, copy, this.hint, [])
+    } else if (copyMode === 'page' && this.showAnswer) {
       if (this.puzzle.difficulty === 'unsolvable') {
-        drawCopyCard(ctx, statsRect, '本题无解，无法算出24', [])
+        drawCopyCard(ctx, copy, '本题无解，无法算出24', [])
       } else {
-        drawCopyCard(ctx, statsRect, this.puzzle.expression, this.puzzle.steps)
+        drawCopyCard(ctx, copy, this.puzzle.expression, this.puzzle.steps)
       }
-    } else if (frame.side) {
-      drawDealStats(ctx, statsRect, this.stats)
+    } else if (frame.side && !hintOn && !this.showAnswer) {
+      drawDealStats(ctx, copy, this.stats)
     }
     if (this.showDifficulty) {
       this.hits = [
@@ -571,6 +583,10 @@ export class PlayScene {
       this.drawUnsolvableNotice(ctx, width, height, t)
     }
 
+    if (copyMode === 'dialog' && !this.dialogOpen() && !this.unsolvableNotice) {
+      this.drawCopyDialog(ctx, width, height, t, hintOn)
+      this.hits.push({ rect: answer, hit: { kind: 'answer' } })
+    }
     const homeRect = houseButtonRect()
     drawHouseButton(ctx, homeRect, this.press.scale('home', t))
     if (!this.dialogOpen() && !this.unsolvableNotice) {
@@ -736,6 +752,39 @@ export class PlayScene {
         this.press.scale('dialog-next', t),
       )
       this.hits.push({ rect: next, hit: { kind: 'dialog-next' } })
+    })
+  }
+
+  private drawCopyDialog(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    t: number,
+    hintOn: boolean,
+  ) {
+    this.hits = []
+    const openedAt = hintOn ? this.hintAt : this.copyAt
+    const motion = dialogMotion(t - openedAt)
+    paintDialogMask(ctx, width, height, motion.mask)
+    const unsolvable = !hintOn && this.puzzle.difficulty === 'unsolvable'
+    const steps = hintOn || unsolvable || !this.puzzle.steps ? [] : this.puzzle.steps
+    const dialogH = Math.min(360, 220 + (steps.length > 0 ? 28 + 22 * (steps.length - 1) : 0))
+    const frame = dialogRect(width, height, dialogH)
+    openDialog(ctx, frame, motion.scale, (dialog) => {
+      const cx = dialog.x + dialog.w / 2
+      text(ctx, hintOn ? '提示' : '答案', cx, dialog.y + 48, 26, Color.coral, 'center', '700')
+      if (hintOn) {
+        text(ctx, this.hint, cx, dialog.y + 96, 16, Color.ink, 'center', '600')
+      } else if (unsolvable) {
+        text(ctx, '本题无解，无法算出24', cx, dialog.y + 96, 16, Color.ink, 'center', '600')
+      } else {
+        text(ctx, this.puzzle.expression, cx, dialog.y + 92, 18, Color.coral, 'center', '700')
+        steps.forEach((step, index) => {
+          text(ctx, step, cx, dialog.y + 122 + index * 22, 14, Color.muted, 'center', '500')
+        })
+      }
+      const close = paintDialogButton(ctx, dialog, dialog.h - 74, '关闭', this.press.scale('copy-dismiss', t))
+      this.hits.push({ rect: close, hit: { kind: 'copy-dismiss' } })
     })
   }
 

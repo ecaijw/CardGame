@@ -241,6 +241,9 @@ export function tableLayout(width: number, height: number, minTop: number, botto
   }))
   const barY = frame.side ? opY : height - bottomPad - fit.barH
   const actionY = barY - fit.gapActionBar - fit.actionH
+  const copy = frame.side
+    ? { x: frame.side.x, y: slots[0].y + 8, w: frame.side.w, h: actionY - slots[0].y - 16 }
+    : { x: 24, y: opY + fit.opH + 12, w: width - 48, h: actionY - (opY + fit.opH + 20) }
   return {
     frame,
     cardW: fit.cardW,
@@ -256,7 +259,34 @@ export function tableLayout(width: number, height: number, minTop: number, botto
     barH: fit.barH,
     gapCardOp: fit.gapCardOp,
     gapActionBar: fit.gapActionBar,
+    copy,
   }
+}
+
+export const COPY_LINE_H = 22
+
+export function copyContentH(steps: number) {
+  if (steps <= 0) {
+    return COPY_LINE_H
+  }
+  return COPY_LINE_H / 2 + 28 + 22 * (steps - 1) + 15 / 2
+}
+
+export function copyNeedsDialog(bandH: number, contentH: number) {
+  return bandH < contentH
+}
+
+export function soloCopyMode(
+  bandH: number,
+  hintOn: boolean,
+  showAnswer: boolean,
+  stepCount: number,
+): 'none' | 'page' | 'dialog' {
+  if (!hintOn && !showAnswer) {
+    return 'none'
+  }
+  const contentH = copyContentH(hintOn ? 0 : Math.max(0, stepCount))
+  return copyNeedsDialog(bandH, contentH) ? 'dialog' : 'page'
 }
 
 export function slotRects(

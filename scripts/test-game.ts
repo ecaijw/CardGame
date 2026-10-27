@@ -5,7 +5,7 @@ import {
   dialogMotion,
   dialogRect,
 } from '../js/scenes/dialog'
-import { tableLayout } from '../js/scenes/board'
+import { copyContentH, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
 import { scoreCompact, scoreInk } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
@@ -628,6 +628,21 @@ function testTableLayout() {
   assert(fitted.ops[0].y + fitted.ops[0].h <= fitted.actionY, '430x707 operators stay above the action row')
   assert(fitted.actionY + fitted.actionH <= fitted.barY, '430x707 actions stay above the bar')
   assert(fitted.barY + fitted.barH <= 707 - 34, '430x707 bar stays above the safe area')
+
+  const short = tableLayout(460, 672, 72, 34)
+  assert(copyNeedsDialog(short.copy.h, copyContentH(0)), '460x672 cannot fit a one-line hint')
+  assert(short.copy.y + short.copy.h <= short.actionY + 0.05, '460x672 answer band stays above the action row')
+  assert(soloCopyMode(short.copy.h, false, false, 2) === 'none', 'idle solo does not open a copy dialog')
+  assert(!copyNeedsDialog(phone.copy.h, copyContentH(3)), '390x844 keeps a stepped answer on the page')
+  const mid = tableLayout(430, 707, 72, 34)
+  assert(!copyNeedsDialog(mid.copy.h, copyContentH(0)), '430x707 fits a one-line hint')
+  assert(copyNeedsDialog(mid.copy.h, copyContentH(2)), '430x707 cannot fit an answer with two steps')
+  assert(soloCopyMode(mid.copy.h, false, false, 2) === 'none', '430x707 stays idle until hint or answer is shown')
+  assert(soloCopyMode(mid.copy.h, true, false, 0) === 'page', '430x707 keeps the hint on the page')
+  assert(soloCopyMode(mid.copy.h, false, true, 2) === 'dialog', '430x707 opens a dialog for a two-step answer')
+  const tightCopy = tableLayout(375, 667, 72, 34)
+  assert(copyNeedsDialog(tightCopy.copy.h, copyContentH(0)), '375x667 cannot fit a one-line hint')
+  assert(!copyNeedsDialog(wide.copy.h, copyContentH(3)), 'wide solo keeps a stepped answer on the page')
 }
 
 function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
