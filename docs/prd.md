@@ -169,7 +169,7 @@
 
 ### 第 2.3 期 — 响应式布局 · 进行中
 
-首页、单人和双人按 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md) 重排。双人竖屏居中单列，横屏先试三栏，排不开再退回单列。设置页保持第 2.2 期的样子。844×390 不纳入本期。
+首页、单人和双人按 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md) 重排。双人竖屏居中单列，横屏先试三栏，排不开再退回单列。设置页保持第 2.2 期的样子。844×390 不纳入本期。难度菜单用带描边的卡片托住选项：单人和双人居中单列仍在按钮附近并夹在屏幕内，双人三栏从按钮右侧展开。
 
 交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。
 

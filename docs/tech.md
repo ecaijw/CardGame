@@ -131,6 +131,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 音频：第 2 期已接入；BGM 首次点「单人游戏」或「双人对战」后循环，音效跟对局操作走，见 [audio.md](audio.md)
 - 同机双人：独立 `DuelScene` + `js/game/duel.ts`，方案见 [phase-2.2-duel.md](phase-2.2-duel.md)。第 2.2 期已完成
 - 单人和设置页宽屏只看宽度。`playFrame` 在宽度达到 748（左栏 400、栏间距 28、右栏至少 280、两侧各 20）时分出左右栏。牌的大小再按该栏扣掉底栏、操作行和安全区之后的高度缩小；标准尺寸放得下时卡牌宽 120。窄屏顶边贴 `minTop`、底栏贴底。宽屏整块在 `minTop` 和底部安全区之间垂直居中，小房子不动。双人不用这条宽度分档：竖屏走居中单列 `duelStackedLayout()`，内容宽不超过 430，记分牌和抢答在运算符与操作行之间垂直居中；横屏先试三栏，左边按钮仍至少宽 84、右边统计仍至少宽 140，收到下限后仍重叠或越界就退回同一套居中单列。三栏几何见 [ux/issue-46-wide-duel-layout.md](ux/issue-46-wide-duel-layout.md)，进入条件见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)
+- 难度菜单：`difficultyMenuLayout()` 把选项放进带描边的卡片。双人三栏从按钮右侧展开，单人和双人居中单列仍在按钮上方。卡片夹在 `minTop` 和底部安全区之间，不画出屏幕。
 - 后续：自绘 4 花色 × 13 点，避免版权图；显示模式可切换（数字 / 扑克）
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）

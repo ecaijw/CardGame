@@ -52,7 +52,7 @@ import {
 } from './dialog'
 import { selectDuelLayout, type DuelStackedLayout } from './duel-stacked'
 import { type DuelWideLayout } from './duel-wide'
-import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
+import { DIFFICULTY_FILTERS, drawDifficultyMenu, isDifficultyMenuHit } from './difficulty-menu'
 import { PressFeedback } from './press'
 import {
   createSession,
@@ -141,6 +141,7 @@ type Hit =
   | { kind: 'next' }
   | { kind: 'answer' }
   | { kind: 'difficulty' }
+  | { kind: 'difficulty-menu' }
   | { kind: 'set-filter'; filter: DealFilter }
   | { kind: 'toggle-unsolvable' }
   | { kind: 'declare-unsolvable' }
@@ -263,7 +264,7 @@ export class DuelScene {
 
   pressDown(x: number, y: number) {
     const found = this.hits.find((item) => hit(item.rect, x, y))
-    if (!found || found.hit.kind === 'op' || found.hit.kind === 'card') {
+    if (!found || found.hit.kind === 'op' || found.hit.kind === 'card' || found.hit.kind === 'difficulty-menu') {
       return
     }
     this.press.down(pressKey(found.hit), now())
@@ -278,7 +279,7 @@ export class DuelScene {
     this.checkTimeout(t)
     this.tick(t)
     const found = this.hits.find((item) => hit(item.rect, x, y))
-    if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty' && found.hit.kind !== 'toggle-unsolvable'))) {
+    if (this.showDifficulty && (!found || !isDifficultyMenuHit(found.hit.kind))) {
       this.showDifficulty = false
       if (!found) {
         return
@@ -687,10 +688,10 @@ export class DuelScene {
     const minTop = Math.max(72, capsuleBottom() + 16)
     const page = selectDuelLayout(width, height, minTop, bottomBarPad())
     if (page.kind === 'wide') {
-      this.drawWide(ctx, width, height, t, page.wide)
+      this.drawWide(ctx, width, height, t, page.wide, minTop)
       return
     }
-    this.drawStacked(ctx, width, height, t, page.stacked)
+    this.drawStacked(ctx, width, height, t, page.stacked, minTop)
   }
 
   private drawStacked(
@@ -699,6 +700,7 @@ export class DuelScene {
     height: number,
     t: number,
     layout: DuelStackedLayout,
+    minTop: number,
   ) {
     const { fontSize, slots, ops } = layout
     this.drawBoard(ctx, slots, fontSize, t)
@@ -786,8 +788,15 @@ export class DuelScene {
 
     if (this.showDifficulty && this.match.phase === 'thinking') {
       this.hits = [
-        ...drawDifficultyMenu(ctx, difficulty, this.filter, this.includeUnsolvable, true, (key) =>
-          this.press.scale(key, t),
+        ...drawDifficultyMenu(
+          ctx,
+          difficulty,
+          this.filter,
+          this.includeUnsolvable,
+          true,
+          (key) => this.press.scale(key, t),
+          { width, height, top: minTop, bottom: bottomBarPad() },
+          'up',
         ),
         ...this.hits,
       ]
@@ -813,6 +822,7 @@ export class DuelScene {
     height: number,
     t: number,
     layout: DuelWideLayout,
+    minTop: number,
   ) {
     const { slots, ops, fontSize, utility, stats, battle, hint } = layout
     this.drawBoard(ctx, slots, fontSize, t)
@@ -911,8 +921,15 @@ export class DuelScene {
 
     if (this.showDifficulty && this.match.phase === 'thinking') {
       this.hits = [
-        ...drawDifficultyMenu(ctx, utility.difficulty, this.filter, this.includeUnsolvable, true, (key) =>
-          this.press.scale(key, t),
+        ...drawDifficultyMenu(
+          ctx,
+          utility.difficulty,
+          this.filter,
+          this.includeUnsolvable,
+          true,
+          (key) => this.press.scale(key, t),
+          { width, height, top: minTop, bottom: bottomBarPad() },
+          'right',
         ),
         ...this.hits,
       ]

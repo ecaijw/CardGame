@@ -34,7 +34,7 @@ import {
   openDialog,
   paintDialogButton,
 } from './dialog'
-import { DIFFICULTY_FILTERS, drawDifficultyMenu } from './difficulty-menu'
+import { DIFFICULTY_FILTERS, drawDifficultyMenu, isDifficultyMenuHit } from './difficulty-menu'
 import { PressFeedback } from './press'
 import { addPlayedId, loadPlayedIds } from '../played'
 import {
@@ -79,6 +79,7 @@ type Hit =
   | { kind: 'next' }
   | { kind: 'answer' }
   | { kind: 'difficulty' }
+  | { kind: 'difficulty-menu' }
   | { kind: 'set-filter'; filter: DealFilter }
   | { kind: 'toggle-unsolvable' }
   | { kind: 'declare-unsolvable' }
@@ -216,7 +217,7 @@ export class PlayScene {
 
   pressDown(x: number, y: number) {
     const found = this.hits.find((item) => hit(item.rect, x, y))
-    if (!found || found.hit.kind === 'op' || found.hit.kind === 'card') {
+    if (!found || found.hit.kind === 'op' || found.hit.kind === 'card' || found.hit.kind === 'difficulty-menu') {
       return
     }
     this.press.down(pressKey(found.hit), now())
@@ -242,7 +243,7 @@ export class PlayScene {
       this.showAnswer = false
       return
     }
-    if (this.showDifficulty && (!found || (found.hit.kind !== 'set-filter' && found.hit.kind !== 'difficulty' && found.hit.kind !== 'toggle-unsolvable'))) {
+    if (this.showDifficulty && (!found || !isDifficultyMenuHit(found.hit.kind))) {
       this.showDifficulty = false
       if (!found) {
         return
@@ -569,8 +570,15 @@ export class PlayScene {
     }
     if (this.showDifficulty) {
       this.hits = [
-        ...drawDifficultyMenu(ctx, difficulty, this.filter, this.includeUnsolvable, true, (key) =>
-          this.press.scale(key, t),
+        ...drawDifficultyMenu(
+          ctx,
+          difficulty,
+          this.filter,
+          this.includeUnsolvable,
+          true,
+          (key) => this.press.scale(key, t),
+          { width, height, top: minTop, bottom: bottomBarPad() },
+          'up',
         ),
         ...this.hits,
       ]

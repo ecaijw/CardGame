@@ -6,6 +6,7 @@ import {
   dialogRect,
 } from '../js/scenes/dialog'
 import { copyContentH, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
+import { difficultyMenuLayout } from '../js/scenes/difficulty-menu'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
 import { scoreCompact, scoreInk } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
@@ -1010,6 +1011,58 @@ function testHomeLayout() {
   assert(narrow.start.w === 252, 'narrow home buttons shrink with the screen')
 }
 
+function testDifficultyMenuLayout() {
+  const phoneTable = tableLayout(390, 844, 72, 34)
+  const phoneBarW = 390 - 40
+  const phoneDifficulty = { x: 20 + phoneBarW / 3, y: phoneTable.barY, w: phoneBarW / 3, h: phoneTable.barH }
+  const phone = difficultyMenuLayout(phoneDifficulty, { width: 390, height: 844, top: 72, bottom: 34 }, 'up', true)
+  assert(phone.card.y + phone.card.h <= phoneDifficulty.y + 0.05, 'phone menu sits above the difficulty button')
+  assert(phone.card.y >= 72 - 0.05, 'phone menu stays under minTop')
+  assert(phone.card.x + phone.card.w <= 390 - 8 + 0.05, 'phone menu stays on screen')
+  assert(phone.unsolvable !== null && inside(phone.unsolvable, phone.card), 'unsolvable stays on the card')
+  phone.filters.forEach((item) => {
+    assert(inside(item.rect, phone.card), 'filter stays on the card')
+  })
+
+  const tightAnchor = { x: 136, y: 300, w: 116, h: 44 }
+  const tight = difficultyMenuLayout(tightAnchor, { width: 390, height: 360, top: 72, bottom: 34 }, 'up', true)
+  assert(tight.card.y === 72, 'a short screen pins the menu to minTop instead of drawing off the top')
+  assert(tight.card.y + tight.card.h <= 360 - 34 + 0.05, 'a short screen keeps the menu above the bottom pad')
+
+  const wideTable = tableLayout(748, 844, 72, 34)
+  assert(wideTable.frame.side !== null, '748 uses the solo side column')
+  if (!wideTable.frame.side) {
+    return
+  }
+  const side = wideTable.frame.side
+  const wideDifficulty = { x: side.x + side.w / 3, y: wideTable.barY, w: side.w / 3, h: wideTable.barH }
+  const wide = difficultyMenuLayout(wideDifficulty, { width: 748, height: 844, top: 72, bottom: 34 }, 'up', true)
+  assert(wide.card.y + wide.card.h <= wideDifficulty.y + 0.05, 'wide solo menu sits above the difficulty button')
+  assert(wide.card.x + wide.card.w <= 748 - 8 + 0.05, 'wide solo menu stays on screen')
+  assert(wide.card.y >= 72 - 0.05, 'wide solo menu stays under minTop')
+
+  const stacked = selectDuelLayout(1024, 1366, 72, 34)
+  assert(stacked.kind === 'stacked', 'portrait iPad keeps the stacked duel layout')
+  if (stacked.kind === 'stacked') {
+    const pad = difficultyMenuLayout(stacked.stacked.difficulty, { width: 1024, height: 1366, top: 72, bottom: 34 }, 'up', true)
+    assert(pad.card.y + pad.card.h <= stacked.stacked.difficulty.y + 0.05, 'stacked duel menu stays above the button')
+    assert(pad.card.y >= 72 - 0.05, 'stacked duel menu does not draw off the top')
+  }
+
+  const duelWide = duelWideLayout(940, 665, 72, 34)
+  assert(duelWide !== null, '940x665 uses the wide duel layout')
+  if (duelWide) {
+    const menu = difficultyMenuLayout(duelWide.utility.difficulty, { width: 940, height: 665, top: 72, bottom: 34 }, 'right', true)
+    assert(menu.card.x >= duelWide.utility.difficulty.x + duelWide.utility.difficulty.w, 'wide duel menu opens to the right')
+    assert(menu.card.y >= 72 - 0.05, 'wide duel menu does not draw off the top')
+    assert(menu.card.y + menu.card.h <= 665 - 34 + 0.05, 'wide duel menu stays above the bottom pad')
+    assert(menu.card.x + menu.card.w <= 940 - 8 + 0.05, 'wide duel menu stays on screen')
+  }
+
+  const edge = difficultyMenuLayout({ x: 800, y: 200, w: 120, h: 44 }, { width: 940, height: 665, top: 72, bottom: 34 }, 'right', true)
+  assert(edge.card.x + edge.card.w <= 940 - 8 + 0.05, 'a right-side menu that would overflow is shifted back onto the screen')
+}
+
 function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
   return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
 }
@@ -1036,4 +1089,5 @@ testDuelWideLayout()
 testDuelStackedLayout()
 testScoreInk()
 testHomeLayout()
+testDifficultyMenuLayout()
 console.log('game tests passed')
