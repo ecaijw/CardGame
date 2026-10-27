@@ -798,6 +798,7 @@ function assertWideDuel(width: number, height: number) {
 
 function testDuelStackedLayout() {
   const sizes = [
+    [346, 781],
     [375, 667],
     [390, 844],
     [430, 707],
@@ -840,6 +841,30 @@ function testDuelStackedLayout() {
   const phone = selectDuelLayout(390, 844, 72, 34)
   assert(phone.kind === 'stacked' && phone.stacked.cardW === 120, '390x844 cards stay at 120')
   assert(phone.kind === 'stacked' && phone.stacked.slots[0].y === 72, '390x844 cards start at minTop')
+  if (phone.kind === 'stacked') {
+    const board = phone.stacked
+    const opBottom = board.ops[0].y + board.ops[0].h
+    const topGap = board.score.y - opBottom
+    const scoreBuzz = board.redBuzz.y - (board.score.y + board.score.h)
+    const concedeToNext = board.next.y - (board.concede.y + board.concede.h)
+    assert(Math.abs(topGap - concedeToNext) < 0.5, '390x844 keeps the score block centered')
+    assert(scoreBuzz > 16 && scoreBuzz < 16 + 20, '390x844 opens the score-to-buzz gap only a little')
+  }
+
+  const narrow = selectDuelLayout(346, 781, 72, 34)
+  assert(narrow.kind === 'stacked', '346x781 uses the stacked duel layout')
+  if (narrow.kind === 'stacked') {
+    const board = narrow.stacked
+    const opBottom = board.ops[0].y + board.ops[0].h
+    const topGap = board.score.y - opBottom
+    const scoreBuzz = board.redBuzz.y - (board.score.y + board.score.h)
+    const concedeToNext = board.next.y - (board.concede.y + board.concede.h)
+    const blockBottom = board.concede.y + board.concede.h
+    assert(Math.abs(scoreBuzz - 8) < 0.5, '346x781 tightens the score-to-buzz gap to 8')
+    assert(Math.abs(topGap - 12) < 0.5, '346x781 keeps about 12px under the operators')
+    assert(Math.abs(concedeToNext - topGap) < 0.5, '346x781 keeps the score block centered')
+    assert(board.score.y > opBottom && blockBottom <= board.next.y + 0.05, '346x781 score block stays between the operators and the next button')
+  }
 
   const tight = selectDuelLayout(375, 667, 72, 34)
   assert(tight.kind === 'stacked' && tight.stacked.cardW === 92, '375x667 cards hit the floor')
@@ -858,7 +883,7 @@ function testDuelStackedLayout() {
     const blockCenter = (blockTop + blockBottom) / 2
     assert(Math.abs(blockCenter - regionCenter) < 0.5, '834x1112 score and buzz sit in the middle of the open band')
     const scoreGap = board.redBuzz.y - (board.score.y + board.score.h)
-    assert(scoreGap > 16 && scoreGap <= 16 + 48 + 0.05, '834x1112 opens the score-to-buzz gap')
+    assert(Math.abs(scoreGap - (16 + 48)) < 0.05, '834x1112 opens the score-to-buzz gap by 48')
     assert(board.score.y > opBottom && blockBottom <= board.next.y + 0.05, '834x1112 score block stays between the operators and the next button')
   }
 

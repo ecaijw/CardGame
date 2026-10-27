@@ -3,6 +3,23 @@ import { fitTable, slotRects } from './board'
 import { duelWideLayout, type DuelWideLayout } from './duel-wide'
 
 export const STACKED_MAX_W = 430
+const SCORE_INNER_FLOOR = 8
+const SCORE_OUTER_PAIR = 24
+
+function scoreBuzzSpacing(
+  region: number,
+  fit: { scoreH: number; scoreBuzzGap: number; buzzH: number; concedeH: number },
+) {
+  const standard = fit.scoreBuzzGap
+  const free = region - (fit.scoreH + fit.buzzH + fit.concedeH)
+  if (free <= SCORE_INNER_FLOOR + SCORE_OUTER_PAIR) {
+    return SCORE_INNER_FLOOR
+  }
+  if (free <= standard + SCORE_OUTER_PAIR) {
+    return free - SCORE_OUTER_PAIR
+  }
+  return standard + Math.min(48, (free - standard - SCORE_OUTER_PAIR) / 3)
+}
 
 export type DuelStackedLayout = {
   columnX: number
@@ -64,12 +81,12 @@ export function duelStackedLayout(
   const [restart, unsolvable, next] = splitRow(barX, actionY, barW, fit.actionH, 3)
   const opBottom = opY + fit.opH
   const region = actionY - opBottom
-  const packed = fit.scoreH + fit.scoreBuzzGap + fit.buzzH + fit.concedeH
-  const spare = region - packed
-  const extraGap = spare > 0 ? Math.min(48, spare / 3) : 0
-  const scoreBuzzGap = fit.scoreBuzzGap + extraGap
+  // Compact screens shrink score-to-buzz to 8 and split the rest 12/12.
+  // More height restores the gap to 16, then grows it by the old extra rule.
+  const scoreBuzzGap = scoreBuzzSpacing(region, fit)
   const block = fit.scoreH + scoreBuzzGap + fit.buzzH + fit.concedeH
-  const scoreY = spare > 0 ? opBottom + (region - block) / 2 : actionY - fit.concedeH - fit.buzzH - scoreBuzzGap - fit.scoreH
+  const leftover = region - block
+  const scoreY = leftover >= 0 ? opBottom + leftover / 2 : actionY - block
   const buzzY = scoreY + fit.scoreH + scoreBuzzGap
   const concedeY = buzzY + fit.buzzH
   const rowX = columnX + 16
