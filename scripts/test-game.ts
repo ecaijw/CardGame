@@ -18,6 +18,7 @@ import {
 } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
 import { homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
+import { houseButtonRect } from '../js/ui'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
   applyOp,
@@ -1143,6 +1144,44 @@ function testDifficultyMenuLayout() {
   assert(edge.card.x + edge.card.w <= 940 - 8 + 0.05, 'a right-side menu that would overflow is shifted back onto the screen')
 }
 
+function testHouseButton() {
+  const none = houseButtonRect({ safeLeft: 0, safeTop: 0, statusBarHeight: 0 }, 72)
+  assert(none.x === 16 && none.y === 16 && none.w === 40 && none.h === 40, 'house stays at 16,16 without insets')
+
+  const iphone = houseButtonRect({ safeLeft: 0, safeTop: 44, statusBarHeight: 44 }, 96)
+  assert(iphone.x === 16 && iphone.y === 52, 'iPhone X drops the house below the notch and keeps it on the left')
+  assert(iphone.y + iphone.h <= 96, 'iPhone X house stays above the cards')
+
+  const clamped = houseButtonRect({ safeTop: 44, statusBarHeight: 44 }, 72)
+  assert(clamped.x === 16 && clamped.y === 32, 'a top inset cannot push the house into the cards')
+
+  const left = houseButtonRect({ safeLeft: 44 }, 72)
+  assert(left.x === 52 && left.y === 16, 'a side inset shifts the house right')
+
+  const sizes: Array<[number, number]> = [
+    [375, 667],
+    [390, 844],
+    [834, 1112],
+    [900, 900],
+    [1080, 956],
+  ]
+  for (const [width, height] of sizes) {
+    const label = `${width}x${height}`
+    const card = tableLayout(width, height, 72, 34).slots[0]
+    const duel = selectDuelLayout(width, height, 72, 34)
+    const duelCard = duel.kind === 'stacked' ? duel.stacked.slots[0] : duel.wide.slots[0]
+    const soloHouse = houseButtonRect({ safeTop: 44, statusBarHeight: 44 }, 72)
+    const duelHouse = houseButtonRect({ safeTop: 44, statusBarHeight: 44 }, 72)
+    const capsule = { x: width - 96, y: 4, w: 88, h: 32 }
+    assert(soloHouse.x === duelHouse.x && soloHouse.y === duelHouse.y, `${label} solo and duel share the house position`)
+    assert(soloHouse.y === 32, `${label} house does not follow a vertically centered table`)
+    assert(!overlaps(soloHouse, card), `${label} house does not cover the first solo card`)
+    assert(!overlaps(duelHouse, duelCard), `${label} house does not cover the first duel card`)
+    assert(!overlaps(soloHouse, capsule), `${label} house does not enter the capsule`)
+    assert(card.y >= 72 && duelCard.y >= 72, `${label} cards stay at minTop`)
+  }
+}
+
 function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
   return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
 }
@@ -1171,4 +1210,5 @@ testDuelStackedLayout()
 testScoreInk()
 testHomeLayout()
 testDifficultyMenuLayout()
+testHouseButton()
 console.log('game tests passed')

@@ -446,10 +446,41 @@ export function drawHomeMenuButton(
   text(ctx, label, start + iconSize + gap, cy, fontSize, paint.ink, 'left', '600')
 }
 
-export function houseButtonRect(): Rect {
-  const size = 40
-  const inset = 16
-  return { x: inset, y: inset, w: size, h: size }
+export type HouseInsets = {
+  safeLeft?: number
+  safeTop?: number
+  statusBarHeight?: number
+}
+
+function finiteInset(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
+}
+
+function readHouseInsets(): HouseInsets {
+  try {
+    const info = wx.getSystemInfoSync()
+    const area = info.safeArea
+    return {
+      safeLeft: area && typeof area.left === 'number' ? area.left : 0,
+      safeTop: area && typeof area.top === 'number' ? area.top : 0,
+      statusBarHeight: typeof info.statusBarHeight === 'number' ? info.statusBarHeight : 0,
+    }
+  } catch {
+    return {}
+  }
+}
+
+export function houseButtonRect(insets?: HouseInsets, cardTop?: number): Rect {
+  const measured = insets ?? readHouseInsets()
+  const x = Math.max(16, finiteInset(measured.safeLeft) + 8)
+  const safeY = Math.max(
+    16,
+    finiteInset(measured.safeTop) + 8,
+    finiteInset(measured.statusBarHeight) + 8,
+  )
+  const floor = cardTop ?? Math.max(72, capsuleBottom() + 16)
+  const y = Math.min(safeY, Math.max(16, floor - 40))
+  return { x, y, w: 40, h: 40 }
 }
 
 export function drawHouseButton(ctx: CanvasRenderingContext2D, rect: Rect, scale: number) {
