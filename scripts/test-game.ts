@@ -5,7 +5,7 @@ import {
   dialogMotion,
   dialogRect,
 } from '../js/scenes/dialog'
-import { copyContentH, copyDialogAllows, copyDialogHits, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
+import { copyContentH, copyDialogAllows, copyDialogHits, copyNeedsDialog, operatorHitRect, soloCopyMode, tableLayout } from '../js/scenes/board'
 import { difficultyMenuLayout } from '../js/scenes/difficulty-menu'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
 import {
@@ -661,6 +661,17 @@ function testTableLayout() {
   assert(phone.slots[1].x > phone.slots[0].x && phone.slots[3].y === phone.slots[2].y, 'the right column lines up')
   assert(phone.ops.length === 4 && phone.ops.every((op) => op.h === 56 && op.y === phone.opY), 'four operators share one row')
   assert(phone.opY === phone.slots[2].y + phone.slots[2].h + 28, 'operators sit 28 below the cards')
+  const phoneHit = operatorHitRect(phone.ops[0], phone.slots[2])
+  assert(phoneHit.x === phone.ops[0].x && phoneHit.w === phone.ops[0].w, 'operator hits keep the drawn width')
+  assert(phoneHit.y === phone.ops[0].y - 14 && phoneHit.h === 56 + 28, 'operator hits grow by half the card gap both ways')
+  const tight = tableLayout(375, 667, 72, 34)
+  const tightGap = tight.ops[0].y - (tight.slots[2].y + tight.slots[2].h)
+  const tightHit = operatorHitRect(tight.ops[0], tight.slots[2])
+  assert(
+    Math.abs(tightHit.y - (tight.ops[0].y - tightGap / 2)) < 0.05 &&
+      Math.abs(tightHit.h - (tight.ops[0].h + tightGap)) < 0.05,
+    'a shorter card gap grows the operator hit by half of that gap',
+  )
 
   const narrow = tableLayout(200, 700, 72, 34)
   assert(narrow.cardW < 90 && narrow.fontSize === 26, 'narrow screens shrink the cards and the number')

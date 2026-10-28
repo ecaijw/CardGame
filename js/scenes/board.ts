@@ -299,6 +299,12 @@ export function copyDialogAllows(kind: string) {
   return kind === 'copy-dismiss'
 }
 
+export function operatorHitRect(op: Rect, secondRow: Rect): Rect {
+  const gap = op.y - (secondRow.y + secondRow.h)
+  const extend = Math.max(0, gap) / 2
+  return { x: op.x, y: op.y - extend, w: op.w, h: op.h + extend * 2 }
+}
+
 export function slotRects(
   originX: number,
   columnW: number,

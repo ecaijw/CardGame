@@ -13,6 +13,7 @@ import {
   drawOp,
   drawPlayCard,
   drawSuccessBurst,
+  operatorHitRect,
   panelCard,
   tableLayout,
   soloCopyMode,
@@ -497,7 +498,7 @@ export class PlayScene {
       const op = OPS[index]
       this.drawOp(ctx, rect, op, t)
       if (this.canInputNext()) {
-        this.hits.push({ rect, hit: { kind: 'op', op } })
+        this.hits.push({ rect: operatorHitRect(rect, slots[2]), hit: { kind: 'op', op } })
       }
     })
 
