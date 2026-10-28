@@ -32,6 +32,10 @@ js/
   audio/audio-manager.ts  播放单例（wx；见 [audio.md](audio.md)）
   scenes/play.ts    * 单人对局
   scenes/duel.ts        同机双人对局（第 2.2 期）
+  scenes/duel-stacked.ts 双人居中单列（第 2.3 期）
+  scenes/duel-wide.ts    双人横屏三栏（第 2.3 期）
+  scenes/difficulty-menu.ts 难度菜单卡片
+  scenes/home-layout.ts 首页按钮位置
   scenes/settings.ts    设置页
   game/
     fraction.ts     * 分数与是否等于 24

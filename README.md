@@ -12,12 +12,15 @@
 - [第 1 期交接](docs/phase-1-handoff.md)
 - [第 2 期交接](docs/phase-2-handoff.md)
 - [第 2.1 期交接](docs/phase-2.1-handoff.md)
+- [第 2.2 期交接](docs/phase-2.2-handoff.md)
+- [第 2.3 期交接](docs/phase-2.3-handoff.md)
+- [第 2.4 期交接](docs/phase-2.4-handoff.md)
 - [题库预览](docs/puzzles-preview.md)
 - [牌面动画](docs/animation.md)
 - [音效方案](docs/audio.md)
 - [Agent 约束](AGENTS.md)
 
-当前进度：**第 2 期已完成。第 2.1 期进行中：** 目标是完成上线，过程中修小问题、做优化。不是第 3 期（广告和收入）。
+当前进度：**第 2.4 期进行中。第 2.3 期已完成。第 2.1 期上线仍进行中。** 不是第 3 期（广告和收入）。
 
 开新的一期之前，先沉淀当前进展（见路线图文首）。
 
