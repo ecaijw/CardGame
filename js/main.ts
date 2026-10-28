@@ -1,7 +1,7 @@
 import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-manager'
 import { preloadIcons } from './art'
 import { DuelScene } from './scenes/duel'
-import { homeLayout, homeTitleAnchor } from './scenes/home-layout'
+import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from './scenes/home-layout'
 import { PlayScene } from './scenes/play'
 import { PressFeedback } from './scenes/press'
 import { SettingsScene } from './scenes/settings'
@@ -239,8 +239,8 @@ class App {
     })
     const { titleY } = layout
     menuTitle(ctx, '数字算一算', width / 2, titleY, anchor.titleSize)
-    text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 56, 15, Menu.subtitle, 'center', '400')
-    text(ctx, '来挑战一下', width / 2, layout.challengeY, 15, Menu.subtitle, 'center', '400')
+    text(ctx, '四张数字卡片，算出 24', width / 2, titleY + 56, CHALLENGE_SIZE, Menu.subtitle, 'center', '400')
+    text(ctx, '来挑战一下！', width / 2, layout.challengeY, CHALLENGE_SIZE, Menu.subtitle, 'center', '400')
     const { start, duel, howto, settings } = layout
     const now = Date.now()
     withButtonScale(ctx, start, this.homePress.scale('start', now), () => {
@@ -290,15 +290,21 @@ class App {
     const sections: Array<{ title: string; lines: string[] }> = [
       {
         title: '游戏目标',
-        lines: ['使用 + − × ÷，把 4 张数字牌最终算成 24。每张牌必须使用，而且只能使用一次。'],
+        lines: ['使用 + − × ÷，把 4 张数字牌最终算成 24。',
+                '每张牌必须使用，而且只能使用一次。',
+              ],
       },
       {
         title: '操作方法',
-        lines: ['点一张牌 → 选运算符 → 再点另一张牌。两张牌会合成为结果牌，继续计算，直到只剩一张牌。'],
+        lines: ['点一张牌 → 选运算符 → 再点另一张牌，两张牌会计算成为结果牌。',
+                '继续计算，直到只剩一张牌。',
+              ],
       },
       {
         title: '双人对战',
-        lines: ['双方先抢答，抢到的人在限定秒数内算出 24。第一位失败后换对方。先到 5 分获胜。'],
+        lines: ['双方先抢答，抢到的人在限定秒数内需要算出 24。第一位失败后换对方回答。',
+                '先拿到 5 分获胜。',
+              ],
       },
       {
         title: '注意',
@@ -313,10 +319,10 @@ class App {
     const cardW = width - 48
     const textX = cardX + 18
     const textW = cardW - 36
-    const headFont = '600 15px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
-    const bodyFont = '400 14px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
-    const headLine = 22
-    const bodyLine = 22
+    const headFont = '600 17px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
+    const bodyFont = '400 16px "PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif'
+    const headLine = 24
+    const bodyLine = 24
     const afterHead = 8
     const afterPara = 10
     const afterSection = 16

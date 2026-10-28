@@ -1,7 +1,7 @@
 import type { Rect } from '../ui'
 
 const CHALLENGE_OFFSET = 82
-const CHALLENGE_SIZE = 15
+export const CHALLENGE_SIZE = 18
 const TARGET_CLEARANCE = 48
 const MIN_CLEARANCE = 40
 const MIN_SPLIT = 32

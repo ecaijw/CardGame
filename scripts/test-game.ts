@@ -17,7 +17,7 @@ import {
   scoreInk,
 } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
-import { homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
+import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
 import { houseButtonRect } from '../js/ui'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
@@ -1072,7 +1072,7 @@ function testHomeLayout() {
     fanBottom,
     bottomPad: 34,
   })
-  assert(short.start.y - (short.challengeY + 7.5) >= 40, 'short home keeps 40px under the challenge line')
+  assert(short.start.y - (short.challengeY + CHALLENGE_SIZE / 2) >= 40, 'short home keeps 40px under the challenge line')
   assert(short.split >= 32 - 0.05, 'short home keeps the duel-to-howto floor')
   assert(short.settings.y === 667 - 34 - 56, 'short home keeps settings on the bottom')
   assert(short.primaryH === 56 && short.gapGame === 20 && short.gapUtility === 16, 'short home compresses the button sizes before the title gap')
@@ -1088,7 +1088,10 @@ function testHomeLayout() {
     fanBottom,
     bottomPad: 34,
   })
-  assert(Math.abs(tall.start.y - (tall.challengeY + 7.5 + 48)) < 0.05, 'tall home keeps 48px under the challenge line')
+  assert(
+    Math.abs(tall.start.y - (tall.challengeY + CHALLENGE_SIZE / 2 + 48)) < 0.05,
+    'tall home keeps 48px under the challenge line',
+  )
   assert(tall.gapGame === 28 && tall.gapUtility === 20, 'tall home keeps the standard button gaps')
   assert(tall.split > 90, 'tall home leaves the spare gap above the help and settings buttons')
   assert(tall.primaryH === 64 && tall.titleY === tallAnchor.titleY, 'tall home leaves the title and primary buttons alone')
