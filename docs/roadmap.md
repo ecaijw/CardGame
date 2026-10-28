@@ -2,7 +2,7 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，响应式布局见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.4 期进行中（2026-10-28 起）。** 目标是第 2.3 期之后的体验收口，优先 [test.md](test.md) 第 42、41、54 条。交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。第 2.3 期已完成，见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.2 期已完成，见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，交接仍见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.4 期进行中（2026-10-28 起）。** 目标是第 2.3 期之后的体验收口，并上线当前版本。优先 [test.md](test.md) 第 42、54 条，以及游戏类目、资质、备案、提审、发布。交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。第 2.3 期已完成，见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.2 期已完成，见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，过程仍记在 [phase-2.1-handoff.md](phase-2.1-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
 **开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2.2 期交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.3 期交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.4 期交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。
 
@@ -65,7 +65,7 @@
 
 ## 第 2.4 期 — 体验收口 · 进行中
 
-第 2.3 期之后的小修复。先做已经有结论的条目，不改玩法。优先领先皇冠、「下一局」确认、小房子避开前置摄像头。切后台暂停倒计时本期不默认改。
+第 2.3 期之后的小修复，并上线当前版本。先做已经有结论的条目，不改玩法。优先领先皇冠、小房子避开前置摄像头。上线步骤与第 2.1 期相同：类目、资质、备案、提审、发布；不接广告、不接支付、不用云。切后台暂停倒计时和「下一局」确认已 `won't fix`。
 
 交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。
 
@@ -88,7 +88,7 @@
 
 ## 后续计划
 
-- 数字 / 扑克显示切换（自绘花色；产品细节见 [test.md](test.md) 第 12 条）
+- 数字 / 扑克显示切换（自绘花色）。[test.md](test.md) 第 12 条已 `won't fix`，上线后再看用户反馈
 - 两台手机云对战
 - 英语等多语言
 - 网页版、安卓、iPhone（共享 TypeScript 核心与移动端方案见 [app-cross-platform.md](app-cross-platform.md)）

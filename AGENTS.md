@@ -1,6 +1,6 @@
 # 24 点 — Agent 约束
 
-玩法见 [docs/rules.md](docs/rules.md)。分期见 [docs/roadmap.md](docs/roadmap.md)。第 0 期交接见 [docs/phase-0-handoff.md](docs/phase-0-handoff.md)。第 1 期交接见 [docs/phase-1-handoff.md](docs/phase-1-handoff.md)。第 2 期交接见 [docs/phase-2-handoff.md](docs/phase-2-handoff.md)。第 2.1 期交接见 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)（上线仍进行中）。第 2.2 期交接见 [docs/phase-2.2-handoff.md](docs/phase-2.2-handoff.md)（已冻结：同机双人对战；定稿 [docs/phase-2.2-duel.md](docs/phase-2.2-duel.md)）。第 2.3 期交接见 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)（已冻结：响应式布局；方案 [docs/ux/issue-49-responsive-layout.md](docs/ux/issue-49-responsive-layout.md)）。第 2.4 期交接见 [docs/phase-2.4-handoff.md](docs/phase-2.4-handoff.md)（进行中：体验收口）。
+玩法见 [docs/rules.md](docs/rules.md)。分期见 [docs/roadmap.md](docs/roadmap.md)。第 0 期交接见 [docs/phase-0-handoff.md](docs/phase-0-handoff.md)。第 1 期交接见 [docs/phase-1-handoff.md](docs/phase-1-handoff.md)。第 2 期交接见 [docs/phase-2-handoff.md](docs/phase-2-handoff.md)。第 2.1 期交接见 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)（上线仍进行中）。第 2.2 期交接见 [docs/phase-2.2-handoff.md](docs/phase-2.2-handoff.md)（已冻结：同机双人对战；定稿 [docs/phase-2.2-duel.md](docs/phase-2.2-duel.md)）。第 2.3 期交接见 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)（已冻结：响应式布局；方案 [docs/ux/issue-49-responsive-layout.md](docs/ux/issue-49-responsive-layout.md)）。第 2.4 期交接见 [docs/phase-2.4-handoff.md](docs/phase-2.4-handoff.md)（进行中：体验收口，并上线当前版本）。
 
 ## 流程
 
