@@ -16,7 +16,9 @@ import {
   hit,
   menuButton,
   menuTitle,
+  paintScrollbar,
   text,
+  VerticalScroll,
   withButtonScale,
   type Rect,
 } from './ui'
@@ -37,6 +39,8 @@ class App {
   private settingsBack: 'home' | 'play' | 'duel' = 'home'
   private hits: Hit[] = []
   private homePress = new PressFeedback(100, 0.97)
+  private howtoScroll = new VerticalScroll()
+  private trackingScroll = false
 
   constructor() {
     this.canvas = wx.createCanvas()
@@ -65,6 +69,29 @@ class App {
       if (this.scene === 'home') {
         this.pressHome(touch.clientX, touch.clientY)
       }
+      if (this.scene === 'howto') {
+        this.trackingScroll = true
+        this.howtoScroll.start(touch.clientX, touch.clientY)
+      }
+      if (this.scene === 'settings') {
+        this.trackingScroll = true
+        this.settings.onPointerDown(touch.clientX, touch.clientY)
+      }
+    })
+    wx.onTouchMove((event) => {
+      if (!this.trackingScroll) {
+        return
+      }
+      const touch = event.touches[0] || event.changedTouches[0]
+      if (!touch) {
+        return
+      }
+      if (this.scene === 'howto') {
+        this.howtoScroll.move(touch.clientY)
+      }
+      if (this.scene === 'settings') {
+        this.settings.onPointerMove(touch.clientY)
+      }
     })
     wx.onTouchEnd((event) => {
       const touch = event.changedTouches[0]
@@ -80,9 +107,16 @@ class App {
       if (this.scene === 'home') {
         this.homePress.up(Date.now())
       }
-      this.onTap(touch.clientX, touch.clientY)
+      const scrolled =
+        (this.scene === 'howto' && this.howtoScroll.consumed()) ||
+        (this.scene === 'settings' && this.settings.pointerScrolled())
+      this.trackingScroll = false
+      if (!scrolled) {
+        this.onTap(touch.clientX, touch.clientY)
+      }
     })
     wx.onTouchCancel(() => {
+      this.trackingScroll = false
       this.play?.pressUp()
       this.duel?.pressUp()
       this.homePress.up(Date.now())
@@ -142,6 +176,7 @@ class App {
     }
     if (found.action === 'howto') {
       playSfx('tap')
+      this.howtoScroll.reset()
       this.scene = 'howto'
       return
     }
@@ -178,6 +213,7 @@ class App {
   }
 
   private openSettings(from: 'home' | 'play' | 'duel') {
+    this.settings.resetScroll()
     this.settingsBack = from
     this.scene = 'settings'
   }
@@ -342,7 +378,23 @@ class App {
       }
     })
     contentH += padY
-    const card = { x: cardX, y: titleY + 36, w: cardW, h: contentH }
+    const cardTop = titleY + 36
+    const backGap = 24
+    const backH = 50
+    const backY = Math.min(cardTop + contentH + backGap, this.height - bottomBarPad() - backH)
+    const viewH = Math.max(0, backY - backGap - cardTop)
+    const view = { x: cardX, y: cardTop, w: cardW, h: viewH }
+    this.howtoScroll.note(contentH, viewH, view)
+    const offset = this.howtoScroll.offset
+    const overflow = contentH > viewH + 1
+    if (overflow) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(view.x, view.y, view.w, view.h)
+      ctx.clip()
+      ctx.translate(0, -offset)
+    }
+    const card = { x: cardX, y: cardTop, w: cardW, h: contentH }
     fillRound(ctx, card, Color.paper, 16, true)
     ctx.fillStyle = Menu.buttonInk
     ctx.textAlign = 'left'
@@ -363,8 +415,12 @@ class App {
         y += afterSection
       }
     })
+    if (overflow) {
+      ctx.restore()
+      paintScrollbar(ctx, view, contentH, offset)
+    }
     const btnW = Math.min(248, width - 96)
-    const back = { x: (width - btnW) / 2, y: card.y + card.h + 24, w: btnW, h: 50 }
+    const back = { x: (width - btnW) / 2, y: backY, w: btnW, h: backH }
     menuButton(ctx, back, '返回', 'ghost')
     this.hits.push({ rect: back, action: 'back' })
   }

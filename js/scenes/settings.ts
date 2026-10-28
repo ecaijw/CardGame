@@ -23,13 +23,16 @@ import { playFrame } from './board'
 import {
   Color,
   Menu,
+  bottomBarPad,
   drawMenuBackground,
   drawToggle,
   fillRound,
   hit,
   menuButton,
   menuTitle,
+  paintScrollbar,
   text,
+  VerticalScroll,
   type Rect,
 } from '../ui'
 
@@ -52,7 +55,12 @@ export type SettingsLayout = {
   musicToggle: Rect
 }
 
-export function settingsLayout(width: number, height: number, titleY: number): SettingsLayout {
+export function settingsLayout(
+  width: number,
+  height: number,
+  titleY: number,
+  bottomPad = 16,
+): SettingsLayout {
   if (!playFrame(width).side) {
     const solo = { x: 24, y: titleY + 36, w: width - 48, h: 168 }
     const duel = { x: 24, y: solo.y + solo.h + 12, w: width - 48, h: 118 }
@@ -74,7 +82,12 @@ export function settingsLayout(width: number, height: number, titleY: number): S
       plus: { x: duration.x + duration.w - 56, y: duration.y + 16, w: 36, h: 32 },
       soundToggle: { x: sound.x + sound.w - 52, y: sound.y + 8, w: 52, h: 28 },
       musicToggle: { x: music.x + music.w - 52, y: music.y + 8, w: 52, h: 28 },
-      back: { x: 40, y: Math.min(audio.y + audio.h + 16, height - 66), w: width - 80, h: 50 },
+      back: {
+        x: 40,
+        y: Math.min(audio.y + audio.h + 16, height - bottomPad - 50),
+        w: width - 80,
+        h: 50,
+      },
     }
   }
 
@@ -96,7 +109,7 @@ export function settingsLayout(width: number, height: number, titleY: number): S
   const controlY = duration.y + 52
   const backW = Math.min(320, width - 80)
   const backH = 50
-  const backY = Math.min(bottom.y + bottom.h + 20, height - 24 - backH)
+  const backY = Math.min(bottom.y + bottom.h + 20, height - Math.max(24, bottomPad) - backH)
   return {
     wide: true,
     top,
@@ -115,11 +128,43 @@ export function settingsLayout(width: number, height: number, titleY: number): S
   }
 }
 
+export function settingsContentWindow(layout: SettingsLayout): { top: number; height: number; viewH: number } {
+  const top = layout.top ? layout.top.y : layout.solo.y
+  const bottom = layout.audio
+    ? layout.audio.y + layout.audio.h
+    : layout.bottom
+      ? layout.bottom.y + layout.bottom.h
+      : top
+  const gap = layout.wide ? 20 : 16
+  return {
+    top,
+    height: Math.max(0, bottom - top),
+    viewH: Math.max(0, layout.back.y - gap - top),
+  }
+}
+
 export class SettingsScene {
   private hits: Hit[] = []
   private sound = loadSoundEnabled()
   private music = loadMusicEnabled()
   private answerSeconds = loadDuelAnswerSeconds()
+  private scroll = new VerticalScroll()
+
+  resetScroll() {
+    this.scroll.reset()
+  }
+
+  onPointerDown(x: number, y: number) {
+    this.scroll.start(x, y)
+  }
+
+  onPointerMove(y: number) {
+    this.scroll.move(y)
+  }
+
+  pointerScrolled(): boolean {
+    return this.scroll.consumed()
+  }
 
   tap(x: number, y: number): 'back' | '' {
     const found = this.hits.find((item) => hit(item.rect, x, y))
@@ -167,9 +212,20 @@ export class SettingsScene {
       // ignore
     }
     menuTitle(ctx, '设置', width / 2, titleY, 28)
-    const layout = settingsLayout(width, height, titleY)
+    const layout = settingsLayout(width, height, titleY, bottomBarPad())
+    const content = settingsContentWindow(layout)
+    this.scroll.note(content.height, content.viewH, { x: 0, y: content.top, w: width, h: content.viewH })
+    const offset = this.scroll.offset
+    const overflow = content.height > content.viewH + 1
     const stats = loadStats()
     const duelStats = loadDuelStats()
+    if (overflow) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, content.top, width, content.viewH)
+      ctx.clip()
+      ctx.translate(0, -offset)
+    }
     if (layout.wide && layout.top && layout.bottom) {
       fillRound(ctx, layout.top, Menu.paper, 16, true)
       fillRound(ctx, layout.bottom, Menu.paper, 16, true)
@@ -211,18 +267,52 @@ export class SettingsScene {
       'center',
       '700',
     )
-    if (canMinus) {
-      this.hits.push({ rect: minus, action: 'answer-minus' })
-    }
-    if (canPlus) {
-      this.hits.push({ rect: plus, action: 'answer-plus' })
-    }
     drawToggle(ctx, soundToggle, this.sound)
     drawToggle(ctx, musicToggle, this.music)
-    this.hits.push({ rect: sound, action: 'sound' }, { rect: music, action: 'music' })
+    if (overflow) {
+      ctx.restore()
+      paintScrollbar(
+        ctx,
+        { x: 24, y: content.top, w: width - 48, h: content.viewH },
+        content.height,
+        offset,
+      )
+    }
+    const place = (rect: Rect) =>
+      overflow ? scrolledHit(rect, offset, content.top, content.top + content.viewH) : rect
+    if (canMinus) {
+      const rect = place(minus)
+      if (rect) {
+        this.hits.push({ rect, action: 'answer-minus' })
+      }
+    }
+    if (canPlus) {
+      const rect = place(plus)
+      if (rect) {
+        this.hits.push({ rect, action: 'answer-plus' })
+      }
+    }
+    const soundHit = place(sound)
+    const musicHit = place(music)
+    if (soundHit) {
+      this.hits.push({ rect: soundHit, action: 'sound' })
+    }
+    if (musicHit) {
+      this.hits.push({ rect: musicHit, action: 'music' })
+    }
     menuButton(ctx, back, '返回', 'ghost')
     this.hits.push({ rect: back, action: 'back' })
   }
+}
+
+function scrolledHit(rect: Rect, offset: number, viewTop: number, viewBottom: number): Rect | null {
+  const y = rect.y - offset
+  const top = Math.max(y, viewTop)
+  const bottom = Math.min(y + rect.h, viewBottom)
+  if (bottom - top < 8) {
+    return null
+  }
+  return { x: rect.x, y: top, w: rect.w, h: bottom - top }
 }
 
 function drawSoloStats(ctx: CanvasRenderingContext2D, card: Rect, stats: GameStats, wide: boolean) {

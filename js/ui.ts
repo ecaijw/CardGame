@@ -59,6 +59,95 @@ export function bottomBarPad(): number {
   return Math.max(34, safeBottom() + 16)
 }
 
+export function clampScroll(offset: number, contentH: number, viewH: number): number {
+  const max = Math.max(0, contentH - viewH)
+  if (!Number.isFinite(offset)) {
+    return 0
+  }
+  return Math.min(max, Math.max(0, offset))
+}
+
+export function scrollThumb(view: Rect, contentH: number, offset: number): Rect | null {
+  if (!(contentH > view.h + 1) || view.h <= 0) {
+    return null
+  }
+  const w = 4
+  const gap = 8
+  const inset = 8
+  const trackH = view.h - inset * 2
+  if (trackH < 28) {
+    return null
+  }
+  const thumbH = Math.min(trackH, Math.max(28, (trackH * view.h) / contentH))
+  const travel = trackH - thumbH
+  const max = contentH - view.h
+  const y = view.y + inset + (max > 0 ? (clampScroll(offset, contentH, view.h) / max) * travel : 0)
+  return { x: view.x + view.w + gap, y, w, h: thumbH }
+}
+
+export function paintScrollbar(
+  ctx: CanvasRenderingContext2D,
+  view: Rect,
+  contentH: number,
+  offset: number,
+) {
+  const thumb = scrollThumb(view, contentH, offset)
+  if (!thumb) {
+    return
+  }
+  fillRound(ctx, thumb, 'rgba(47, 79, 63, 0.35)', 2)
+}
+
+export class VerticalScroll {
+  offset = 0
+  private startY = 0
+  private startOffset = 0
+  private moved = false
+  private tracking = false
+  private contentH = 0
+  private viewH = 0
+  private view: Rect | null = null
+
+  reset() {
+    this.offset = 0
+    this.moved = false
+    this.tracking = false
+  }
+
+  note(contentH: number, viewH: number, view: Rect) {
+    this.contentH = contentH
+    this.viewH = viewH
+    this.view = view
+    this.offset = clampScroll(this.offset, contentH, viewH)
+  }
+
+  start(x: number, y: number) {
+    this.startY = y
+    this.startOffset = this.offset
+    this.moved = false
+    const view = this.view
+    this.tracking = !!view && this.contentH > this.viewH + 1 && hit(view, x, y)
+  }
+
+  move(y: number) {
+    if (!this.tracking) {
+      return
+    }
+    const dy = y - this.startY
+    const next = clampScroll(this.startOffset - dy, this.contentH, this.viewH)
+    if (Math.abs(dy) >= 8 && next !== this.startOffset) {
+      this.moved = true
+    }
+    if (this.moved) {
+      this.offset = next
+    }
+  }
+
+  consumed(): boolean {
+    return this.moved
+  }
+}
+
 export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,

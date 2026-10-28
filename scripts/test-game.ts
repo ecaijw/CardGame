@@ -18,8 +18,8 @@ import {
 } from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
 import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
-import { houseButtonRect } from '../js/ui'
-import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
+import { houseButtonRect, scrollThumb, VerticalScroll } from '../js/ui'
+import { settingsContentWindow, settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import {
   applyOp,
   formatFraction,
@@ -762,6 +762,17 @@ function testSettingsLayout() {
   assert(phone.audio !== null && phone.duration.y < phone.audio.y, 'phone audio card follows the timer')
   assert(phone.back.y === (phone.audio ? phone.audio.y + phone.audio.h + 16 : 0), 'phone back button follows the audio card')
   assert(phone.back.w === 390 - 80, 'phone back button keeps its width')
+  const roomy = settingsContentWindow(phone)
+  assert(roomy.height <= roomy.viewH + 1, 'tall phone settings do not need to scroll')
+
+  const tight = settingsLayout(375, 667, 88, 34)
+  assert(tight.back.y + tight.back.h <= 667 - 34, 'short settings keep the back button on screen')
+  const tightWindow = settingsContentWindow(tight)
+  assert(tightWindow.height > tightWindow.viewH, 'short settings content is taller than the window')
+  assert(
+    scrollThumb({ x: 24, y: tightWindow.top, w: 375 - 48, h: tightWindow.viewH }, tightWindow.height, 0) !== null,
+    'short settings show a scrollbar',
+  )
 
   const wide = settingsLayout(940, 665, 72)
   assert(wide.wide && wide.top !== null && wide.bottom !== null, 'wide settings use two cards')
@@ -1200,6 +1211,28 @@ function testHouseButton() {
   }
 }
 
+function testPageScroll() {
+  const view = { x: 0, y: 0, w: 100, h: 100 }
+  const scroll = new VerticalScroll()
+  scroll.note(300, 100, view)
+  scroll.start(10, 20)
+  scroll.move(18)
+  assert(scroll.offset === 0 && !scroll.consumed(), 'a small move still counts as a tap')
+  scroll.start(10, 20)
+  scroll.move(20 - 40)
+  assert(scroll.offset === 40 && scroll.consumed(), 'dragging up scrolls the page')
+  scroll.move(20 - 400)
+  assert(scroll.offset === 200, 'scroll stops at the end')
+  scroll.start(10, -10)
+  scroll.move(-80)
+  assert(scroll.offset === 200, 'a drag outside the content does not scroll')
+  const top = scrollThumb(view, 300, 0)
+  const end = scrollThumb(view, 300, 200)
+  assert(top !== null && end !== null && top.y < end.y, 'the scrollbar thumb follows the offset')
+  assert(top !== null && top.x >= view.x + view.w, 'the scrollbar sits outside the card')
+  assert(scrollThumb(view, 100, 0) === null, 'a page that fits has no scrollbar')
+}
+
 function inside(inner: { x: number; y: number; w: number; h: number }, outer: { x: number; y: number; w: number; h: number }) {
   return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
 }
@@ -1223,6 +1256,7 @@ testDialogShell()
 testCopyDialogHits()
 testTableLayout()
 testSettingsLayout()
+testPageScroll()
 testDuelWideLayout()
 testDuelStackedLayout()
 testScoreInk()
