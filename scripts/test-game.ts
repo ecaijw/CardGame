@@ -565,6 +565,21 @@ function testDuelSettingsStorage() {
     assert(loadDuelDealFilter() === 'hard', 'duel filter separate')
     assert(loadDealFilter() === 'medium', 'solo filter separate')
     assert(loadDuelAnswerSeconds() === 20, 'answer seconds default 20')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getStorageSync() {
+        return ''
+      },
+      setStorageSync() {},
+    }
+    assert(loadDuelAnswerSeconds() === 20, 'a missing WeChat key is an empty string and stays at 20')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getStorageSync(key: string) {
+        return store.get(key)
+      },
+      setStorageSync(key: string, value: unknown) {
+        store.set(key, value)
+      },
+    }
     assert(bumpDuelAnswerSeconds(1) === 25, 'bump +5')
     assert(bumpDuelAnswerSeconds(-1) === 20, 'bump -5')
   } finally {

@@ -121,7 +121,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 | 1 | 已玩题目 id | `wx.setStorage` |
 | 2 | 总数 / 成功 / 失败 / 连胜、音效、音乐 | 同上 |
 | 2.1 | 难度 `dealFilter`、含无解题 `includeUnsolvable` | 同上 |
-| 2.2 | 双人难度 / 含无解题 / 已玩 id、答题秒数、`duelStats`（红蓝胜利局数与场数） | 同上；与单人 key 分开 |
+| 2.2 | 双人难度 / 含无解题 / 已玩 id、答题秒数、`duelStats`（红蓝胜利局数与场数） | 同上；与单人 key 分开。答题秒数未写入时微信返回空字符串，按 20 秒读，不抬到 10 |
 | 3 | 免广告到期时间、终身标记；订单用于恢复 | 本地 + 虚拟支付订单 |
 | 4 | 战绩、排行 | 云开发；本地作缓存 |
 

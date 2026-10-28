@@ -137,8 +137,14 @@ export function saveDuelIncludeUnsolvable(on: boolean): void {
 export function loadDuelAnswerSeconds(): number {
   try {
     const raw = wx.getStorageSync(DUEL_ANSWER_SEC_KEY)
-    if (typeof raw === 'number' || typeof raw === 'string') {
-      return clampAnswerSeconds(Number(raw))
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      return clampAnswerSeconds(raw)
+    }
+    if (typeof raw === 'string' && raw.trim() !== '') {
+      const parsed = Number(raw)
+      if (Number.isFinite(parsed)) {
+        return clampAnswerSeconds(parsed)
+      }
     }
   } catch {
     // ignore
