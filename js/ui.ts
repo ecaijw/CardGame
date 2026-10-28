@@ -128,6 +128,19 @@ export function text(
   ctx.fillText(label, x, y)
 }
 
+export function textWidth(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  size: number,
+  weight = '600',
+) {
+  ctx.save()
+  ctx.font = `${weight} ${size}px ${MENU_FONT}`
+  const width = ctx.measureText(label).width
+  ctx.restore()
+  return width
+}
+
 export type MenuKind = 'primary' | 'ghost' | 'mint' | 'blush'
 
 export function menuInk(kind: MenuKind) {

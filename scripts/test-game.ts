@@ -8,7 +8,14 @@ import {
 import { copyContentH, copyDialogAllows, copyDialogHits, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
 import { difficultyMenuLayout } from '../js/scenes/difficulty-menu'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
-import { scoreCompact, scoreInk } from '../js/scenes/duel'
+import {
+  LEAD_CROWN_ASPECT,
+  LEAD_CROWN_GAP,
+  LEAD_CROWN_SCALE,
+  leadCrownRect,
+  scoreCompact,
+  scoreInk,
+} from '../js/scenes/duel'
 import { duelWideLayout } from '../js/scenes/duel-wide'
 import { homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
 import { settingsLayout, type SettingsLayout } from '../js/scenes/settings'
@@ -988,6 +995,53 @@ function testScoreInk() {
     const again = scoreColumns(board, compact, redBuzz, blueBuzz)
     assert(again.redX === columns.redX && again.blueX === columns.blueX, `${pair} keeps the same score columns`)
     assert(scoreTextInside(board, compact, redBuzz, blueBuzz), `${pair} stays inside the scoreboard`)
+  }
+
+  assertLeadCrown(fullScore, false, 'a stacked 58px scoreboard')
+  assertLeadCrown(fullScore, true, 'a wide 58px scoreboard')
+  assertLeadCrown(shortScore, false, 'a short phone scoreboard')
+  if (phone.kind === 'stacked') {
+    assertLeadCrown(phone.stacked.score, false, '390x844', phone.stacked.redBuzz, phone.stacked.blueBuzz)
+  }
+  if (wide.kind === 'wide') {
+    assertLeadCrown(wide.wide.battle.score, true, '940x665')
+  }
+}
+
+function assertLeadCrown(
+  board: { x: number; y: number; w: number; h: number },
+  compact: boolean,
+  label: string,
+  redRect?: { x: number; w: number },
+  blueRect?: { x: number; w: number },
+) {
+  const ink = scoreInk(board, compact)
+  const { redX, blueX } = scoreColumns(board, compact, redRect, blueRect)
+  const half = ink.scoreSize * 0.3
+  const tie = leadCrownRect(0, 0, board, redX, blueX, half, half, ink.scoreY, ink.scoreSize)
+  const even = leadCrownRect(2, 2, board, redX, blueX, half, half, ink.scoreY, ink.scoreSize)
+  assert(tie === null && even === null, `${label} hides the crown on a tie`)
+  const red = leadCrownRect(3, 1, board, redX, blueX, half, half, ink.scoreY, ink.scoreSize)
+  const blue = leadCrownRect(1, 4, board, redX, blueX, half, half, ink.scoreY, ink.scoreSize)
+  assert(red !== null && blue !== null, `${label} shows a crown for a lead`)
+  if (!red || !blue) {
+    return
+  }
+  const height = ink.scoreSize * LEAD_CROWN_SCALE
+  assert(Math.abs(red.h - height) < 0.05 && Math.abs(blue.h - height) < 0.05, `${label} crown is 80% of the score`)
+  assert(Math.abs(red.w - height * LEAD_CROWN_ASPECT) < 0.05, `${label} crown keeps the icon aspect`)
+  assert(Math.abs(red.y + red.h / 2 - ink.scoreY) < 0.05, `${label} crown is centered on the score`)
+  assert(Math.abs(blue.y + blue.h / 2 - ink.scoreY) < 0.05, `${label} blue crown is centered on the score`)
+  assert(Math.abs(red.x - (redX + half + LEAD_CROWN_GAP)) < 0.05, `${label} red crown sits just right of the red score`)
+  assert(Math.abs(blue.x + blue.w - (blueX - half - LEAD_CROWN_GAP)) < 0.05, `${label} blue crown sits just left of the blue score`)
+  for (const crown of [red, blue]) {
+    assert(
+      crown.x >= board.x &&
+        crown.y >= board.y &&
+        crown.x + crown.w <= board.x + board.w &&
+        crown.y + crown.h <= board.y + board.h,
+      `${label} crown stays inside the scoreboard`,
+    )
   }
 }
 

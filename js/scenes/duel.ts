@@ -94,6 +94,7 @@ import {
   paintHomePill,
   roundRect,
   text,
+  textWidth,
   withButtonScale,
   type Rect,
 } from '../ui'
@@ -132,6 +133,54 @@ export function scoreInk(rect: Rect, compact: boolean): ScoreInk {
     vsSize: (compact ? 11 : 12) * scale,
     vsRadius: 18 * scale,
   }
+}
+
+// icons/crown.png is 137×115. The scoreboard uses that same asset.
+export const LEAD_CROWN_ASPECT = 137 / 115
+export const LEAD_CROWN_SCALE = 0.8
+export const LEAD_CROWN_GAP = 8
+
+// Beside the leading score: red lead on the right of the red digits, blue lead on the left
+// of the blue digits. Height is 80% of the score, centered on it. Ties, including 0:0, draw nothing.
+export function leadCrownRect(
+  scoreRed: number,
+  scoreBlue: number,
+  board: Rect,
+  redX: number,
+  blueX: number,
+  redHalf: number,
+  blueHalf: number,
+  scoreY: number,
+  scoreSize: number,
+): Rect | null {
+  if (scoreRed === scoreBlue) {
+    return null
+  }
+  const h = scoreSize * LEAD_CROWN_SCALE
+  const w = h * LEAD_CROWN_ASPECT
+  const rawX =
+    scoreRed > scoreBlue
+      ? redX + redHalf + LEAD_CROWN_GAP
+      : blueX - blueHalf - LEAD_CROWN_GAP - w
+  const inset = 2
+  const x = Math.min(Math.max(rawX, board.x + inset), board.x + board.w - inset - w)
+  return { x, y: scoreY - h / 2, w, h }
+}
+
+function drawLeadCrown(ctx: CanvasRenderingContext2D, rect: Rect) {
+  const image = getIcon('crown')
+  if (!image) {
+    return
+  }
+  // A leftover shadow from the scoreboard fill makes the next drawImage paint nothing.
+  ctx.save()
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+  ctx.shadowColor = 'rgba(0,0,0,0)'
+  ctx.globalAlpha = 1
+  ctx.drawImage(image as never, 0, 0, image.width, image.height, rect.x, rect.y, rect.w, rect.h)
+  ctx.restore()
 }
 
 type Hit =
@@ -1270,6 +1319,20 @@ export class DuelScene {
     text(ctx, '蓝方', blueX, labelY, labelSize, '#5474BC', 'center', '600')
     text(ctx, String(this.match.scoreRed), redX, scoreY, scoreSize, '#F25A4B', 'center', '700')
     text(ctx, String(this.match.scoreBlue), blueX, scoreY, scoreSize, '#507ADB', 'center', '700')
+    const crown = leadCrownRect(
+      this.match.scoreRed,
+      this.match.scoreBlue,
+      rect,
+      redX,
+      blueX,
+      textWidth(ctx, String(this.match.scoreRed), scoreSize, '700') / 2,
+      textWidth(ctx, String(this.match.scoreBlue), scoreSize, '700') / 2,
+      scoreY,
+      scoreSize,
+    )
+    if (crown) {
+      drawLeadCrown(ctx, crown)
+    }
 
     ctx.save()
     ctx.shadowColor = 'rgba(36, 53, 47, 0.18)'
