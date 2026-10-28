@@ -19,11 +19,13 @@ import {
   type DuelStats,
   type GameStats,
 } from '../settings'
+import { versionLabel } from '../version'
 import { playFrame } from './board'
 import { PressFeedback } from './press'
 import {
   Color,
   Menu,
+  PAGE_BACK_GAP,
   bottomBarPad,
   drawMenuBackground,
   drawToggle,
@@ -31,6 +33,7 @@ import {
   hit,
   menuButton,
   menuTitle,
+  pageBackButton,
   paintScrollbar,
   text,
   VerticalScroll,
@@ -51,10 +54,18 @@ export type SettingsLayout = {
   sound: Rect
   music: Rect
   back: Rect
+  versionY: number
   minus: Rect
   plus: Rect
   soundToggle: Rect
   musicToggle: Rect
+}
+
+const VERSION_GAP = 16
+const VERSION_LINE = 22
+
+function versionCenter(cardBottom: number) {
+  return cardBottom + VERSION_GAP + VERSION_LINE / 2
 }
 
 export function settingsLayout(
@@ -84,12 +95,8 @@ export function settingsLayout(
       plus: { x: duration.x + duration.w - 56, y: duration.y + 16, w: 36, h: 32 },
       soundToggle: { x: sound.x + sound.w - 52, y: sound.y + 8, w: 52, h: 28 },
       musicToggle: { x: music.x + music.w - 52, y: music.y + 8, w: 52, h: 28 },
-      back: {
-        x: 40,
-        y: Math.min(audio.y + audio.h + 16, height - bottomPad - 50),
-        w: width - 80,
-        h: 50,
-      },
+      versionY: versionCenter(audio.y + audio.h),
+      back: pageBackButton(width, height, bottomPad),
     }
   }
 
@@ -109,9 +116,6 @@ export function settingsLayout(
   const cluster = 36 + 16 + 64 + 16 + 36
   const minusX = duration.x + (duration.w - cluster) / 2
   const controlY = duration.y + 52
-  const backW = Math.min(320, width - 80)
-  const backH = 50
-  const backY = Math.min(bottom.y + bottom.h + 20, height - Math.max(24, bottomPad) - backH)
   return {
     wide: true,
     top,
@@ -126,22 +130,18 @@ export function settingsLayout(
     plus: { x: minusX + 36 + 16 + 64 + 16, y: controlY, w: 36, h: 32 },
     soundToggle: { x: sound.x + (sound.w - 52) / 2, y: sound.y + 52, w: 52, h: 28 },
     musicToggle: { x: music.x + (music.w - 52) / 2, y: music.y + 52, w: 52, h: 28 },
-    back: { x: (width - backW) / 2, y: backY, w: backW, h: backH },
+    versionY: versionCenter(bottom.y + bottom.h),
+    back: pageBackButton(width, height, bottomPad),
   }
 }
 
 export function settingsContentWindow(layout: SettingsLayout): { top: number; height: number; viewH: number } {
   const top = layout.top ? layout.top.y : layout.solo.y
-  const bottom = layout.audio
-    ? layout.audio.y + layout.audio.h
-    : layout.bottom
-      ? layout.bottom.y + layout.bottom.h
-      : top
-  const gap = layout.wide ? 20 : 16
+  const bottom = layout.versionY + VERSION_LINE / 2
   return {
     top,
     height: Math.max(0, bottom - top),
-    viewH: Math.max(0, layout.back.y - gap - top),
+    viewH: Math.max(0, layout.back.y - PAGE_BACK_GAP - top),
   }
 }
 
@@ -280,6 +280,7 @@ export class SettingsScene {
     )
     drawToggle(ctx, soundToggle, this.sound)
     drawToggle(ctx, musicToggle, this.music)
+    text(ctx, versionLabel(), width / 2, layout.versionY, 13, Color.muted, 'center', '400')
     if (overflow) {
       ctx.restore()
       paintScrollbar(

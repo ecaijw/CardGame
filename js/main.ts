@@ -16,6 +16,8 @@ import {
   hit,
   menuButton,
   menuTitle,
+  PAGE_BACK_GAP,
+  pageBackButton,
   paintScrollbar,
   text,
   VerticalScroll,
@@ -396,10 +398,8 @@ class App {
     })
     contentH += padY
     const cardTop = titleY + 36
-    const backGap = 24
-    const backH = 50
-    const backY = Math.min(cardTop + contentH + backGap, this.height - bottomBarPad() - backH)
-    const viewH = Math.max(0, backY - backGap - cardTop)
+    const back = pageBackButton(width, this.height, bottomBarPad())
+    const viewH = Math.max(0, back.y - PAGE_BACK_GAP - cardTop)
     const view = { x: cardX, y: cardTop, w: cardW, h: viewH }
     this.howtoScroll.note(contentH, viewH, view)
     const offset = this.howtoScroll.offset
@@ -436,8 +436,6 @@ class App {
       ctx.restore()
       paintScrollbar(ctx, view, contentH, offset)
     }
-    const btnW = Math.min(248, width - 96)
-    const back = { x: (width - btnW) / 2, y: backY, w: btnW, h: backH }
     withButtonScale(ctx, back, this.backPress.scale('back', Date.now()), () => {
       menuButton(ctx, back, '返回', 'ghost')
     })

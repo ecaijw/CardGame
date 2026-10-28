@@ -20,6 +20,7 @@ import { duelWideLayout } from '../js/scenes/duel-wide'
 import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from '../js/scenes/home-layout'
 import { houseButtonRect, scrollThumb, VerticalScroll } from '../js/ui'
 import { settingsContentWindow, settingsLayout, type SettingsLayout } from '../js/scenes/settings'
+import { gameVersion, versionLabel } from '../js/version'
 import {
   applyOp,
   formatFraction,
@@ -771,8 +772,44 @@ function testSettingsLayout() {
   assert(!phone.wide && phone.audio !== null, 'phone settings stay in one column')
   assert(phone.solo.y < phone.duel.y && phone.duel.y < phone.duration.y, 'phone cards keep their order')
   assert(phone.audio !== null && phone.duration.y < phone.audio.y, 'phone audio card follows the timer')
-  assert(phone.back.y === (phone.audio ? phone.audio.y + phone.audio.h + 16 : 0), 'phone back button follows the audio card')
-  assert(phone.back.w === 390 - 80, 'phone back button keeps its width')
+  assert(phone.back.y === 844 - 16 - 50 && phone.back.h === 50, 'phone back button sits on the page bottom')
+  assert(phone.back.w === 248 && phone.back.x === (390 - 248) / 2, 'phone back button matches the how-to button')
+  assert(
+    phone.audio !== null && phone.versionY === phone.audio.y + phone.audio.h + 16 + 11,
+    'version sits under the audio card',
+  )
+  assert(versionLabel('1.2.3.4') === '版本号：1.2.3.4', 'version line prefixes the uploaded number')
+  const previousWx = (globalThis as { wx?: unknown }).wx
+  try {
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: { version: '2.0.0.1', envVersion: 'release' } }),
+    }
+    assert(gameVersion() === '2.0.0.1', 'release reads the uploaded version')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: { version: '', envVersion: 'release' } }),
+    }
+    assert(gameVersion() === '正式版', 'release without a number stays labeled as release')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: { version: '', envVersion: 'develop' } }),
+    }
+    assert(gameVersion() === '开发版', 'develop has no uploaded version')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: { version: ' ', envVersion: 'trial' } }),
+    }
+    assert(gameVersion() === '体验版', 'trial has no uploaded version')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => {
+        throw new Error('unavailable')
+      },
+    }
+    assert(gameVersion() === '版本未知', 'a failed account read is unknown')
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: { version: '', envVersion: 'preview' } }),
+    }
+    assert(gameVersion() === '版本未知', 'an unrecognized environment is unknown')
+  } finally {
+    ;(globalThis as { wx?: unknown }).wx = previousWx
+  }
   const roomy = settingsContentWindow(phone)
   assert(roomy.height <= roomy.viewH + 1, 'tall phone settings do not need to scroll')
 
@@ -790,8 +827,9 @@ function testSettingsLayout() {
   assert(wide.solo.y === wide.duel.y && wide.duel.x > wide.solo.x + wide.solo.w, 'solo and duel sit side by side')
   assert(wide.duration.y === wide.sound.y && wide.sound.y === wide.music.y, 'timer, sound, and music share one row')
   assert(wide.duration.x < wide.sound.x && wide.sound.x < wide.music.x, 'the settings row reads left to right')
-  assert(wide.back.y >= (wide.bottom ? wide.bottom.y + wide.bottom.h : 0), 'back button sits under both cards')
-  assert(wide.back.y + wide.back.h <= 665 - 24, 'back button stays on screen')
+  assert(wide.back.y === 665 - 16 - 50 && wide.back.w === 248, 'wide back button uses the same bottom slot')
+  assert(wide.bottom !== null && wide.versionY === wide.bottom.y + wide.bottom.h + 16 + 11, 'version sits under the wide card')
+  assert(wide.versionY + 11 <= wide.back.y, 'version stays above the back button')
   assert(wide.back.w < (wide.top ? wide.top.w : 0) && wide.back.x === (940 - wide.back.w) / 2, 'back button is centered and narrower than the cards')
   assert(!overlaps(wide.back, wide.sound) && !overlaps(wide.back, wide.music), 'back button does not cover sound or music')
   assert(inside(wide.soundToggle, wide.sound) && inside(wide.minus, wide.duration), 'controls stay inside their columns')

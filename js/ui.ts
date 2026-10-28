@@ -59,6 +59,19 @@ export function bottomBarPad(): number {
   return Math.max(34, safeBottom() + 16)
 }
 
+export const PAGE_BACK_H = 50
+export const PAGE_BACK_GAP = 24
+
+export function pageBackButton(width: number, height: number, bottomPad: number): Rect {
+  const w = Math.min(248, Math.max(0, width - 96))
+  return {
+    x: (width - w) / 2,
+    y: height - bottomPad - PAGE_BACK_H,
+    w,
+    h: PAGE_BACK_H,
+  }
+}
+
 export function clampScroll(offset: number, contentH: number, viewH: number): number {
   const max = Math.max(0, contentH - viewH)
   if (!Number.isFinite(offset)) {
