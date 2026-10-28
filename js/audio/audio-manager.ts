@@ -3,7 +3,7 @@ import { loadMusicEnabled, loadSoundEnabled } from '../settings'
 export type SfxName = 'tap' | 'select' | 'merge' | 'invalid' | 'success' | 'next'
 
 const BGM_SRC = 'audio/bgm.mp3'
-const BGM_VOLUME = 0.18
+const BGM_VOLUME = 0.10
 const SFX_VOLUME: Record<SfxName, number> = {
   tap: 0.45,
   select: 0.45,

@@ -25,6 +25,6 @@ Kenney 包说明：`Interface Sounds (1.0)`，创建日 2020-02-11，作者 Kenn
 - 音效用了方案里的**备选包** Interface Sounds，没用主选 UI Audio（同一作者、同为 CC0；音色更贴近轻点 / 选择 / 确认）。
 - `select` / `merge` 后来换成 OpenGameArt *Kalimba Two-Notes*（拇指琴，接近马林巴的木质余韵）。Kenney 的 `select_003` / `pluck_002` 太短促、偏电子点击。点牌用轻的第一音，合并用更响的第二音，避免同音叠在一起。
 - BGM 没用 Pixabay：开发机无法免登录直接下。改用 OpenGameArt 上同风格、可循环、**CC0** 的 *Cozy Puzzle In-Game 2*（90 BPM，无人声）。因此没有 Pixabay 详情页截图。
-- 未改音量；音量留给播放模块（BGM 约 0.16–0.22，音效约 0.35–0.55）。
+- 未改音量；音量留给播放模块（BGM 0.10，音效约 0.35–0.55）。
 
 若听感不合适，可在不改文件名的前提下换源文件，并改本表对应行。
