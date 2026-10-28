@@ -16,6 +16,7 @@ import {
   panelCard,
   tableLayout,
   soloCopyMode,
+  copyDialogHits,
   type Face,
   type Motion,
 } from './board'
@@ -584,21 +585,21 @@ export class PlayScene {
       ]
     }
 
+    const homeRect = houseButtonRect()
+    drawHouseButton(ctx, homeRect, this.press.scale('home', t))
+    const copyDialogOn = copyMode === 'dialog' && !this.dialogOpen() && !this.unsolvableNotice
+    if (!this.dialogOpen() && !this.unsolvableNotice && !copyDialogOn) {
+      this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
+    }
+
     if (this.dialogOpen()) {
       this.drawDialog(ctx, width, height, t, slots, fontSize)
     }
     if (this.unsolvableNotice) {
       this.drawUnsolvableNotice(ctx, width, height, t)
     }
-
-    if (copyMode === 'dialog' && !this.dialogOpen() && !this.unsolvableNotice) {
+    if (copyDialogOn) {
       this.drawCopyDialog(ctx, width, height, t, hintOn)
-      this.hits.push({ rect: answer, hit: { kind: 'answer' } })
-    }
-    const homeRect = houseButtonRect()
-    drawHouseButton(ctx, homeRect, this.press.scale('home', t))
-    if (!this.dialogOpen() && !this.unsolvableNotice) {
-      this.hits.push({ rect: homeRect, hit: { kind: 'home' } })
     }
   }
 
@@ -792,7 +793,7 @@ export class PlayScene {
         })
       }
       const close = paintDialogButton(ctx, dialog, dialog.h - 74, '关闭', this.press.scale('copy-dismiss', t))
-      this.hits.push({ rect: close, hit: { kind: 'copy-dismiss' } })
+      this.hits = copyDialogHits(close)
     })
   }
 

@@ -5,7 +5,7 @@ import {
   dialogMotion,
   dialogRect,
 } from '../js/scenes/dialog'
-import { copyContentH, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
+import { copyContentH, copyDialogAllows, copyDialogHits, copyNeedsDialog, soloCopyMode, tableLayout } from '../js/scenes/board'
 import { difficultyMenuLayout } from '../js/scenes/difficulty-menu'
 import { selectDuelLayout } from '../js/scenes/duel-stacked'
 import { scoreCompact, scoreInk } from '../js/scenes/duel'
@@ -602,6 +602,32 @@ function testDialogShell() {
   assert(button.y + button.h < success.y + success.h, 'dialog button stays inside the card')
 }
 
+function testCopyDialogHits() {
+  const dialog = dialogRect(390, 672, 220)
+  const close = dialogButtonRect(dialog, dialog.h - 74)
+  const hits = copyDialogHits(close)
+  assert(hits.length === 1, 'copy dialog keeps one hit')
+  assert(hits[0].hit.kind === 'copy-dismiss', 'copy dialog only registers close')
+  assert(hits[0].rect.x === close.x && hits[0].rect.y === close.y, 'close uses the dialog button rect')
+  const kinds = hits.map((item) => item.hit.kind)
+  ;(['answer', 'home', 'difficulty', 'settings', 'restart', 'next', 'card', 'op'] as const).forEach((kind) => {
+    assert(!kinds.includes(kind), `copy dialog does not keep ${kind}`)
+    assert(!copyDialogAllows(kind), `copy dialog forbids ${kind}`)
+  })
+  assert(copyDialogAllows('copy-dismiss'), 'copy dialog allows close')
+
+  const leaked = [
+    { rect: close, hit: { kind: 'answer' as const } },
+    { rect: close, hit: { kind: 'home' as const } },
+    ...hits,
+  ]
+  const locked = leaked.filter((item) => copyDialogAllows(item.hit.kind))
+  assert(locked.length === 1 && locked[0].hit.kind === 'copy-dismiss', 'leaked board hits are dropped')
+
+  const short = tableLayout(460, 672, 72, 34)
+  assert(soloCopyMode(short.copy.h, false, true, 2) === 'dialog', '460x672 answer still uses a dialog')
+}
+
 function testTableLayout() {
   const phone = tableLayout(390, 844, 72, 34)
   assert(phone.frame.side === null, 'phone keeps a single column')
@@ -1083,6 +1109,7 @@ testDuelFlow()
 testDuelRoundViews()
 testDuelSettingsStorage()
 testDialogShell()
+testCopyDialogHits()
 testTableLayout()
 testSettingsLayout()
 testDuelWideLayout()

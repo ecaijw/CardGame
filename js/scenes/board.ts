@@ -289,6 +289,16 @@ export function soloCopyMode(
   return copyNeedsDialog(bandH, contentH) ? 'dialog' : 'page'
 }
 
+export type CopyDialogHit = { rect: Rect; hit: { kind: 'copy-dismiss' } }
+
+export function copyDialogHits(close: Rect): CopyDialogHit[] {
+  return [{ rect: close, hit: { kind: 'copy-dismiss' } }]
+}
+
+export function copyDialogAllows(kind: string) {
+  return kind === 'copy-dismiss'
+}
+
 export function slotRects(
   originX: number,
   columnW: number,
