@@ -39,6 +39,7 @@ class App {
   private settingsBack: 'home' | 'play' | 'duel' = 'home'
   private hits: Hit[] = []
   private homePress = new PressFeedback(100, 0.97)
+  private backPress = new PressFeedback(100, 0.97)
   private howtoScroll = new VerticalScroll()
   private trackingScroll = false
 
@@ -72,6 +73,7 @@ class App {
       if (this.scene === 'howto') {
         this.trackingScroll = true
         this.howtoScroll.start(touch.clientX, touch.clientY)
+        this.pressBack(touch.clientX, touch.clientY)
       }
       if (this.scene === 'settings') {
         this.trackingScroll = true
@@ -107,6 +109,12 @@ class App {
       if (this.scene === 'home') {
         this.homePress.up(Date.now())
       }
+      if (this.scene === 'howto') {
+        this.backPress.up(Date.now())
+      }
+      if (this.scene === 'settings') {
+        this.settings.pressUp()
+      }
       const scrolled =
         (this.scene === 'howto' && this.howtoScroll.consumed()) ||
         (this.scene === 'settings' && this.settings.pointerScrolled())
@@ -120,6 +128,8 @@ class App {
       this.play?.pressUp()
       this.duel?.pressUp()
       this.homePress.up(Date.now())
+      this.backPress.up(Date.now())
+      this.settings.pressUp()
     })
     const raf =
       typeof this.canvas.requestAnimationFrame === 'function'
@@ -257,6 +267,13 @@ class App {
     const found = this.hits.find((item) => hit(item.rect, x, y))
     if (found) {
       this.homePress.down(found.action, Date.now())
+    }
+  }
+
+  private pressBack(x: number, y: number) {
+    const found = this.hits.find((item) => hit(item.rect, x, y))
+    if (found?.action === 'back') {
+      this.backPress.down('back', Date.now())
     }
   }
 
@@ -421,7 +438,9 @@ class App {
     }
     const btnW = Math.min(248, width - 96)
     const back = { x: (width - btnW) / 2, y: backY, w: btnW, h: backH }
-    menuButton(ctx, back, '返回', 'ghost')
+    withButtonScale(ctx, back, this.backPress.scale('back', Date.now()), () => {
+      menuButton(ctx, back, '返回', 'ghost')
+    })
     this.hits.push({ rect: back, action: 'back' })
   }
 }

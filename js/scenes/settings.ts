@@ -20,6 +20,7 @@ import {
   type GameStats,
 } from '../settings'
 import { playFrame } from './board'
+import { PressFeedback } from './press'
 import {
   Color,
   Menu,
@@ -33,6 +34,7 @@ import {
   paintScrollbar,
   text,
   VerticalScroll,
+  withButtonScale,
   type Rect,
 } from '../ui'
 
@@ -149,6 +151,7 @@ export class SettingsScene {
   private music = loadMusicEnabled()
   private answerSeconds = loadDuelAnswerSeconds()
   private scroll = new VerticalScroll()
+  private press = new PressFeedback(100, 0.97)
 
   resetScroll() {
     this.scroll.reset()
@@ -156,6 +159,14 @@ export class SettingsScene {
 
   onPointerDown(x: number, y: number) {
     this.scroll.start(x, y)
+    const found = this.hits.find((item) => hit(item.rect, x, y))
+    if (found?.action === 'back') {
+      this.press.down('back', Date.now())
+    }
+  }
+
+  pressUp() {
+    this.press.up(Date.now())
   }
 
   onPointerMove(y: number) {
@@ -300,7 +311,9 @@ export class SettingsScene {
     if (musicHit) {
       this.hits.push({ rect: musicHit, action: 'music' })
     }
-    menuButton(ctx, back, '返回', 'ghost')
+    withButtonScale(ctx, back, this.press.scale('back', Date.now()), () => {
+      menuButton(ctx, back, '返回', 'ghost')
+    })
     this.hits.push({ rect: back, action: 'back' })
   }
 }
