@@ -21,6 +21,7 @@ import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from '../js/scenes/home-l
 import { houseButtonRect, scrollThumb, VerticalScroll } from '../js/ui'
 import { settingsContentWindow, settingsLayout, type SettingsLayout } from '../js/scenes/settings'
 import { gameVersion, versionLabel } from '../js/version'
+import { dispose as disposeAudio, init as initAudio, setMusicEnabled, unlockAndStartBgm } from '../js/audio/audio-manager'
 import {
   applyOp,
   formatFraction,
@@ -1260,6 +1261,82 @@ function testHouseButton() {
   }
 }
 
+function testBlockedBgmCanRestart() {
+  type Listener = () => void
+  const contexts: Array<{
+    loop: boolean
+    playCount: number
+    pauseCount: number
+    emitPlay: () => void
+  }> = []
+  const previous = (globalThis as { wx?: unknown }).wx
+  ;(globalThis as { wx?: unknown }).wx = {
+    getStorageSync() {
+      return undefined
+    },
+    setStorageSync() {},
+    createInnerAudioContext() {
+      const playListeners: Listener[] = []
+      const ctx = {
+        src: '',
+        volume: 1,
+        loop: false,
+        playCount: 0,
+        pauseCount: 0,
+        play() {
+          ctx.playCount += 1
+        },
+        pause() {
+          ctx.pauseCount += 1
+        },
+        stop() {},
+        seek() {},
+        destroy() {},
+        onPlay(fn: Listener) {
+          playListeners.push(fn)
+        },
+        onPause() {},
+        onStop() {},
+        onError() {},
+        emitPlay() {
+          playListeners.forEach((fn) => fn())
+        },
+      }
+      contexts.push(ctx)
+      return ctx
+    },
+    onShow() {},
+    onHide() {},
+    onAppShow() {},
+    onAppHide() {},
+  }
+  try {
+    disposeAudio()
+    initAudio()
+    const bgm = contexts[0]
+    assert(bgm.loop && bgm.playCount === 1, 'startup tries to play background music once')
+    unlockAndStartBgm()
+    assert(bgm.playCount === 2, 'the first touch retries a blocked autoplay')
+    unlockAndStartBgm()
+    unlockAndStartBgm()
+    assert(bgm.playCount === 2, 'later touches wait for that play to start')
+    setMusicEnabled(false)
+    assert(bgm.pauseCount === 1, 'turning music off pauses without waiting for a callback')
+    setMusicEnabled(true)
+    assert(bgm.playCount === 3, 'turning music back on retries the blocked autoplay')
+    unlockAndStartBgm()
+    assert(bgm.playCount === 4, 'the next touch retries that attempt too')
+    unlockAndStartBgm()
+    assert(bgm.playCount === 4, 'following touches do not start another play')
+    bgm.emitPlay()
+    unlockAndStartBgm()
+    assert(bgm.playCount === 4, 'a confirmed track is not started again')
+  } finally {
+    disposeAudio()
+    ;(globalThis as { wx?: unknown }).wx = previous
+  }
+}
+
 function testPageScroll() {
   const view = { x: 0, y: 0, w: 100, h: 100 }
   const scroll = new VerticalScroll()
@@ -1305,6 +1382,7 @@ testDialogShell()
 testCopyDialogHits()
 testTableLayout()
 testSettingsLayout()
+testBlockedBgmCanRestart()
 testPageScroll()
 testDuelWideLayout()
 testDuelStackedLayout()

@@ -58,6 +58,7 @@ class App {
     preloadIcons()
     initAudio()
     wx.onTouchStart((event) => {
+      unlockAndStartBgm()
       const touch = event.changedTouches[0] || event.touches[0]
       if (!touch) {
         return

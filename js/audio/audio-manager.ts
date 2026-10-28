@@ -22,6 +22,8 @@ let hidden = false
 let musicOn = true
 let sfxOn = true
 let bgmPlaying = false
+let bgmPending = false
+let bgmFromAutoplay = false
 let bgm: AudioCtx | null = null
 const sfx: Partial<Record<SfxName, AudioCtx>> = {}
 
@@ -34,13 +36,27 @@ export function init(): void {
   sfxOn = loadSoundEnabled()
   bgm = makeCtx(BGM_SRC, BGM_VOLUME, true)
   bgm.onPlay(() => {
+    bgmPending = false
+    bgmFromAutoplay = false
+    if (!musicOn || hidden) {
+      bgmPlaying = false
+      try {
+        bgm?.pause()
+      } catch {
+        // ignore
+      }
+      return
+    }
     bgmPlaying = true
   })
   bgm.onPause(() => {
-    bgmPlaying = false
+    clearBgmWait()
   })
   bgm.onStop(() => {
-    bgmPlaying = false
+    clearBgmWait()
+  })
+  bgm.onError(() => {
+    clearBgmWait()
   })
   SFX_NAMES.forEach((name) => {
     sfx[name] = makeCtx(`audio/${name}.mp3`, SFX_VOLUME[name], false)
@@ -55,26 +71,23 @@ export function init(): void {
       playBgm()
     }
   })
+  if (musicOn) {
+    unlocked = true
+    playBgm()
+  }
 }
 
 export function unlockAndStartBgm(): void {
   unlocked = true
-  playBgm()
+  startBgm(true)
 }
 
 export function playBgm(): void {
-  if (!bgm || !unlocked || !musicOn || hidden || bgmPlaying) {
-    return
-  }
-  try {
-    bgm.volume = BGM_VOLUME
-    bgm.play()
-  } catch {
-    // ignore
-  }
+  startBgm(false)
 }
 
 export function pauseBgm(): void {
+  clearBgmWait()
   if (!bgm) {
     return
   }
@@ -110,6 +123,7 @@ export function playSfx(name: SfxName): void {
 export function setMusicEnabled(on: boolean): void {
   musicOn = on
   if (on) {
+    unlocked = true
     playBgm()
   } else {
     pauseBgm()
@@ -131,7 +145,30 @@ export function dispose(): void {
   ready = false
   unlocked = false
   hidden = false
+  clearBgmWait()
+}
+
+function startBgm(fromGesture: boolean): void {
+  if (!bgm || !unlocked || !musicOn || hidden || bgmPlaying) {
+    return
+  }
+  if (bgmPending && !(fromGesture && bgmFromAutoplay)) {
+    return
+  }
+  try {
+    bgmPending = true
+    bgmFromAutoplay = !fromGesture
+    bgm.volume = BGM_VOLUME
+    bgm.play()
+  } catch {
+    clearBgmWait()
+  }
+}
+
+function clearBgmWait(): void {
   bgmPlaying = false
+  bgmPending = false
+  bgmFromAutoplay = false
 }
 
 function silenceCtx(ctx: AudioCtx | undefined): void {
