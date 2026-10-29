@@ -1,6 +1,6 @@
 # 24 点 — Agent 约束
 
-玩法见 [docs/rules.md](docs/rules.md)。分期见 [docs/roadmap.md](docs/roadmap.md)。第 0 期交接见 [docs/phase-0-handoff.md](docs/phase-0-handoff.md)。第 1 期交接见 [docs/phase-1-handoff.md](docs/phase-1-handoff.md)。第 2 期交接见 [docs/phase-2-handoff.md](docs/phase-2-handoff.md)。第 2.1 期交接见 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)（上线仍进行中）。第 2.2 期交接见 [docs/phase-2.2-handoff.md](docs/phase-2.2-handoff.md)（已冻结：同机双人对战；定稿 [docs/phase-2.2-duel.md](docs/phase-2.2-duel.md)）。第 2.3 期交接见 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)（已冻结：响应式布局；方案 [docs/ux/issue-49-responsive-layout.md](docs/ux/issue-49-responsive-layout.md)）。第 2.4 期交接见 [docs/phase-2.4-handoff.md](docs/phase-2.4-handoff.md)（进行中：体验收口，并上线当前版本）。
+玩法见 [docs/rules.md](docs/rules.md)。分期见 [docs/roadmap.md](docs/roadmap.md)。第 0 期交接见 [docs/phase-0-handoff.md](docs/phase-0-handoff.md)。第 1 期交接见 [docs/phase-1-handoff.md](docs/phase-1-handoff.md)。第 2 期交接见 [docs/phase-2-handoff.md](docs/phase-2-handoff.md)。第 2.1 期交接见 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)（上线仍进行中）。第 2.2 期交接见 [docs/phase-2.2-handoff.md](docs/phase-2.2-handoff.md)（已冻结：同机双人对战；定稿 [docs/phase-2.2-duel.md](docs/phase-2.2-duel.md)）。第 2.3 期交接见 [docs/phase-2.3-handoff.md](docs/phase-2.3-handoff.md)（已冻结：响应式布局；方案 [docs/ux/issue-49-responsive-layout.md](docs/ux/issue-49-responsive-layout.md)）。第 2.4 期交接见 [docs/phase-2.4-handoff.md](docs/phase-2.4-handoff.md)（已冻结：体验收口）。第 2.5 期交接见 [docs/phase-2.5-handoff.md](docs/phase-2.5-handoff.md)（未开始，待定）。
 
 ## 流程
 
@@ -9,7 +9,7 @@
 3. 未经我明确确认，不要 `git commit` 或 `git push`。写完代码、文档或交接后停在工作区，等我要求再提交。
 4. 开始做新功能时，若工作区已有未提交改动（尤其会和新功能改到同一批文件），先停下来问我：要不要先提交当前文件，避免两个功能混在一次提交里。
 5. 改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
-6. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`、`docs/phase-1-handoff.md`、`docs/phase-2-handoff.md`、`docs/phase-2.2-handoff.md`、`docs/phase-2.3-handoff.md`）。第 2.1 期上线仍进行中，进展写入 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)。第 2.4 期进行中，进展写入 [docs/phase-2.4-handoff.md](docs/phase-2.4-handoff.md)，并同步 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)。结束并冻结后，再新建下一份 `docs/phase-N-handoff.md`。
+6. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`、`docs/phase-1-handoff.md`、`docs/phase-2-handoff.md`、`docs/phase-2.2-handoff.md`、`docs/phase-2.3-handoff.md`、`docs/phase-2.4-handoff.md`）。已经完成的交接默认不改，除非这次改动必须写进那一份。第 2.1 期上线仍进行中，进展写入 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)。第 2.5 期未开始，开工后再把进展写入 [docs/phase-2.5-handoff.md](docs/phase-2.5-handoff.md)，并同步 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)。结束并冻结后，再新建下一份 `docs/phase-N-handoff.md`。
 
 ## 编码
 
