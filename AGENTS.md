@@ -48,4 +48,4 @@
 6. 牌面动画（参考拆解与第 2 期方案）：`docs/animation.md`
 7. 音效方案：`docs/audio.md`；授权记录：`docs/audio-assets.md`
 8. 同机双人产品与技术定稿：`docs/phase-2.2-duel.md`（第 2.2 期已结束）。响应式布局见 `docs/ux/issue-49-responsive-layout.md`（第 2.3 期已结束）
-9. 正式发布版本日志：`CHANGELOG.md`。只在正式版发布时写一条，说明这一版给玩家带来了什么；体验版或日常上传不写。具体问题仍记在 `docs/test.md`，开发过程仍记在当期 handoff
+9. 正式版版本日志：`CHANGELOG.md`。提审时在表顶加一行，按日期从新到旧：版本号、日期、当时 `main` 的最新提交、给玩家看的变化。审核中仍是同一版本号时，只改这一行的 last commit。体验版和日常上传不写。具体问题仍记在 `docs/test.md`，开发过程仍记在当期 handoff
