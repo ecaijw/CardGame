@@ -2,9 +2,9 @@
 
 玩法见 [rules.md](rules.md)，产品细节见 [prd.md](prd.md)，技术见 [tech.md](tech.md)，牌面动画见 [animation.md](animation.md)，音效方案见 [audio.md](audio.md)，同机双人方案见 [phase-2.2-duel.md](phase-2.2-duel.md)，响应式布局见 [ux/issue-49-responsive-layout.md](ux/issue-49-responsive-layout.md)，iOS / Android 跨平台预研见 [app-cross-platform.md](app-cross-platform.md)。
 
-当前状态：**第 2.4 期进行中（2026-10-28 起）。** 目标是第 2.3 期之后的体验收口，并上线当前版本。优先 [test.md](test.md) 第 42、54 条，以及游戏类目、资质、备案、提审、发布。交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。第 2.3 期已完成，见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.2 期已完成，见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，过程仍记在 [phase-2.1-handoff.md](phase-2.1-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
+当前状态：**第 2.5 期进行中（2026-10-29 起）。** 目标是右上角转发：把小游戏发给好友或群聊，不带题目。交接见 [phase-2.5-handoff.md](phase-2.5-handoff.md)。第 2.4 期已完成，见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。第 2.3 期已完成，见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.2 期已完成，见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.1 期上线尚未完成，过程仍记在 [phase-2.1-handoff.md](phase-2.1-handoff.md)。开发者工具选 Mini Game，AppID `wx7ef5e16ec6f6fd5f`，导入仓库根目录。
 
-**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2.2 期交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.3 期交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.4 期交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。
+**开新的一期之前：** 先沉淀当前进展（跑测试、对齐文档、写或更新该期 handoff），再扩功能。第 0 期交接见 [phase-0-handoff.md](phase-0-handoff.md)。第 1 期交接见 [phase-1-handoff.md](phase-1-handoff.md)。第 2 期交接见 [phase-2-handoff.md](phase-2-handoff.md)。第 2.1 期交接见 [phase-2.1-handoff.md](phase-2.1-handoff.md)。第 2.2 期交接见 [phase-2.2-handoff.md](phase-2.2-handoff.md)。第 2.3 期交接见 [phase-2.3-handoff.md](phase-2.3-handoff.md)。第 2.4 期交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。第 2.5 期交接见 [phase-2.5-handoff.md](phase-2.5-handoff.md)。
 
 ## 第 0 期 — 可玩的单人局（MVP）· 已完成
 
@@ -69,9 +69,9 @@
 
 交接见 [phase-2.4-handoff.md](phase-2.4-handoff.md)。
 
-## 第 2.5 期 — 未开始
+## 第 2.5 期 — 微信转发 · 进行中
 
-TODO 待定。
+右上角菜单可以把小游戏转发给好友或群聊。标题是「经典24点，单人挑战，双人抢答」，图片是微信后台已上传的分享图。不带题目参数，点开进入首页。不做游戏内转发按钮，也不分享到朋友圈。第 61、62 条不在本期。带题目 id 的分享仍是第 4 期。不接广告、不接支付、不用云。
 
 交接见 [phase-2.5-handoff.md](phase-2.5-handoff.md)。
 
@@ -87,7 +87,7 @@ TODO 待定。
 ## 第 4 期 — 社交与留存
 
 - 每日一题（日期种子，本地）
-- 分享到聊天
+- 分享到聊天（带题目 id。右上角不带题目的转发在第 2.5 期）
 - 微信云开发：每日榜、战绩同步
 - 好友异步挑战
 - 成就、牌面主题

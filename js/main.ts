@@ -1,4 +1,5 @@
 import { init as initAudio, playSfx, unlockAndStartBgm } from './audio/audio-manager'
+import { enableShare } from './share'
 import { preloadIcons } from './art'
 import { DuelScene } from './scenes/duel'
 import { CHALLENGE_SIZE, homeLayout, homeTitleAnchor } from './scenes/home-layout'
@@ -57,6 +58,7 @@ class App {
     this.ctx.scale(dpr, dpr)
     preloadIcons()
     initAudio()
+    enableShare()
     wx.onTouchStart((event) => {
       unlockAndStartBgm()
       const touch = event.changedTouches[0] || event.touches[0]
