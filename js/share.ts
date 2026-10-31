@@ -23,6 +23,7 @@ export function shareMessage(): ShareMessage {
 }
 
 export function enableShare(): void {
-  wx.showShareMenu({ menus: ['shareAppMessage'] })
+  wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })
   wx.onShareAppMessage(() => shareMessage())
+  wx.onShareTimeline(() => shareMessage())
 }

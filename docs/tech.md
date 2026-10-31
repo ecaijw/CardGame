@@ -139,7 +139,7 @@ project.config.json     compileType: game；pack ignore：docs、scripts、puzzl
 - 游戏说明和设置：内容高出「返回」上方的区域时，标题和「返回」固定，中间可上下拖动，滚动条画在卡片右侧的空白里。放得下时不滚动，位置与原来一致。「返回」按下缩放到 0.97，约 100ms，与首页大按钮相同。
 - 运算符可点区域：`operatorHitRect` 用运算符顶边到第二行牌底边的间距，向上、向下各扩一半。绘制仍用原来的长方形。单人和双人共用。
 - 游戏说明和设置的「返回」共用 `pageBackButton`：宽 `min(248, 屏宽 - 96)`，高 50，贴在 `bottomBarPad` 之上。游戏说明和设置都始终用这个底边。正文高出按钮上方的区域时，中间仍可滚动。版本号用 `wx.getAccountInfoSync().miniProgram.version`，也就是上传时填的版本号，只在正式版有值。开发版显示「开发版」，体验版显示「体验版」。正式版没有数字时显示「正式版」。接口失败或环境认不出来时显示「版本未知」。设置页在音效和音乐卡片下居中画「版本号：」加这段文字。
-- 转发：第 2.5 期启动时 `wx.showShareMenu({ menus: ['shareAppMessage'] })`，`wx.onShareAppMessage` 返回固定标题，以及微信后台已上传的分享图地址 `https://mmocgame.qpic.cn/wechatgame/DaCfOt8icEw9qGxyVEYzS3pMpiaufnezn2W54HTgaFldbY9yEIq10OPGdc3IZAYe7W/0`。2026-10-30 审核通过，`imageUrlId` 为 `RAamo2LPQaOI1RW8De/zKQ==`，转发优先用这个编号，图片地址留作兜底。不带 `query`。朋友圈和游戏内转发按钮不做。
+- 转发：第 2.5 期启动时 `wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })`。`wx.onShareAppMessage` 和 `wx.onShareTimeline` 返回同一份内容：固定标题，以及微信后台已上传的分享图地址 `https://mmocgame.qpic.cn/wechatgame/DaCfOt8icEw9qGxyVEYzS3pMpiaufnezn2W54HTgaFldbY9yEIq10OPGdc3IZAYe7W/0`。2026-10-30 审核通过，`imageUrlId` 为 `RAamo2LPQaOI1RW8De/zKQ==`，转发优先用这个编号，图片地址留作兜底。不带 `query`。游戏内转发按钮不做。
 - 后续：若上线后要做数字 / 扑克切换，自绘 4 花色 × 13 点，避免版权图。[test.md](test.md) 第 12 条已 `won't fix`
 
 ## 6. 广告与支付（第 3 期，第 0 期不实现）

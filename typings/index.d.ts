@@ -10,5 +10,6 @@ declare namespace WechatMiniprogram {
 
   interface Wx {
     onShareAppMessage(listener: () => ShareMessageContent): void
+    onShareTimeline(listener: () => ShareMessageContent): void
   }
 }
