@@ -22,7 +22,7 @@
 - 第 4 期带题目 id 的分享
 - 广告、支付、云、多语言
 
-版本 `1.0.0.28102804` 的审核和发布仍记在 [phase-2.1-handoff.md](phase-2.1-handoff.md)，不冻结。本次不写 [CHANGELOG.md](../CHANGELOG.md)。
+版本 `1.0.0.28102804` 的审核和发布仍记在 [phase-2.1-handoff.md](phase-2.1-handoff.md)，不冻结。准备提审的 `1.0.0.26110101` 记在 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 已接入
 

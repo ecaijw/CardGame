@@ -10,6 +10,9 @@
 4. 开始做新功能时，若工作区已有未提交改动（尤其会和新功能改到同一批文件），先停下来问我：要不要先提交当前文件，避免两个功能混在一次提交里。
 5. 改 `js/game/`、对局逻辑（`js/scenes/play.ts`、抽题、已玩记录）或 `scripts/test-game.ts` / `scripts/solve.ts` 之后，必须跑 `npm test`，通过后再结束。只改文档或本文件不必测。
 6. 已结束的分期交接冻结，不要再改（`docs/phase-0-handoff.md`、`docs/phase-1-handoff.md`、`docs/phase-2-handoff.md`、`docs/phase-2.2-handoff.md`、`docs/phase-2.3-handoff.md`、`docs/phase-2.4-handoff.md`）。已经完成的交接默认不改，除非这次改动必须写进那一份。第 2.1 期上线仍进行中，进展写入 [docs/phase-2.1-handoff.md](docs/phase-2.1-handoff.md)。第 2.5 期进行中，进展写入 [docs/phase-2.5-handoff.md](docs/phase-2.5-handoff.md)，并同步 [docs/roadmap.md](docs/roadmap.md)、[docs/prd.md](docs/prd.md)、[docs/tech.md](docs/tech.md)。结束并冻结后，再新建下一份 `docs/phase-N-handoff.md`。
+7. 我说「准备发布」时，写 [CHANGELOG.md](CHANGELOG.md)。体验版和日常上传不写。
+   - 版本号由我提供。先检查最后一段是不是 `YYMMDDxx`：`YY` 是公历年后两位（2026 年写 `26`，不要写成 `28`），`MM`、`DD` 是当天的月和日，`xx` 是当天第几次提审，从 `01` 起。对不上就停下来说明，先不要写入。
+   - 在表顶加一行。日期是当天。`last commit` 是当时 `main` 的最新提交。`log` 对比上一行的 last commit 到这次的 last commit，只写给玩家看的变化，先起草再写入。审核中仍是同一版本号时，只改这一行的 last commit。
 
 ## 编码
 
@@ -48,4 +51,4 @@
 6. 牌面动画（参考拆解与第 2 期方案）：`docs/animation.md`
 7. 音效方案：`docs/audio.md`；授权记录：`docs/audio-assets.md`
 8. 同机双人产品与技术定稿：`docs/phase-2.2-duel.md`（第 2.2 期已结束）。响应式布局见 `docs/ux/issue-49-responsive-layout.md`（第 2.3 期已结束）
-9. 正式版版本日志：`CHANGELOG.md`。提审时在表顶加一行，按日期从新到旧：版本号、日期、当时 `main` 的最新提交、给玩家看的变化。审核中仍是同一版本号时，只改这一行的 last commit。体验版和日常上传不写。具体问题仍记在 `docs/test.md`，开发过程仍记在当期 handoff
+9. 正式版版本日志：`CHANGELOG.md`。我说「准备发布」时按流程第 7 条写。具体问题仍记在 `docs/test.md`，开发过程仍记在当期 handoff
